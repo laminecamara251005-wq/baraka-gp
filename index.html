@@ -431,6 +431,9 @@
       <span id="authSwitchText">Déjà un compte ?</span>
       <a href="javascript:void(0)" onclick="switchAuthMode()" style="color:var(--green-dark);font-weight:600;text-decoration:underline;" id="authSwitchLink">Se connecter</a>
     </p>
+    <p style="margin-top:6px;font-size:13px;display:none;" id="authForgotRow">
+      <a href="javascript:void(0)" onclick="authForgotPassword()" style="color:var(--ink-soft);text-decoration:underline;">Mot de passe oublié ?</a>
+    </p>
   </div>
 </div>
 
@@ -528,6 +531,19 @@ function switchAuthMode(){
   document.getElementById('authSubmitBtn').textContent = isSignup ? 'Créer mon compte' : 'Se connecter';
   document.getElementById('authSwitchText').textContent = isSignup ? 'Déjà un compte ?' : "Pas encore de compte ?";
   document.getElementById('authSwitchLink').textContent = isSignup ? 'Se connecter' : "S'inscrire";
+  document.getElementById('authForgotRow').style.display = isSignup ? 'none' : 'block';
+}
+async function authForgotPassword(){
+  const email=document.getElementById('authEmail').value.trim();
+  if(!email){ showToast("Indiquez votre email ci-dessus, puis retapez sur ce lien"); return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    showToast("Email envoyé ! Vérifiez votre boîte de réception 📩");
+  }catch(e){
+    const code=(e && e.code)||'';
+    if(code.includes('user-not-found')) showToast("Aucun compte n'existe avec cet email");
+    else showToast(authErrorMessage(e));
+  }
 }
 function authErrorMessage(e){
   const code = (e && e.code) || '';

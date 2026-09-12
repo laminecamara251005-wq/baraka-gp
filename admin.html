@@ -77,6 +77,9 @@
     <label>Email</label><input type="email" id="adminEmail" placeholder="vous@example.com" autocomplete="username">
     <label>Mot de passe</label><input type="password" id="adminPassword" placeholder="Mot de passe" autocomplete="current-password">
     <button class="btn" onclick="adminSignIn()">Se connecter</button>
+    <p style="margin-top:10px;font-size:13px;">
+      <a href="javascript:void(0)" onclick="adminForgotPassword()" style="color:var(--ink-soft);text-decoration:underline;">Mot de passe oublié ?</a>
+    </p>
   </div>
 
   <div id="panelView" style="display:none;">
@@ -179,6 +182,18 @@ async function adminSignIn(){
   if(!email||!password){ showToast("Merci de remplir l'email et le mot de passe"); return; }
   try{ await auth.signInWithEmailAndPassword(email,password); }
   catch(e){ showToast("Identifiants incorrects"); }
+}
+async function adminForgotPassword(){
+  const email=document.getElementById('adminEmail').value.trim();
+  if(!email){ showToast("Indiquez votre email ci-dessus, puis retapez sur ce lien"); return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    showToast("Email envoyé ! Vérifiez votre boîte de réception 📩");
+  }catch(e){
+    const code=(e && e.code)||'';
+    if(code.includes('user-not-found')) showToast("Aucun compte n'existe avec cet email");
+    else showToast("Une erreur est survenue, réessayez");
+  }
 }
 async function adminSignOut(){
   stopPolling();
