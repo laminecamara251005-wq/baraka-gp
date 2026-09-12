@@ -566,26 +566,56 @@ async function authSubmit(){
   const email=document.getElementById('authEmail').value.trim();
   const password=document.getElementById('authPassword').value;
   if(!email||!password){ showToast("Merci de remplir l'email et le mot de passe"); return; }
-  if(authMode==='signup'){
-    const name=document.getElementById('authName').value.trim();
-    const phone=document.getElementById('authPhone').value.trim();
-    if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
-    try{
-      const cred=await auth.createUserWithEmailAndPassword(email,password);
-      const uid=cred.user.uid;
-      await db.collection('accounts').doc(uid).set({name,phone,email,createdAt:Date.now()});
+  const btn=document.getElementById('authSubmitBtn');
+  if(btn.disabled) return;
+  btn.disabled=true;
+  try{
+    if(authMode==='signup'){
+      const name=document.getElementById('authName').value.trim();
+      const phone=document.getElementById('authPhone').value.trim();
+      if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
+      let uid;
+      try{
+        const cred=await auth.createUserWithEmailAndPassword(email,password);
+        uid=cred.user.uid;
+      }catch(e){
+        if(((e&&e.code)||'').includes('email-already-in-use')){
+          // Compte probablement créé lors d'une tentative précédente interrompue
+          // (ex. écriture Firestore refusée juste après) : on tente de s'y
+          // connecter avec le mot de passe qui vient d'être tapé plutôt que de
+          // bloquer la personne.
+          try{
+            const cred2=await auth.signInWithEmailAndPassword(email,password);
+            uid=cred2.user.uid;
+          }catch(e2){
+            showToast("Cet email a déjà un compte — connectez-vous, ou utilisez « mot de passe oublié »");
+            return;
+          }
+        }else{
+          showToast(authErrorMessage(e));
+          return;
+        }
+      }
+      let acc={name,phone,email,createdAt:Date.now()};
+      try{
+        const snap=await db.collection('accounts').doc(uid).get();
+        if(snap.exists) acc=snap.data();
+        else await db.collection('accounts').doc(uid).set(acc);
+      }catch(e){ /* Firestore indisponible pour l'instant : on continue quand même avec les infos saisies */ }
       const key=ensurePoints(phone);
       if(pendingRef && cleanPhone(pendingRef)!==cleanPhone(phone) && !points[key].referredBy){
         points[key].referredBy=cleanPhone(pendingRef);
         points[key].points+=20;
-        await savePoints();
+        try{ await savePoints(); }catch(e){}
         showToast("🎉 Bienvenue ! +20 points grâce à votre parrainage", true);
       }
-      await completeLogin(uid,{name,phone});
-    }catch(e){ showToast(authErrorMessage(e)); }
-  }else{
-    try{ await auth.signInWithEmailAndPassword(email,password); }
-    catch(e){ showToast(authErrorMessage(e)); }
+      await completeLogin(uid, acc);
+    }else{
+      try{ await auth.signInWithEmailAndPassword(email,password); }
+      catch(e){ showToast(authErrorMessage(e)); }
+    }
+  } finally {
+    btn.disabled=false;
   }
 }
 async function authSignOut(){
@@ -597,7 +627,14 @@ auth.onAuthStateChanged(async (user)=>{
     if(me && me.uid===user.uid) return;
     let acc=null;
     try{ const snap=await db.collection('accounts').doc(user.uid).get(); acc=snap.exists?snap.data():null; }catch(e){}
-    if(acc) await completeLogin(user.uid, acc);
+    if(!acc){
+      // Compte authentifié mais sans fiche accounts (ex. écriture Firestore
+      // ayant échoué à l'inscription) : on récupère au moins l'email pour ne
+      // pas laisser la personne bloquée derrière l'écran de connexion.
+      acc={name:'', phone:'', email:user.email||''};
+      try{ await db.collection('accounts').doc(user.uid).set({...acc, createdAt:Date.now()}); }catch(e){}
+    }
+    await completeLogin(user.uid, acc);
   }else{
     me=null;
     document.getElementById('authGate').classList.add('show');
