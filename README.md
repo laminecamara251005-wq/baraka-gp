@@ -1,22 +1,30 @@
 # baraka-gp
 
 Application de mise en relation entre particuliers pour l'envoi de colis via des
-voyageurs (`index.html`, application statique en une page).
+voyageurs.
+
+- `index.html` — l'application publique (recherche, envoi de colis, publier un
+  trajet, commandes, points, support).
+- `admin.html` — la console d'administration (vérifier les identités et les
+  annonces, gérer les litiges, répondre au support). Page séparée, non liée
+  depuis `index.html` : seule une personne connaissant son URL peut la trouver,
+  et il faut ensuite un compte admin pour y entrer.
 
 ## Configuration Firebase
 
 Les données (annonces, commandes, profils, points, messages) sont stockées dans
-Firebase Firestore et partagées entre tous les utilisateurs.
+Firebase Firestore et partagées entre tous les utilisateurs. `index.html` et
+`admin.html` doivent pointer vers le **même** projet Firebase.
 
 1. Créez un projet sur https://console.firebase.google.com.
 2. **Build → Firestore Database → Créer une base de données.**
 3. **Paramètres du projet (⚙️) → Vos applications → Ajouter une application Web**,
-   copiez l'objet `firebaseConfig` et collez-le dans `index.html` (variable
-   `firebaseConfig`, en haut du `<script>` principal) à la place des valeurs
-   `REMPLACER...`.
+   copiez l'objet `firebaseConfig` et collez-le à la fois dans `index.html` et
+   dans `admin.html` (variable `firebaseConfig`, en haut du `<script>`
+   principal de chaque fichier) à la place des valeurs `REMPLACER...`.
 4. **Build → Authentication → Sign-in method → activez « Email/Mot de passe »**,
    puis dans l'onglet **Users**, ajoutez un compte (email + mot de passe) pour
-   chaque personne qui doit avoir accès à l'espace admin. L'app n'a pas de page
+   chaque personne qui doit avoir accès à `admin.html`. L'app n'a pas de page
    d'inscription : seuls les comptes que vous créez ici peuvent se connecter.
 5. Déployez les règles de sécurité (`firestore.rules`) avec la
    [CLI Firebase](https://firebase.google.com/docs/cli) :
@@ -27,8 +35,10 @@ Firebase Firestore et partagées entre tous les utilisateurs.
    firebase deploy --only firestore:rules
    ```
 
-L'espace admin s'ouvre en cliquant 5 fois rapidement sur l'étoile du logo, en
-haut de l'application.
+Si vous hébergez le site (Firebase Hosting ou autre), pensez à ne pas mettre de
+lien vers `admin.html` nulle part dans le site public ni dans vos moteurs de
+recherche (le fichier envoie déjà `<meta name="robots" content="noindex">`) —
+son URL doit rester connue de vous seul.
 
 ### Limite connue
 

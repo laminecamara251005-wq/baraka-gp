@@ -159,23 +159,10 @@
   .stars-input span{cursor:pointer;color:var(--line);}
   .stars-input span.on{color:var(--gold);}
 
-  .admin-list{margin-top:14px;}
-  .admin-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;text-align:left;}
-  .admin-card img{max-width:100%;border-radius:8px;margin:8px 0;}
-  .admin-card .name-check{font-size:12.5px;color:var(--ink-soft);margin:4px 0 8px;}
   .admin-actions{display:flex;gap:8px;}
   .admin-actions button{flex:1;padding:9px;border-radius:8px;border:none;font-weight:600;font-size:12.5px;cursor:pointer;}
   .btn-approve{background:var(--green);color:#fff;}
   .btn-reject{background:var(--red-soft);color:var(--red);}
-  .type-pill{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-bottom:7px;margin-right:5px;letter-spacing:.3px;}
-  .type-pill.gp{background:var(--green-pale);color:var(--green-dark);}
-  .type-pill.colis{background:var(--gold-soft);color:#8A611D;}
-  .type-pill.profile{background:#E4E9F5;color:#33447A;}
-  .admin-subtab{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;}
-  .admin-subtab div{flex:1;min-width:70px;text-align:center;padding:8px 3px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--ink-soft);}
-  .admin-subtab div.active{background:var(--green);color:#fff;}
-  .thread-row{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;cursor:pointer;background:var(--panel);}
-  .unread{background:var(--gold);color:#fff;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;}
 
   .ref-box{background:var(--gold-soft);border-radius:12px;padding:16px;margin-bottom:14px;}
   .ref-box .link-row{display:flex;gap:8px;margin-top:8px;}
@@ -202,7 +189,7 @@
     <span></span><span></span><span></span>
   </button>
   <div class="brand">
-    <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" onclick="handleSecretClick()"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
+    <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
     <h1>Baraka GP</h1>
     <p>Vos colis, partout en confiance</p>
     <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
@@ -440,32 +427,7 @@
   </div>
 </div>
 
-<!-- ADMIN MODAL -->
-<div class="overlay" id="adminOverlay">
-  <div class="modal" style="max-width:480px;max-height:86vh;">
-    <h3 style="margin-bottom:14px;">Espace admin</h3>
-    <div id="adminLogin">
-      <input type="email" id="adminEmail" placeholder="Email admin" autocomplete="username">
-      <input type="password" id="adminPassword" placeholder="Mot de passe" autocomplete="current-password">
-      <button class="btn" onclick="adminSignIn()">Entrer</button>
-      <button class="btn ghost" onclick="closeAdmin()">Fermer</button>
-    </div>
-    <div id="adminPanel" style="display:none;">
-      <div class="admin-subtab">
-        <div class="active" id="subtabProfiles" onclick="switchAdminSub('profiles')">Identités</div>
-        <div id="subtabOrders" onclick="switchAdminSub('orders')">Commandes</div>
-        <div id="subtabListings" onclick="switchAdminSub('listings')">Annonces</div>
-        <div id="subtabMessages" onclick="switchAdminSub('messages')">Support</div>
-      </div>
-      <div class="admin-list" id="adminList"></div>
-      <button class="btn ghost" onclick="adminSignOut()">Se déconnecter</button>
-      <button class="btn ghost" onclick="closeAdmin()">Fermer</button>
-    </div>
-  </div>
-</div>
-
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 const PRICE_PER_KG = 8;
@@ -482,13 +444,11 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const auth = firebase.auth();
 
 let listings=[], profiles={}, alerts=[], messages={}, orders=[], orderMsgs={}, points={};
 let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0;
 let currentOrderChatId=null, ordersRole='client';
 let pollTimer=null, pendingRef=null;
-let adminSub='profiles', adminOpenThreadPhone=null, adminOpenOrderId=null;
 
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
 function showToast(msg, gold){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(gold?' gold':''); setTimeout(()=>t.classList.remove('show'),3000); }
@@ -680,10 +640,6 @@ function startPolling(){
     await loadAll();
     if(document.getElementById('viewMessages').style.display==='block') renderThread();
     if(document.getElementById('viewOrders').style.display==='block') renderOrders();
-    if(document.getElementById('adminPanel').style.display==='block'){
-      if(adminSub==='messages') renderAdminMessages();
-      if(adminSub==='orders') renderAdminOrders();
-    }
   }, 4000);
 }
 function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
@@ -826,18 +782,6 @@ async function createAlert(){
   ensureThread(phone,name); await saveMessages();
   showToast("Demande publiée ! On vous préviendra dès qu'un GP correspond 📢");
   document.getElementById('alertName').value=''; document.getElementById('alertPhone').value='';
-}
-function matchingAlerts(listing){
-  return alerts.filter(a=>{
-    if(a.notified) return false;
-    if(a.country && a.country!==listing.country) return false;
-    if(a.from && !listing.from.toLowerCase().includes(a.from.toLowerCase())) return false;
-    if(a.to && !listing.to.toLowerCase().includes(a.to.toLowerCase())) return false;
-    return true;
-  });
-}
-function countHabits(phone,country,type){
-  return listings.filter(l=>l.type===type && cleanPhone(l.phone)===cleanPhone(phone) && l.country===country).length;
 }
 
 // ---- ORDER MODAL (commander) ----
@@ -1263,171 +1207,6 @@ async function publishColis(){
   ['sName','sPhone','sFrom','sTo','sDate','sKg','sDesc','sPhoto','sValue'].forEach(id=>document.getElementById(id).value='');
   rules.forEach(id=>document.getElementById(id).checked=false);
   switchTab('search');
-}
-
-// ---- ADMIN ----
-let secretClickCount=0, secretClickTimer=null;
-function handleSecretClick(){
-  secretClickCount++;
-  clearTimeout(secretClickTimer);
-  secretClickTimer=setTimeout(()=>{ secretClickCount=0; }, 2000);
-  if(secretClickCount>=5){
-    secretClickCount=0;
-    clearTimeout(secretClickTimer);
-    openAdmin();
-  }
-}
-function openAdmin(){
-  document.getElementById('adminOverlay').classList.add('show');
-  if(auth.currentUser){
-    document.getElementById('adminLogin').style.display='none';
-    document.getElementById('adminPanel').style.display='block';
-    switchAdminSub('profiles');
-  }else{
-    document.getElementById('adminLogin').style.display='block';
-    document.getElementById('adminPanel').style.display='none';
-    document.getElementById('adminPassword').value='';
-  }
-}
-function closeAdmin(){ document.getElementById('adminOverlay').classList.remove('show'); }
-async function adminSignIn(){
-  const email=document.getElementById('adminEmail').value.trim();
-  const password=document.getElementById('adminPassword').value;
-  if(!email||!password){ showToast("Merci de remplir l'email et le mot de passe"); return; }
-  try{
-    await auth.signInWithEmailAndPassword(email,password);
-    document.getElementById('adminLogin').style.display='none';
-    document.getElementById('adminPanel').style.display='block';
-    switchAdminSub('profiles');
-  }catch(e){ showToast("Identifiants incorrects"); }
-}
-async function adminSignOut(){
-  try{ await auth.signOut(); }catch(e){}
-  closeAdmin();
-}
-function switchAdminSub(sub){
-  adminSub=sub; adminOpenThreadPhone=null; adminOpenOrderId=null;
-  document.getElementById('subtabProfiles').classList.toggle('active',sub==='profiles');
-  document.getElementById('subtabOrders').classList.toggle('active',sub==='orders');
-  document.getElementById('subtabListings').classList.toggle('active',sub==='listings');
-  document.getElementById('subtabMessages').classList.toggle('active',sub==='messages');
-  if(sub==='profiles') renderAdminProfiles();
-  else if(sub==='orders') renderAdminOrders();
-  else if(sub==='listings') renderAdminListings();
-  else renderAdminMessages();
-}
-function renderAdminProfiles(){
-  const list=document.getElementById('adminList');
-  const entries=Object.entries(profiles);
-  if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucun profil.</p>'; return; }
-  list.innerHTML=entries.slice().reverse().map(([phone,p])=>`
-    <div class="admin-card">
-      <span class="type-pill profile">👤 IDENTITÉ</span><br>
-      <b>${p.name}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${p.phone}</span>
-      ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
-      <div class="name-check">Pièce d'identité</div>
-      ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${p.idPhoto?p.idPhoto.name:'non fourni'}</p>`}
-      <div class="admin-actions">
-        <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
-        <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer</button>
-      </div>
-    </div>`).join('');
-}
-function renderAdminOrders(){
-  const list=document.getElementById('adminList');
-  if(orders.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune commande.</p>'; return; }
-  list.innerHTML=orders.slice().reverse().map(o=>`
-    <div class="admin-card">
-      <span class="type-pill gp">${statusLabel(o.status)}</span>
-      <span class="type-pill colis">${o.packageType==='valise' ? '🧳 Valise entière' : '📦 Colis'}</span><br>
-      <b>${o.clientName}</b> → <b>${o.gpName}</b> · ${o.from} → ${o.to}<br>
-      <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
-      ${o.weightProof&&o.weightProof.type==='image'?`<div class="name-check">Photo sur balance</div><img src="${o.weightProof.data}">`:''}
-      <div class="admin-actions">
-        <button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>
-      </div>
-    </div>`).join('');
-}
-async function adminCancelOrder(orderId){
-  const o=orders.find(x=>x.id===orderId);
-  if(o){ o.status='cancelled_client'; await saveOrders(); renderAdminOrders(); showToast("Commande annulée"); }
-}
-function renderAdminListings(){
-  const list=document.getElementById('adminList');
-  if(listings.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune annonce.</p>'; return; }
-  list.innerHTML=listings.slice().reverse().map(l=>{
-    const isGp=l.type==='gp';
-    const profile=isGp?(profiles[l.phone]||{}):null;
-    const habitCount=countHabits(l.phone,l.country,l.type);
-    const matches=isGp?matchingAlerts(l):[];
-    return `
-    <div class="admin-card">
-      <span class="type-pill ${isGp?'gp':'colis'}">${isGp?'✈️ VOYAGEUR':'📦 COLIS'}</span>
-      ${habitCount>1?`<span class="type-pill profile">🔁 Habitué (${habitCount}x)</span>`:''}<br>
-      <b>${isGp?(profile.name||'?'):l.name}</b> — ${l.from} → ${l.to} (${l.country})<br>
-      <span style="color:var(--ink-soft);font-size:12.5px;">📱 ${isGp?profile.phone:l.phone} · ${fmtDate(l.date)} · ${l.kg}kg${!isGp&&l.value?` · valeur ${l.value}€`:''}</span>
-      ${isGp?`<div style="margin-top:6px;font-size:12px;">${profile.verified?'✅ Identité vérifiée':'⏳ Non vérifiée'}</div>`:''}
-      ${isGp&&l.ticket?`<div class="name-check">Billet</div>${l.ticket.type==='image'?`<img src="${l.ticket.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${l.ticket.name}</p>`}`:''}
-      ${!isGp&&l.desc?`<div style="font-size:12.5px;margin-top:6px;">📝 ${l.desc}</div>`:''}
-      ${!isGp&&l.photo?(l.photo.type==='image'?`<img src="${l.photo.data}">`:''):''}
-      ${isGp&&matches.length>0?`<div class="name-check">🔔 ${matches.length} à prévenir</div>${matches.map(a=>`<div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px;"><span>${a.name}</span><button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11.5px;" onclick="notifyAlert('${a.id}','${l.from}','${l.to}','${fmtDate(l.date)}')">Notifier</button></div>`).join('')}`:''}
-      <div class="admin-actions">
-        ${!isGp?`<button class="btn-approve" onclick="setColisVerified('${l.id}',true)">${l.verified?'✅ Vérifié':'Approuver'}</button>`:''}
-        <button class="btn-reject" onclick="removeListing('${l.id}')">Supprimer</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-async function notifyAlert(alertId,from,to,date){
-  const a=alerts.find(x=>x.id===alertId);
-  if(!a) return;
-  await pushMessage(a.phone,'admin',`Bonjour ${a.name}, un voyageur part de ${from} vers ${to} le ${date} ! Répondez ici pour être mis en relation.`);
-  a.notified=true; await saveAlerts();
-  showToast("Message envoyé"); renderAdminListings();
-}
-function renderAdminMessages(){
-  const list=document.getElementById('adminList');
-  if(adminOpenThreadPhone){
-    const th=messages[adminOpenThreadPhone];
-    if(!th){ adminOpenThreadPhone=null; renderAdminMessages(); return; }
-    list.innerHTML=`
-      <button class="btn ghost sm" onclick="adminOpenThreadPhone=null;renderAdminMessages();">← Retour</button>
-      <div style="font-weight:700;margin:10px 0;">${th.name} · ${adminOpenThreadPhone}</div>
-      <div class="chat-thread">${th.thread.map(m=>`<div class="bubble ${m.from==='admin'?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('')||'<p style="color:var(--ink-soft);font-size:12.5px;">Aucun message.</p>'}</div>
-      <div class="chat-input"><textarea id="adminChatInput" placeholder="Répondre..."></textarea><button class="btn" style="margin-top:0;" onclick="sendAdminMessage()">Envoyer</button></div>`;
-    return;
-  }
-  const entries=Object.entries(messages).sort((a,b)=>{
-    const la=a[1].thread[a[1].thread.length-1]?.ts||0, lb=b[1].thread[b[1].thread.length-1]?.ts||0;
-    return lb-la;
-  });
-  if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune conversation.</p>'; return; }
-  list.innerHTML=entries.map(([phone,th])=>{
-    const last=th.thread[th.thread.length-1];
-    return `<div class="thread-row" onclick="adminOpenThreadPhone='${phone}';renderAdminMessages();">
-      <div><b>${th.name}</b><br><span style="color:var(--ink-soft);font-size:12px;">${last?last.text.slice(0,38)+(last.text.length>38?'…':''):'Pas de message'}</span></div>
-      ${th.unreadAdmin?`<span class="unread">Nouveau</span>`:''}
-    </div>`;
-  }).join('');
-}
-async function sendAdminMessage(){
-  const text=document.getElementById('adminChatInput').value.trim();
-  if(!text||!adminOpenThreadPhone) return;
-  await pushMessage(adminOpenThreadPhone,'admin',text);
-  messages[adminOpenThreadPhone].unreadAdmin=false;
-  await saveMessages(); renderAdminMessages();
-}
-async function setProfileVerified(phone,val){ if(profiles[phone]){ profiles[phone].verified=val; await saveProfiles(); renderAdminProfiles(); showToast("Mis à jour"); } }
-async function removeProfile(phone){
-  delete profiles[phone];
-  try{ await db.collection('profiles').doc(phone).delete(); }catch(e){}
-  renderAdminProfiles(); showToast("Supprimé");
-}
-async function setColisVerified(id,val){ const l=listings.find(x=>x.id===id); if(l){ l.verified=val; await saveListings(); renderAdminListings(); showToast("Mis à jour"); } }
-async function removeListing(id){
-  listings=listings.filter(x=>x.id!==id);
-  try{ await db.collection('listings').doc(id).delete(); }catch(e){}
-  renderAdminListings(); showToast("Supprimé");
 }
 
 // ---- INIT ----
