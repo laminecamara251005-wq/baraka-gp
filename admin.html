@@ -84,6 +84,7 @@
       <div class="active" id="subtabProfiles" onclick="switchAdminSub('profiles')">Identités</div>
       <div id="subtabOrders" onclick="switchAdminSub('orders')">Commandes</div>
       <div id="subtabListings" onclick="switchAdminSub('listings')">Annonces</div>
+      <div id="subtabAlerts" onclick="switchAdminSub('alerts')">Alertes</div>
       <div id="subtabMessages" onclick="switchAdminSub('messages')">Support</div>
     </div>
     <div class="admin-list" id="adminList"></div>
@@ -202,6 +203,7 @@ function startPolling(){
     if(adminSub==='profiles') renderAdminProfiles();
     else if(adminSub==='orders') renderAdminOrders();
     else if(adminSub==='listings') renderAdminListings();
+    else if(adminSub==='alerts') renderAdminAlerts();
     else renderAdminMessages();
   }, 4000);
 }
@@ -213,11 +215,33 @@ function switchAdminSub(sub){
   document.getElementById('subtabProfiles').classList.toggle('active',sub==='profiles');
   document.getElementById('subtabOrders').classList.toggle('active',sub==='orders');
   document.getElementById('subtabListings').classList.toggle('active',sub==='listings');
+  document.getElementById('subtabAlerts').classList.toggle('active',sub==='alerts');
   document.getElementById('subtabMessages').classList.toggle('active',sub==='messages');
   if(sub==='profiles') renderAdminProfiles();
   else if(sub==='orders') renderAdminOrders();
   else if(sub==='listings') renderAdminListings();
+  else if(sub==='alerts') renderAdminAlerts();
   else renderAdminMessages();
+}
+function renderAdminAlerts(){
+  const list=document.getElementById('adminList');
+  if(alerts.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune alerte.</p>'; return; }
+  list.innerHTML=alerts.slice().reverse().map(a=>`
+    <div class="admin-card">
+      <span class="type-pill ${a.notified?'gp':'colis'}">${a.notified?'✅ Déjà notifié':'🔔 En attente'}</span><br>
+      <b>${a.name}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${a.phone}</span>
+      <div class="name-check">Trajet souhaité</div>
+      <p style="font-size:13.5px;margin:0;">${a.from || '(ville de départ non précisée)'} → ${a.to || '(ville d\'arrivée non précisée)'}${a.country ? ' · ' + a.country : ''}</p>
+      <div class="name-check">Demande créée le ${fmtTime(a.createdAt)}</div>
+      <div class="admin-actions">
+        <button class="btn-reject" onclick="removeAlert('${a.id}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+async function removeAlert(id){
+  alerts=alerts.filter(x=>x.id!==id);
+  try{ await db.collection('alerts').doc(id).delete(); }catch(e){}
+  renderAdminAlerts(); showToast("Supprimé");
 }
 function renderAdminProfiles(){
   const list=document.getElementById('adminList');
