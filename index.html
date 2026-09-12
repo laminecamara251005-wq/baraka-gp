@@ -45,7 +45,7 @@
   .drawer-item:hover{background:var(--bg);}
   .drawer-item.active{color:var(--green-dark);border-left-color:var(--green);background:var(--green-pale);}
 
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:16px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:16px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
   .panel h2{font-size:19px;margin-bottom:4px;}
   .panel .sub{color:var(--ink-soft);font-size:13px;margin-bottom:16px;}
 
@@ -68,7 +68,7 @@
   .results-head{display:flex;justify-content:space-between;align-items:baseline;margin:20px 2px 10px;}
   .results-head h3{font-size:15.5px;} .results-head span{font-size:12.5px;color:var(--ink-soft);}
 
-  .gp-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:12px;}
+  .gp-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:12px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
   .gp-card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
   .route{font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;color:var(--green-dark);}
   .route .dots{color:var(--gold);margin:0 5px;font-weight:400;}
@@ -76,10 +76,23 @@
   .meta{margin-top:7px;font-size:13px;color:var(--ink-soft);display:flex;gap:12px;flex-wrap:wrap;}
   .meta b{color:var(--ink);}
   .stars{color:var(--gold);font-size:13px;}
+  .avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+  .avatar-placeholder{background:var(--green-pale);color:var(--green-dark);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;font-size:17px;}
+
+  .order-section-title{font-family:'Fraunces',serif;font-size:15px;color:var(--green-dark);margin:22px 0 4px;padding-top:14px;border-top:1px solid var(--line);}
+  .order-section-title:first-of-type{border-top:none;margin-top:0;padding-top:0;}
+  .toggle-row{display:flex;gap:8px;}
+  .toggle-opt{flex:1;text-align:center;padding:11px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .toggle-opt.active{background:var(--green);border-color:var(--green);color:#fff;}
+  .price-recap{margin:16px 0 0;padding:14px 16px;background:var(--green-pale);border-radius:12px;}
+  .price-recap-row{display:flex;justify-content:space-between;font-size:14.5px;font-weight:700;color:var(--green-dark);}
+  .price-recap-row.sub{font-size:12px;font-weight:500;color:var(--ink-soft);margin-top:4px;}
 
   .empty{text-align:center;padding:34px 20px;color:var(--ink-soft);}
   .empty .star{width:28px;height:28px;margin:0 auto 10px;opacity:.5;}
   .empty b{color:var(--ink);display:block;margin-bottom:4px;font-family:'Fraunces',serif;font-size:16px;}
+  .search-spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;margin:0 auto;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 
   .badge{margin-top:10px;font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;display:inline-block;}
   .badge.verified{background:var(--green-pale);color:var(--green-dark);}
@@ -116,7 +129,7 @@
   .msg-icon{width:34px;height:34px;border-radius:999px;border:none;background:var(--green);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 
   /* ORDER CARD */
-  .order-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:14px;}
+  .order-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:14px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
   .order-card .route{font-size:15.5px;}
   .status-pill{display:inline-block;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;}
   .status-pill.pending{background:var(--gold-soft);color:#8A611D;}
@@ -189,7 +202,7 @@
     <span></span><span></span><span></span>
   </button>
   <div class="brand">
-    <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
+    <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg" onclick="handleSecretClick()"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
     <h1>Baraka GP</h1>
     <p>Vos colis, partout en confiance</p>
     <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
@@ -209,7 +222,6 @@
   <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')">🧾 Mes commandes</div>
   <div class="drawer-item" id="tabPoints" onclick="switchTab('points')">🌟 Mes points</div>
   <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')">💬 Support</div>
-  <div class="drawer-item" onclick="closeDrawer();openAdmin();">⚙️ Espace admin</div>
 </nav>
 
 <div class="wrap">
@@ -219,7 +231,7 @@
   <div id="viewSearch">
     <div class="panel">
       <h2>Où envoyez-vous votre colis ?</h2>
-      <div class="sub">Trouvez un voyageur qui part bientôt sur votre trajet</div>
+      <div class="sub">Indiquez votre trajet pour voir les voyageurs disponibles</div>
       <div class="row2">
         <div><label>Ville de départ</label><input type="text" id="searchFrom" list="fromCities" placeholder="Paris"></div>
         <div><label>Ville d'arrivée</label><input type="text" id="searchTo" list="toCities" placeholder="Nouakchott"></div>
@@ -233,12 +245,12 @@
         <option value="Mali">🇲🇱 Mali</option>
         <option value="Égypte">🇪🇬 Égypte</option>
       </select>
-      <label>Date souhaitée (approximative)</label>
-      <input type="date" id="searchDate">
-      <button class="btn" onclick="renderResults()">Rechercher</button>
+      <button class="btn" onclick="renderResults()">🔍 Rechercher</button>
     </div>
-    <div class="results-head"><h3>Voyageurs disponibles</h3><span id="resultCount"></span></div>
-    <div id="resultsList"></div>
+    <div id="searchResultsSection" style="display:none;">
+      <div class="results-head"><h3>Voyageurs disponibles</h3><span id="resultCount"></span></div>
+      <div id="resultsList"></div>
+    </div>
   </div>
 
   <!-- SEND (colis sans GP précis) -->
@@ -282,6 +294,8 @@
       <label>Billet pour ce voyage</label><input type="file" id="pTicket" accept="image/*,.pdf">
       <div class="hint">À fournir à chaque trajet.</div>
       <div id="docsSection">
+        <label>Photo de profil</label><input type="file" id="pAvatar" accept="image/*">
+        <div class="hint">Visible sur vos annonces, inspire confiance.</div>
         <label>Pièce d'identité</label><input type="file" id="pId" accept="image/*">
         <div class="hint">Une seule fois.</div>
       </div>
@@ -297,6 +311,7 @@
         <div class="rules-title">🙏 Engagement du voyageur</div>
         <label class="check-line"><input type="checkbox" id="ruleCheck"> Je transporte uniquement des colis vérifiés, sans les ouvrir</label>
         <label class="check-line"><input type="checkbox" id="ruleCheck2"> Je confirme la remise au destinataire</label>
+        <label class="check-line"><input type="checkbox" id="ruleCheck3"> Je certifie que mon billet et mon identité sont exacts, et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</label>
       </div>
       <button class="btn gold" onclick="publishListing()">Publier mon trajet</button>
     </div>
@@ -329,27 +344,41 @@
     </div>
   </div>
 
-  <footer>Baraka GP — service de mise en relation entre particuliers &nbsp;·&nbsp; <span onclick="openAdmin()" style="cursor:pointer;text-decoration:underline;">Admin</span></footer>
+  <footer>Baraka GP — service de mise en relation entre particuliers</footer>
 </div>
 
 <!-- ORDER MODAL (commander) -->
 <div class="overlay" id="orderOverlay">
   <div class="modal">
-    <h3>Commander ce voyageur</h3>
-    <div class="sub" id="orderRouteInfo" style="color:var(--ink-soft);font-size:13px;margin-bottom:14px;"></div>
-    <label>Poids de votre colis (kg)</label>
+    <h3>Choisir ce voyageur</h3>
+    <div class="sub" id="orderRouteInfo" style="color:var(--ink-soft);font-size:13px;margin-bottom:16px;"></div>
+
+    <div class="order-section-title">📦 Votre envoi</div>
+    <label>Type d'envoi</label>
+    <div class="toggle-row">
+      <div class="toggle-opt active" id="typeColisBtn" onclick="setPackageType('colis')">Colis</div>
+      <div class="toggle-opt" id="typeValiseBtn" onclick="setPackageType('valise')">Valise entière</div>
+    </div>
+    <label>Poids (kg)</label>
     <input type="number" id="oKg" min="1" oninput="updateOrderPrice()">
     <label>Description du contenu</label>
     <textarea id="oDesc" placeholder="Ex. Vêtements, cadeaux"></textarea>
     <label>Photo du colis</label>
     <input type="file" id="oPhoto" accept="image/*">
+    <label>Photo du colis sur une balance</label>
+    <input type="file" id="oWeightProof" accept="image/*">
+    <div class="hint">Permet de vérifier que le poids déclaré est correct.</div>
     <label>Valeur déclarée</label>
     <input type="number" id="oValue" placeholder="Ex. 60" oninput="updateOrderPrice()">
     <div class="hint">Plafond 150€.</div>
-    <label>Lieu de remise proposé</label>
+
+    <div class="order-section-title">📍 Remise du colis</div>
+    <label>Lieu proposé</label>
     <input type="text" id="oLocation" placeholder="Ex. Gare du Nord, Paris">
-    <label>Horaire de remise proposé</label>
+    <label>Horaire proposé</label>
     <input type="datetime-local" id="oTime">
+
+    <div class="order-section-title">✅ Vérifications</div>
     <div class="rules-box">
       <div class="rules-title">⚠️ Objets strictement interdits</div>
       <label class="check-line"><input type="checkbox" id="oRuleCash"> Aucune espèce</label>
@@ -357,10 +386,15 @@
       <label class="check-line"><input type="checkbox" id="oRuleValuables"> Aucun bijou non déclaré</label>
       <label class="check-line"><input type="checkbox" id="oRuleIllegal"> Aucun produit illicite</label>
     </div>
+    <div class="rules-box" style="background:var(--green-pale);">
+      <div class="rules-title" style="color:var(--green-dark);">📄 Attestation</div>
+      <label class="check-line"><input type="checkbox" id="oLiability"> Je certifie l'exactitude des informations fournies et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</label>
+    </div>
+
     <div id="orderDiscountBox"></div>
-    <div class="panel" style="margin:14px 0 0;padding:14px;background:var(--bg);">
-      <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span>Prix total</span><b id="oPriceTotal">—</b></div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-top:4px;"><span>Dont commission Baraka GP</span><span id="oCommission">—</span></div>
+    <div class="price-recap">
+      <div class="price-recap-row"><span>Prix total</span><b id="oPriceTotal">—</b></div>
+      <div class="price-recap-row sub"><span>Dont commission Baraka GP</span><span id="oCommission">—</span></div>
     </div>
     <button class="btn gold" onclick="submitOrder()">Envoyer la commande</button>
     <button class="btn ghost" onclick="closeOrderModal()">Annuler</button>
@@ -371,6 +405,7 @@
 <div class="overlay" id="ratingOverlay">
   <div class="modal center">
     <h3>Comment s'est passée la livraison ?</h3>
+
     <p>Votre avis aide les autres à choisir en toute confiance.</p>
     <div class="stars-input" id="starsInput">
       <span data-v="1" onclick="setStars(1)">★</span><span data-v="2" onclick="setStars(2)">★</span>
@@ -427,23 +462,30 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 const ADMIN_CODE = "barakagp2026";
 const PRICE_PER_KG = 8;
 const COMMISSION_PER_KG = 2;
-const LISTINGS_KEY = "baraka-gp-listings";
-const PROFILES_KEY = "baraka-gp-profiles";
-const ALERTS_KEY = "baraka-gp-alerts";
-const MESSAGES_KEY = "baraka-gp-messages";
-const ORDERS_KEY = "baraka-gp-orders";
-const ORDER_MSGS_KEY = "baraka-gp-order-messages";
-const POINTS_KEY = "baraka-gp-points";
+
+// Remplacez par la config de votre projet Firebase (Console Firebase > Paramètres du projet > Vos applications > SDK).
+const firebaseConfig = {
+  apiKey: "REMPLACER_apiKey",
+  authDomain: "REMPLACER.firebaseapp.com",
+  projectId: "REMPLACER",
+  storageBucket: "REMPLACER.appspot.com",
+  messagingSenderId: "REMPLACER",
+  appId: "REMPLACER"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 let listings=[], profiles={}, alerts=[], messages={}, orders=[], orderMsgs={}, points={};
 let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0;
-let adminSub='profiles', adminOpenThreadPhone=null, adminOpenOrderId=null;
 let currentOrderChatId=null, ordersRole='client';
 let pollTimer=null, pendingRef=null;
+let adminSub='profiles', adminOpenThreadPhone=null, adminOpenOrderId=null;
 
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
 function showToast(msg, gold){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(gold?' gold':''); setTimeout(()=>t.classList.remove('show'),3000); }
@@ -452,23 +494,37 @@ function fmtDateTime(dt){ if(!dt) return "—"; return new Date(dt).toLocaleDate
 function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function flag(c){ return {Mauritanie:"🇲🇷",Sénégal:"🇸🇳",Mali:"🇲🇱",Égypte:"🇪🇬"}[c] || "🌍"; }
 
-// ---- STORAGE ----
-async function loadAll(){
-  try{ const r=await window.storage.get(LISTINGS_KEY,true); listings=r&&r.value?JSON.parse(r.value):[]; }catch(e){ listings=[]; }
-  try{ const r=await window.storage.get(PROFILES_KEY,true); profiles=r&&r.value?JSON.parse(r.value):{}; }catch(e){ profiles={}; }
-  try{ const r=await window.storage.get(ALERTS_KEY,true); alerts=r&&r.value?JSON.parse(r.value):[]; }catch(e){ alerts=[]; }
-  try{ const r=await window.storage.get(MESSAGES_KEY,true); messages=r&&r.value?JSON.parse(r.value):{}; }catch(e){ messages={}; }
-  try{ const r=await window.storage.get(ORDERS_KEY,true); orders=r&&r.value?JSON.parse(r.value):[]; }catch(e){ orders=[]; }
-  try{ const r=await window.storage.get(ORDER_MSGS_KEY,true); orderMsgs=r&&r.value?JSON.parse(r.value):{}; }catch(e){ orderMsgs={}; }
-  try{ const r=await window.storage.get(POINTS_KEY,true); points=r&&r.value?JSON.parse(r.value):{}; }catch(e){ points={}; }
+// ---- STORAGE (Firestore : chaque enregistrement est son propre document, partagé entre tous les utilisateurs) ----
+async function fetchCollectionArray(name){
+  const snap=await db.collection(name).get();
+  return snap.docs.map(d=>d.data());
 }
-async function saveListings(){ try{ await window.storage.set(LISTINGS_KEY, JSON.stringify(listings), true);}catch(e){} }
-async function saveProfiles(){ try{ await window.storage.set(PROFILES_KEY, JSON.stringify(profiles), true);}catch(e){} }
-async function saveAlerts(){ try{ await window.storage.set(ALERTS_KEY, JSON.stringify(alerts), true);}catch(e){} }
-async function saveMessages(){ try{ await window.storage.set(MESSAGES_KEY, JSON.stringify(messages), true);}catch(e){} }
-async function saveOrders(){ try{ await window.storage.set(ORDERS_KEY, JSON.stringify(orders), true);}catch(e){} }
-async function saveOrderMsgs(){ try{ await window.storage.set(ORDER_MSGS_KEY, JSON.stringify(orderMsgs), true);}catch(e){} }
-async function savePoints(){ try{ await window.storage.set(POINTS_KEY, JSON.stringify(points), true);}catch(e){} }
+async function fetchCollectionMap(name){
+  const snap=await db.collection(name).get();
+  const map={};
+  snap.forEach(d=>{ map[d.id]=d.data(); });
+  return map;
+}
+async function loadAll(){
+  try{ listings=await fetchCollectionArray('listings'); }catch(e){ listings=[]; }
+  try{ profiles=await fetchCollectionMap('profiles'); }catch(e){ profiles={}; }
+  try{ alerts=await fetchCollectionArray('alerts'); }catch(e){ alerts=[]; }
+  try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
+  try{ orders=await fetchCollectionArray('orders'); }catch(e){ orders=[]; }
+  try{
+    const omMap=await fetchCollectionMap('orderMsgs');
+    orderMsgs={};
+    Object.keys(omMap).forEach(id=>{ orderMsgs[id]=omMap[id].thread||[]; });
+  }catch(e){ orderMsgs={}; }
+  try{ points=await fetchCollectionMap('points'); }catch(e){ points={}; }
+}
+async function saveListings(){ try{ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }catch(e){} }
+async function saveProfiles(){ try{ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }catch(e){} }
+async function saveAlerts(){ try{ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }catch(e){} }
+async function saveMessages(){ try{ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }catch(e){} }
+async function saveOrders(){ try{ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }catch(e){} }
+async function saveOrderMsgs(){ try{ const batch=db.batch(); Object.keys(orderMsgs).forEach(id=>batch.set(db.collection('orderMsgs').doc(id), {thread:orderMsgs[id]})); await batch.commit(); }catch(e){} }
+async function savePoints(){ try{ const batch=db.batch(); Object.keys(points).forEach(k=>batch.set(db.collection('points').doc(k), points[k])); await batch.commit(); }catch(e){} }
 
 function compressImage(file){
   return new Promise((resolve,reject)=>{
@@ -489,14 +545,14 @@ function compressImage(file){
   });
 }
 
-// ---- IDENTITY ----
+// ---- IDENTITY (stockée localement sur cet appareil, pas partagée) ----
 async function loadMe(){
-  try{ const r=await window.storage.get('baraka-gp-me',false); if(r&&r.value) me=JSON.parse(r.value); }catch(e){ me=null; }
+  try{ const raw=localStorage.getItem('baraka-gp-me'); if(raw) me=JSON.parse(raw); }catch(e){ me=null; }
 }
 async function saveMe(name,phone){
   const isNew = !me;
   me={name,phone};
-  try{ await window.storage.set('baraka-gp-me', JSON.stringify(me), false); }catch(e){}
+  try{ localStorage.setItem('baraka-gp-me', JSON.stringify(me)); }catch(e){}
   ensurePoints(phone);
   if(isNew && pendingRef && cleanPhone(pendingRef)!==cleanPhone(phone)){
     const key=cleanPhone(phone);
@@ -603,7 +659,6 @@ function switchTab(tab){
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
   stopPolling();
-  if(tab==='search') renderResults();
   if(tab==='send' && me){ document.getElementById('sName').value=me.name; document.getElementById('sPhone').value=me.phone; }
   if(tab==='publish' && me){ document.getElementById('pName').value=me.name; document.getElementById('pPhone').value=me.phone; checkProfile(); }
   if(tab==='orders'){ ensureIdentity(()=>{ renderOrders(); startPolling(); }); }
@@ -680,11 +735,6 @@ function checkProfile(){
 }
 
 // ---- SEARCH / RESULTS ----
-function updateCityLists(){
-  const gpOnly=listings.filter(l=>l.type==='gp');
-  document.getElementById('fromCities').innerHTML=[...new Set(gpOnly.map(l=>l.from).filter(Boolean))].map(c=>`<option value="${c}">`).join('');
-  document.getElementById('toCities').innerHTML=[...new Set(gpOnly.map(l=>l.to).filter(Boolean))].map(c=>`<option value="${c}">`).join('');
-}
 function gpRating(phone){
   const key=cleanPhone(phone);
   const p=profiles[key];
@@ -696,18 +746,25 @@ function starsHtml(avg){
   const full=Math.round(avg);
   return `<span class="stars">${'★'.repeat(full)}${'☆'.repeat(5-full)} (${avg.toFixed(1)})</span>`;
 }
+function updateCityLists(){
+  const gpOnly=listings.filter(l=>l.type==='gp');
+  document.getElementById('fromCities').innerHTML=[...new Set(gpOnly.map(l=>l.from).filter(Boolean))].map(c=>`<option value="${c}">`).join('');
+  document.getElementById('toCities').innerHTML=[...new Set(gpOnly.map(l=>l.to).filter(Boolean))].map(c=>`<option value="${c}">`).join('');
+}
 function renderResults(){
-  const country=document.getElementById('searchCountry').value;
-  const date=document.getElementById('searchDate').value;
-  const from=document.getElementById('searchFrom').value.trim().toLowerCase();
-  const to=document.getElementById('searchTo').value.trim().toLowerCase();
+  document.getElementById('searchResultsSection').style.display='block';
   updateCityLists();
+  const country=document.getElementById('searchCountry').value;
+  const from=document.getElementById('searchFrom').value.trim();
+  const to=document.getElementById('searchTo').value.trim();
+  displayResults(country, from, to);
+}
+function displayResults(country, from, to){
   let filtered=listings.filter(l=>{
     if(l.type!=='gp') return false;
     if(country && l.country!==country) return false;
-    if(date && l.date && l.date<date) return false;
-    if(from && !l.from.toLowerCase().includes(from)) return false;
-    if(to && !l.to.toLowerCase().includes(to)) return false;
+    if(from && !l.from.toLowerCase().includes(from.toLowerCase())) return false;
+    if(to && !l.to.toLowerCase().includes(to.toLowerCase())) return false;
     return true;
   });
   filtered.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
@@ -717,12 +774,12 @@ function renderResults(){
     list.innerHTML=`
       <div class="empty">
         <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#1E6F5C"/></svg>
-        <b>Aucun voyageur pour l'instant</b>Soyez alerté(e) dès qu'un GP correspond.
+        <b>Aucun voyageur pour l'instant</b>Soyez alerté(e) dès qu'un GP correspond, ou déposez votre demande dans "Envoyer un colis".
       </div>
       <div class="panel" style="margin-top:2px;">
         <label>Votre prénom</label><input type="text" id="alertName" placeholder="Ex. Fatou">
         <label>Votre numéro</label><input type="tel" id="alertPhone" placeholder="Ex. 06 12 34 56 78">
-        <button class="btn gold" onclick="createAlert()">🔔 Me prévenir dès qu'un GP correspond</button>
+        <button class="btn gold" onclick="createAlert()">📢 Publier ma demande</button>
       </div>`;
     return;
   }
@@ -730,13 +787,20 @@ function renderResults(){
     const profile=profiles[l.phone]||{};
     const verified=!!profile.verified;
     const avg=gpRating(l.phone);
+    const avatarHtml = profile.avatar && profile.avatar.type==='image'
+      ? `<img src="${profile.avatar.data}" class="avatar">`
+      : `<div class="avatar avatar-placeholder">${(profile.name||'?').charAt(0).toUpperCase()}</div>`;
     return `
     <div class="gp-card">
       <div class="top">
-        <div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div class="price">${PRICE_PER_KG}€/kg</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${avatarHtml}
+          <div>
+            <div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div>
+            <div style="font-size:12px;color:var(--ink-soft);">${profile.name||'Voyageur'}</div>
+          </div>
         </div>
+        <div class="price">${PRICE_PER_KG}€/kg</div>
       </div>
       <div class="meta">
         <span>${flag(l.country)} <b>${l.country}</b></span>
@@ -745,7 +809,7 @@ function renderResults(){
       </div>
       ${avg!==null ? `<div style="margin-top:6px;">${starsHtml(avg)}</div>` : ''}
       ${verified ? `<div class="badge verified">✅ Voyageur vérifié</div>` : `<div class="badge pending">⏳ Vérification en cours</div>`}
-      <button class="btn gold sm" onclick='openOrderModal(${JSON.stringify(l).replace(/'/g,"&apos;")})'>Commander ce GP</button>
+      <button class="btn gold sm" onclick='openOrderModal(${JSON.stringify(l).replace(/'/g,"&apos;")})'>Choisir ce voyageur</button>
     </div>`;
   }).join('');
 }
@@ -754,10 +818,10 @@ async function createAlert(){
   const name=document.getElementById('alertName').value.trim();
   const phone=document.getElementById('alertPhone').value.trim();
   if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
-  alerts.push({id:Date.now().toString(),name,phone,country:document.getElementById('searchCountry').value,from:document.getElementById('searchFrom').value.trim(),to:document.getElementById('searchTo').value.trim(),notified:false,createdAt:Date.now()});
+  alerts.push({id:Date.now().toString(),name,phone,country:document.getElementById('searchCountry').value,from:'',to:'',notified:false,createdAt:Date.now()});
   await saveAlerts();
   ensureThread(phone,name); await saveMessages();
-  showToast("C'est noté, on vous préviendra 🔔");
+  showToast("Demande publiée ! On vous préviendra dès qu'un GP correspond 📢");
   document.getElementById('alertName').value=''; document.getElementById('alertPhone').value='';
 }
 function matchingAlerts(listing){
@@ -774,6 +838,12 @@ function countHabits(phone,country,type){
 }
 
 // ---- ORDER MODAL (commander) ----
+let orderPackageType='colis';
+function setPackageType(type){
+  orderPackageType=type;
+  document.getElementById('typeColisBtn').classList.toggle('active', type==='colis');
+  document.getElementById('typeValiseBtn').classList.toggle('active', type==='valise');
+}
 function openOrderModal(listing){
   pendingListing=listing;
   ensureIdentity(()=>{
@@ -782,7 +852,9 @@ function openOrderModal(listing){
     document.getElementById('oKg').value='';
     document.getElementById('oDesc').value=''; document.getElementById('oValue').value='';
     document.getElementById('oLocation').value=''; document.getElementById('oTime').value='';
-    ['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal'].forEach(id=>document.getElementById(id).checked=false);
+    document.getElementById('oPhoto').value=''; document.getElementById('oWeightProof').value='';
+    setPackageType('colis');
+    ['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal','oLiability'].forEach(id=>document.getElementById(id).checked=false);
     updateOrderPrice();
     document.getElementById('orderOverlay').classList.add('show');
   });
@@ -805,6 +877,7 @@ async function submitOrder(){
   const desc=document.getElementById('oDesc').value.trim();
   const value=document.getElementById('oValue').value;
   const photoFile=document.getElementById('oPhoto').files[0];
+  const weightProofFile=document.getElementById('oWeightProof').files[0];
   const location_=document.getElementById('oLocation').value.trim();
   const time_=document.getElementById('oTime').value;
   const rules=['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal'];
@@ -813,12 +886,17 @@ async function submitOrder(){
   if(!value){ showToast("Merci d'indiquer la valeur déclarée"); return; }
   if(parseInt(value)>150){ showToast("Valeur déclarée trop élevée (max 150€)"); return; }
   if(!photoFile){ showToast("Merci d'ajouter une photo du colis"); return; }
+  if(!weightProofFile){ showToast("Merci d'ajouter une photo du colis sur une balance"); return; }
   if(!location_||!time_){ showToast("Merci d'indiquer un lieu et un horaire de remise"); return; }
   if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Merci de cocher toutes les cases"); return; }
+  if(!document.getElementById('oLiability').checked){ showToast("Merci d'accepter l'attestation"); return; }
 
   showToast("Envoi en cours...");
-  let photo;
-  try{ photo=await compressImage(photoFile); }catch(e){ showToast("Impossible de lire la photo"); return; }
+  let photo, weightProof;
+  try{
+    photo=await compressImage(photoFile);
+    weightProof=await compressImage(weightProofFile);
+  }catch(e){ showToast("Impossible de lire les photos"); return; }
 
   let total=kg*PRICE_PER_KG;
   const commission=kg*COMMISSION_PER_KG;
@@ -838,7 +916,8 @@ async function submitOrder(){
     gpPhone:cleanPhone(l.phone), gpName:(profiles[l.phone]||{}).name||'Voyageur',
     clientPhone:cleanPhone(me.phone), clientName:me.name,
     from:l.from, to:l.to, country:l.country, tripDate:l.date,
-    kg, photo, desc, value:parseInt(value),
+    packageType:orderPackageType,
+    kg, photo, weightProof, desc, value:parseInt(value),
     priceTotal:total, commission, priceNet:(kg*PRICE_PER_KG)-commission, discountUsed,
     pickupLocation:location_, pickupTime:time_,
     status:'pending', deliveryCode:null, rating:null, ratingComment:null,
@@ -910,9 +989,10 @@ function renderOrders(){
         <span class="status-pill ${o.status}">${statusLabel(o.status)}</span>
       </div>
       <div class="meta">
+        <span>${o.packageType==='valise' ? '🧳' : '📦'} <b>${o.packageType==='valise' ? 'Valise entière' : 'Colis'}</b></span>
         <span>${flag(o.country)} <b>${o.country}</b></span>
         <span>📅 <b>${fmtDate(o.tripDate)}</b></span>
-        <span>🧳 <b>${o.kg}kg</b></span>
+        <span>⚖️ <b>${o.kg}kg</b></span>
       </div>
       <div class="progress">${steps.map(s=>`<span class="${s}"></span>`).join('')}</div>
       <div class="progress-labels"><span>Envoyée</span><span>Acceptée</span><span>Payée</span><span>Prise en charge</span><span>Remise</span><span>Terminée</span></div>
@@ -1121,14 +1201,18 @@ async function publishListing(){
   const hasProfile=!!profiles[phone];
   if(!hasProfile){
     const idFile=document.getElementById('pId').files[0];
+    const avatarFile=document.getElementById('pAvatar').files[0];
     if(!idFile){ showToast("Merci d'ajouter une pièce d'identité"); return; }
     showToast("Envoi en cours...");
-    let idPhoto;
+    let idPhoto, avatar=null;
     try{ idPhoto=await compressImage(idFile); }catch(e){ showToast("Fichier illisible"); return; }
-    profiles[phone]={name,phone:phoneRaw,idPhoto,verified:false,createdAt:Date.now(),ratingSum:0,ratingCount:0};
+    if(avatarFile){
+      try{ avatar=await compressImage(avatarFile); }catch(e){}
+    }
+    profiles[phone]={name,phone:phoneRaw,idPhoto,avatar,verified:false,createdAt:Date.now(),ratingSum:0,ratingCount:0};
     await saveProfiles();
   }
-  const rules=['ruleCheck','ruleCheck2'];
+  const rules=['ruleCheck','ruleCheck2','ruleCheck3'];
   if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Cochez les engagements"); return; }
 
   showToast("Envoi en cours...");
@@ -1179,6 +1263,17 @@ async function publishColis(){
 }
 
 // ---- ADMIN ----
+let secretClickCount=0, secretClickTimer=null;
+function handleSecretClick(){
+  secretClickCount++;
+  clearTimeout(secretClickTimer);
+  secretClickTimer=setTimeout(()=>{ secretClickCount=0; }, 2000);
+  if(secretClickCount>=5){
+    secretClickCount=0;
+    clearTimeout(secretClickTimer);
+    openAdmin();
+  }
+}
 function openAdmin(){
   document.getElementById('adminOverlay').classList.add('show');
   document.getElementById('adminLogin').style.display='block';
@@ -1212,6 +1307,7 @@ function renderAdminProfiles(){
     <div class="admin-card">
       <span class="type-pill profile">👤 IDENTITÉ</span><br>
       <b>${p.name}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${p.phone}</span>
+      ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
       <div class="name-check">Pièce d'identité</div>
       ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${p.idPhoto?p.idPhoto.name:'non fourni'}</p>`}
       <div class="admin-actions">
@@ -1225,9 +1321,11 @@ function renderAdminOrders(){
   if(orders.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune commande.</p>'; return; }
   list.innerHTML=orders.slice().reverse().map(o=>`
     <div class="admin-card">
-      <span class="type-pill gp">${statusLabel(o.status)}</span><br>
+      <span class="type-pill gp">${statusLabel(o.status)}</span>
+      <span class="type-pill colis">${o.packageType==='valise' ? '🧳 Valise entière' : '📦 Colis'}</span><br>
       <b>${o.clientName}</b> → <b>${o.gpName}</b> · ${o.from} → ${o.to}<br>
       <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
+      ${o.weightProof&&o.weightProof.type==='image'?`<div class="name-check">Photo sur balance</div><img src="${o.weightProof.data}">`:''}
       <div class="admin-actions">
         <button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>
       </div>
@@ -1303,9 +1401,17 @@ async function sendAdminMessage(){
   await saveMessages(); renderAdminMessages();
 }
 async function setProfileVerified(phone,val){ if(profiles[phone]){ profiles[phone].verified=val; await saveProfiles(); renderAdminProfiles(); showToast("Mis à jour"); } }
-async function removeProfile(phone){ delete profiles[phone]; await saveProfiles(); renderAdminProfiles(); showToast("Supprimé"); }
+async function removeProfile(phone){
+  delete profiles[phone];
+  try{ await db.collection('profiles').doc(phone).delete(); }catch(e){}
+  renderAdminProfiles(); showToast("Supprimé");
+}
 async function setColisVerified(id,val){ const l=listings.find(x=>x.id===id); if(l){ l.verified=val; await saveListings(); renderAdminListings(); showToast("Mis à jour"); } }
-async function removeListing(id){ listings=listings.filter(x=>x.id!==id); await saveListings(); renderAdminListings(); showToast("Supprimé"); }
+async function removeListing(id){
+  listings=listings.filter(x=>x.id!==id);
+  try{ await db.collection('listings').doc(id).delete(); }catch(e){}
+  renderAdminListings(); showToast("Supprimé");
+}
 
 // ---- INIT ----
 (async function(){
@@ -1314,7 +1420,6 @@ async function removeListing(id){ listings=listings.filter(x=>x.id!==id); await 
   await loadAll();
   await loadMe();
   if(me) updatePointsHeader();
-  renderResults();
 })();
 </script>
 
