@@ -2,68 +2,86 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Toute personne connectée via Firebase Auth (Console > Authentication > Users,
-    // ajoutés à la main) est considérée admin : l'app ne propose pas d'inscription,
-    // seul le propriétaire du projet peut créer ces comptes.
-    function isAdmin() {
+    // Un utilisateur normal doit avoir un compte (créé via l'inscription de
+    // index.html) pour lire ou écrire quoi que ce soit.
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    // Annonces (voyageurs "GP" et demandes de colis) : visibles par tous pour la
-    // recherche, publiables par tous (self-service). Seul l'admin peut les
-    // vérifier/supprimer (litige, modération).
+    // Un admin est un utilisateur authentifié explicitement listé dans la
+    // collection "admins" (un document par UID, créé à la main dans la console
+    // Firebase par le propriétaire du projet — jamais depuis l'app elle-même).
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Comptes utilisateurs (créés à l'inscription dans index.html). Chacun ne
+    // peut lire/modifier que le sien.
+    match /accounts/{uid} {
+      allow read, create, update: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if isAdmin();
+    }
+
+    // Liste des admins : jamais modifiable depuis le client, uniquement à la
+    // main dans la console Firebase (Firestore > admins > [UID de l'admin]).
+    match /admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Annonces (voyageurs "GP" et demandes de colis) : visibles et publiables
+    // par tout utilisateur connecté. Seul l'admin peut les vérifier/supprimer
+    // (litige, modération).
     match /listings/{id} {
-      allow read: if true;
-      allow create: if true;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
       allow update: if isAdmin()
-        || !('verified' in request.resource.data.diff(resource.data).affectedKeys());
+        || (isSignedIn() && !('verified' in request.resource.data.diff(resource.data).affectedKeys()));
       allow delete: if isAdmin();
     }
 
-    // Profils voyageurs (identité, billet). Visibles par tous (badge vérifié dans
-    // les résultats), créés en self-service. Seul l'admin peut vérifier/supprimer.
+    // Profils voyageurs (identité, billet). Seul l'admin peut vérifier/supprimer.
     match /profiles/{phone} {
-      allow read: if true;
-      allow create: if true;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
       allow update: if isAdmin()
-        || !('verified' in request.resource.data.diff(resource.data).affectedKeys());
+        || (isSignedIn() && !('verified' in request.resource.data.diff(resource.data).affectedKeys()));
       allow delete: if isAdmin();
     }
 
-    // Alertes "prévenez-moi". Pas de suppression côté client.
+    // Alertes "prévenez-moi".
     match /alerts/{id} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
-    // Commandes : le workflow (accepter/payer/récupérer/livrer) est piloté par le
-    // client et le voyageur eux-mêmes, sans compte utilisateur ; l'app ne peut donc
-    // pas restreindre ces écritures à leur seul auteur sans une authentification par
-    // téléphone (hors périmètre actuel).
+    // Commandes : le workflow (accepter/payer/récupérer/livrer) est piloté par
+    // le client et le voyageur eux-mêmes ; l'app ne restreint pas encore ces
+    // écritures à leur seul auteur (nécessiterait de lier chaque commande au
+    // compte de son auteur).
     match /orders/{id} {
-      allow read: if true;
-      allow create: if true;
-      allow update: if true;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
       allow delete: if isAdmin();
     }
 
-    // Messagerie support et messagerie de commande : même limite que ci-dessus
-    // (pas d'authentification liée au numéro de téléphone).
+    // Messagerie support et messagerie de commande.
     match /messages/{phone} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
     match /orderMsgs/{orderId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
 
     // Points de fidélité.
     match /points/{phone} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
     }
   }
 }

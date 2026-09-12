@@ -209,6 +209,7 @@
   <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')">🧾 Mes commandes</div>
   <div class="drawer-item" id="tabPoints" onclick="switchTab('points')">🌟 Mes points</div>
   <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')">💬 Support</div>
+  <div class="drawer-item" onclick="closeDrawer();authSignOut();">🔓 Se déconnecter</div>
 </nav>
 
 <div class="wrap">
@@ -415,19 +416,28 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- IDENTITY MODAL -->
-<div class="overlay" id="overlayId">
+<!-- AUTH GATE -->
+<div class="overlay show" id="authGate">
   <div class="modal center">
     <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
-    <h3>Comment vous appelez-vous ?</h3>
-    <p>Juste pour cette fois — on vous reconnaîtra ensuite automatiquement.</p>
-    <input type="text" id="idName" placeholder="Votre prénom">
-    <input type="tel" id="idPhone" placeholder="Votre numéro">
-    <button class="btn" onclick="confirmIdentity()">Continuer</button>
+    <h3 id="authTitle">Créer un compte</h3>
+    <p id="authSub">Un compte gratuit pour suivre vos envois et vos trajets.</p>
+    <div id="authSignupFields">
+      <input type="text" id="authName" placeholder="Votre prénom">
+      <input type="tel" id="authPhone" placeholder="Votre numéro">
+    </div>
+    <input type="email" id="authEmail" placeholder="Votre email" autocomplete="username">
+    <input type="password" id="authPassword" placeholder="Mot de passe" autocomplete="new-password">
+    <button class="btn" id="authSubmitBtn" onclick="authSubmit()">Créer mon compte</button>
+    <p style="margin-top:14px;font-size:13px;">
+      <span id="authSwitchText">Déjà un compte ?</span>
+      <a href="javascript:void(0)" onclick="switchAuthMode()" style="color:var(--green-dark);font-weight:600;text-decoration:underline;" id="authSwitchLink">Se connecter</a>
+    </p>
   </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
 const PRICE_PER_KG = 8;
@@ -444,6 +454,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
 let listings=[], profiles={}, alerts=[], messages={}, orders=[], orderMsgs={}, points={};
 let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0;
@@ -508,40 +519,77 @@ function compressImage(file){
   });
 }
 
-// ---- IDENTITY (stockée localement sur cet appareil, pas partagée) ----
-async function loadMe(){
-  try{ const raw=localStorage.getItem('baraka-gp-me'); if(raw) me=JSON.parse(raw); }catch(e){ me=null; }
+// ---- IDENTITY (compte Firebase Authentication, obligatoire dès l'arrivée) ----
+let authMode='signup';
+function switchAuthMode(){
+  authMode = authMode==='signup' ? 'login' : 'signup';
+  const isSignup = authMode==='signup';
+  document.getElementById('authTitle').textContent = isSignup ? 'Créer un compte' : 'Connexion';
+  document.getElementById('authSub').textContent = isSignup ? 'Un compte gratuit pour suivre vos envois et vos trajets.' : 'Contente de vous revoir !';
+  document.getElementById('authSignupFields').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('authSubmitBtn').textContent = isSignup ? 'Créer mon compte' : 'Se connecter';
+  document.getElementById('authSwitchText').textContent = isSignup ? 'Déjà un compte ?' : "Pas encore de compte ?";
+  document.getElementById('authSwitchLink').textContent = isSignup ? 'Se connecter' : "S'inscrire";
 }
-async function saveMe(name,phone){
-  const isNew = !me;
-  me={name,phone};
+function authErrorMessage(e){
+  const code = (e && e.code) || '';
+  if(code.includes('email-already-in-use')) return "Cet email a déjà un compte, connectez-vous plutôt";
+  if(code.includes('weak-password')) return "Mot de passe trop court (6 caractères minimum)";
+  if(code.includes('invalid-email')) return "Email invalide";
+  if(code.includes('user-not-found')||code.includes('wrong-password')||code.includes('invalid-credential')) return "Email ou mot de passe incorrect";
+  return "Une erreur est survenue, réessayez";
+}
+async function completeLogin(uid, acc){
+  me={name:acc.name, phone:acc.phone, uid};
   try{ localStorage.setItem('baraka-gp-me', JSON.stringify(me)); }catch(e){}
-  ensurePoints(phone);
-  if(isNew && pendingRef && cleanPhone(pendingRef)!==cleanPhone(phone)){
-    const key=cleanPhone(phone);
-    if(!points[key].referredBy){
-      points[key].referredBy = cleanPhone(pendingRef);
-      points[key].points += 20;
-      await savePoints();
-      showToast("🎉 Bienvenue ! +20 points grâce à votre parrainage", true);
-    }
-  }
+  document.getElementById('authGate').classList.remove('show');
+  await loadAll();
+  ensurePoints(me.phone);
   updatePointsHeader();
+  renderResults();
 }
-function ensureIdentity(cb){
-  if(me && me.name && me.phone){ cb(); return; }
-  window._idCallback = cb;
-  document.getElementById('overlayId').classList.add('show');
+async function authSubmit(){
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+  if(!email||!password){ showToast("Merci de remplir l'email et le mot de passe"); return; }
+  if(authMode==='signup'){
+    const name=document.getElementById('authName').value.trim();
+    const phone=document.getElementById('authPhone').value.trim();
+    if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
+    try{
+      const cred=await auth.createUserWithEmailAndPassword(email,password);
+      const uid=cred.user.uid;
+      await db.collection('accounts').doc(uid).set({name,phone,email,createdAt:Date.now()});
+      const key=ensurePoints(phone);
+      if(pendingRef && cleanPhone(pendingRef)!==cleanPhone(phone) && !points[key].referredBy){
+        points[key].referredBy=cleanPhone(pendingRef);
+        points[key].points+=20;
+        await savePoints();
+        showToast("🎉 Bienvenue ! +20 points grâce à votre parrainage", true);
+      }
+      await completeLogin(uid,{name,phone});
+    }catch(e){ showToast(authErrorMessage(e)); }
+  }else{
+    try{ await auth.signInWithEmailAndPassword(email,password); }
+    catch(e){ showToast(authErrorMessage(e)); }
+  }
 }
-function confirmIdentity(){
-  const name=document.getElementById('idName').value.trim();
-  const phone=document.getElementById('idPhone').value.trim();
-  if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
-  saveMe(name,phone).then(()=>{
-    document.getElementById('overlayId').classList.remove('show');
-    if(window._idCallback) window._idCallback();
-  });
+async function authSignOut(){
+  stopPolling();
+  try{ await auth.signOut(); }catch(e){}
 }
+auth.onAuthStateChanged(async (user)=>{
+  if(user){
+    if(me && me.uid===user.uid) return;
+    let acc=null;
+    try{ const snap=await db.collection('accounts').doc(user.uid).get(); acc=snap.exists?snap.data():null; }catch(e){}
+    if(acc) await completeLogin(user.uid, acc);
+  }else{
+    me=null;
+    document.getElementById('authGate').classList.add('show');
+  }
+});
+function ensureIdentity(cb){ cb(); }
 
 // ---- POINTS / LOYALTY ----
 function ensurePoints(phone){
@@ -1143,7 +1191,6 @@ async function publishListing(){
 
   if(!name||!phone||!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
   if(!ticketFile){ showToast("Merci d'ajouter votre billet"); return; }
-  if(!me||me.phone!==phoneRaw) await saveMe(name,phoneRaw);
 
   const hasProfile=!!profiles[phone];
   if(!hasProfile){
@@ -1189,7 +1236,6 @@ async function publishColis(){
   const photoFile=document.getElementById('sPhoto').files[0];
 
   if(!name||!phone||!from||!to||!kg||!value){ showToast("Merci de remplir tous les champs"); return; }
-  if(!me||me.phone!==phone) await saveMe(name,phone);
   if(parseInt(value)>150){ showToast("Valeur trop élevée (max 150€)"); return; }
   if(!photoFile){ showToast("Merci d'ajouter une photo"); return; }
   const rules=['ruleCash','ruleDocs','ruleValuables','ruleIllegal'];
@@ -1210,12 +1256,9 @@ async function publishColis(){
 }
 
 // ---- INIT ----
-(async function(){
+(function(){
   const params=new URLSearchParams(location.search);
   pendingRef = params.get('ref');
-  await loadAll();
-  await loadMe();
-  if(me) updatePointsHeader();
 })();
 </script>
 

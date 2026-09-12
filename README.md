@@ -22,18 +22,28 @@ Firebase Firestore et partagées entre tous les utilisateurs. `index.html` et
    copiez l'objet `firebaseConfig` et collez-le à la fois dans `index.html` et
    dans `admin.html` (variable `firebaseConfig`, en haut du `<script>`
    principal de chaque fichier) à la place des valeurs `REMPLACER...`.
-4. **Build → Authentication → Sign-in method → activez « Email/Mot de passe »**,
-   puis dans l'onglet **Users**, ajoutez un compte (email + mot de passe) pour
-   chaque personne qui doit avoir accès à `admin.html`. L'app n'a pas de page
-   d'inscription : seuls les comptes que vous créez ici peuvent se connecter.
+4. **Build → Authentication → Sign-in method → activez « Email/Mot de passe »**.
+   C'est le même système de connexion que les utilisateurs normaux de
+   `index.html` (inscription libre, prénom + numéro + email + mot de passe) —
+   il faut donc explicitement marquer certains comptes comme admin (étape 6).
 5. Déployez les règles de sécurité (`firestore.rules`) avec la
-   [CLI Firebase](https://firebase.google.com/docs/cli) :
+   [CLI Firebase](https://firebase.google.com/docs/cli), ou collez le contenu
+   du fichier dans **Firestore Database → Règles → Publier** :
    ```
    npm install -g firebase-tools
    firebase login
    firebase use --add        # sélectionnez votre projet
    firebase deploy --only firestore:rules
    ```
+6. **Déclarer un compte admin** : dans **Authentication → Users**, créez votre
+   compte (email + mot de passe) — ou utilisez un compte déjà créé en vous
+   inscrivant normalement sur `index.html` — puis copiez son **User UID**.
+   Allez dans **Firestore Database → Données → Commencer une collection**,
+   nommez-la `admins`, et créez un document dont l'**ID est exactement cet
+   UID** (le contenu du document importe peu, un champ `role: "admin"` suffit).
+   Sans ce document, le compte peut se connecter à `admin.html` mais aucune
+   action (vérifier, supprimer) ne fonctionnera : les règles Firestore les
+   refuseront silencieusement.
 
 Si vous hébergez le site (Firebase Hosting ou autre), pensez à ne pas mettre de
 lien vers `admin.html` nulle part dans le site public ni dans vos moteurs de
@@ -42,10 +52,12 @@ son URL doit rester connue de vous seul.
 
 ### Limite connue
 
-L'application identifie les utilisateurs par un numéro de téléphone qu'ils
-saisissent eux-mêmes, sans vérification (pas de compte, pas de code SMS). Les
-règles Firestore protègent donc uniquement les actions réservées à l'admin
-(vérifier/supprimer une identité ou une annonce) ; le reste des écritures
-(commandes, messages, points) reste ouvert, comme l'app elle-même le suppose.
-Une sécurisation complète nécessiterait une authentification par téléphone
-(ex. Firebase Phone Auth), non incluse ici.
+Un compte (email + mot de passe) est obligatoire pour utiliser `index.html`,
+mais le numéro de téléphone qu'il contient n'est pas vérifié par SMS — rien
+n'empêche quelqu'un de créer un compte avec le numéro de quelqu'un d'autre.
+Les règles Firestore exigent qu'on soit connecté pour lire ou écrire quoi que
+ce soit, mais ne vérifient pas encore qu'une commande, un message ou un profil
+n'est modifié que par son propriétaire (ça nécessiterait de lier chaque
+enregistrement au compte de son auteur, plus large que ce qui est fait ici).
+Une vérification réelle du numéro nécessiterait Firebase Phone Auth (SMS),
+qui demande la formule payante Blaze.
