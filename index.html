@@ -381,7 +381,6 @@
     <div id="orderDiscountBox"></div>
     <div class="price-recap">
       <div class="price-recap-row"><span>Prix total</span><b id="oPriceTotal">—</b></div>
-      <div class="price-recap-row sub"><span>Dont commission Baraka GP</span><span id="oCommission">—</span></div>
     </div>
     <button class="btn gold" onclick="submitOrder()">Envoyer la commande</button>
     <button class="btn ghost" onclick="closeOrderModal()">Annuler</button>
@@ -439,7 +438,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
-const PRICE_PER_KG = 8;
+const PRICE_PER_KG = 10;
 const COMMISSION_PER_KG = 2;
 
 // Remplacez par la config de votre projet Firebase (Console Firebase > Paramètres du projet > Vos applications > SDK).
@@ -857,9 +856,8 @@ function openOrderModal(listing){
 function closeOrderModal(){ document.getElementById('orderOverlay').classList.remove('show'); }
 function updateOrderPrice(){
   const kg=parseFloat(document.getElementById('oKg').value)||0;
-  const total=kg*PRICE_PER_KG, commission=kg*COMMISSION_PER_KG;
+  const total=kg*PRICE_PER_KG;
   document.getElementById('oPriceTotal').textContent = total>0 ? total.toFixed(2)+'€' : '—';
-  document.getElementById('oCommission').textContent = commission>0 ? commission.toFixed(2)+'€' : '—';
   const discounts = me ? availableDiscounts(me.phone) : 0;
   const box=document.getElementById('orderDiscountBox');
   if(discounts>0 && total>0){
