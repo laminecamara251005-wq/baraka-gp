@@ -777,7 +777,7 @@ async function createAlert(){
   const name=document.getElementById('alertName').value.trim();
   const phone=document.getElementById('alertPhone').value.trim();
   if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
-  alerts.push({id:Date.now().toString(),name,phone,country:document.getElementById('searchCountry').value,from:'',to:'',notified:false,createdAt:Date.now()});
+  alerts.push({id:Date.now().toString(),name,phone,country:document.getElementById('searchCountry').value,from:document.getElementById('searchFrom').value.trim(),to:document.getElementById('searchTo').value.trim(),notified:false,createdAt:Date.now()});
   await saveAlerts();
   ensureThread(phone,name); await saveMessages();
   showToast("Demande publiée ! On vous préviendra dès qu'un GP correspond 📢");
