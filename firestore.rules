@@ -1,0 +1,69 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Toute personne connectée via Firebase Auth (Console > Authentication > Users,
+    // ajoutés à la main) est considérée admin : l'app ne propose pas d'inscription,
+    // seul le propriétaire du projet peut créer ces comptes.
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // Annonces (voyageurs "GP" et demandes de colis) : visibles par tous pour la
+    // recherche, publiables par tous (self-service). Seul l'admin peut les
+    // vérifier/supprimer (litige, modération).
+    match /listings/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if isAdmin()
+        || !('verified' in request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if isAdmin();
+    }
+
+    // Profils voyageurs (identité, billet). Visibles par tous (badge vérifié dans
+    // les résultats), créés en self-service. Seul l'admin peut vérifier/supprimer.
+    match /profiles/{phone} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if isAdmin()
+        || !('verified' in request.resource.data.diff(resource.data).affectedKeys());
+      allow delete: if isAdmin();
+    }
+
+    // Alertes "prévenez-moi". Pas de suppression côté client.
+    match /alerts/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // Commandes : le workflow (accepter/payer/récupérer/livrer) est piloté par le
+    // client et le voyageur eux-mêmes, sans compte utilisateur ; l'app ne peut donc
+    // pas restreindre ces écritures à leur seul auteur sans une authentification par
+    // téléphone (hors périmètre actuel).
+    match /orders/{id} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if isAdmin();
+    }
+
+    // Messagerie support et messagerie de commande : même limite que ci-dessus
+    // (pas d'authentification liée au numéro de téléphone).
+    match /messages/{phone} {
+      allow read: if true;
+      allow write: if true;
+    }
+    match /orderMsgs/{orderId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Points de fidélité.
+    match /points/{phone} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
