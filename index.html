@@ -463,6 +463,12 @@ let currentOrderChatId=null, ordersRole='client';
 let pollTimer=null, pendingRef=null;
 
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')), ms))
+  ]);
+}
 function showToast(msg, gold){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(gold?' gold':''); setTimeout(()=>t.classList.remove('show'),3000); }
 function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
 function fmtDateTime(dt){ if(!dt) return "—"; return new Date(dt).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(dt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
@@ -471,11 +477,11 @@ function flag(c){ return {Mauritanie:"🇲🇷",Sénégal:"🇸🇳",Mali:"🇲�
 
 // ---- STORAGE (Firestore : chaque enregistrement est son propre document, partagé entre tous les utilisateurs) ----
 async function fetchCollectionArray(name){
-  const snap=await db.collection(name).get();
+  const snap=await withTimeout(db.collection(name).get(), 8000);
   return snap.docs.map(d=>d.data());
 }
 async function fetchCollectionMap(name){
-  const snap=await db.collection(name).get();
+  const snap=await withTimeout(db.collection(name).get(), 8000);
   const map={};
   snap.forEach(d=>{ map[d.id]=d.data(); });
   return map;
@@ -576,7 +582,7 @@ async function authSubmit(){
       if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
       let uid;
       try{
-        const cred=await auth.createUserWithEmailAndPassword(email,password);
+        const cred=await withTimeout(auth.createUserWithEmailAndPassword(email,password), 12000);
         uid=cred.user.uid;
       }catch(e){
         if(((e&&e.code)||'').includes('email-already-in-use')){
@@ -585,23 +591,23 @@ async function authSubmit(){
           // connecter avec le mot de passe qui vient d'être tapé plutôt que de
           // bloquer la personne.
           try{
-            const cred2=await auth.signInWithEmailAndPassword(email,password);
+            const cred2=await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000);
             uid=cred2.user.uid;
           }catch(e2){
-            showToast("Cet email a déjà un compte — connectez-vous, ou utilisez « mot de passe oublié »");
+            showToast(e2.message==='timeout' ? "Connexion trop lente, réessayez" : "Cet email a déjà un compte — connectez-vous, ou utilisez « mot de passe oublié »");
             return;
           }
         }else{
-          showToast(authErrorMessage(e));
+          showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : authErrorMessage(e));
           return;
         }
       }
       let acc={name,phone,email,createdAt:Date.now()};
       try{
-        const snap=await db.collection('accounts').doc(uid).get();
+        const snap=await withTimeout(db.collection('accounts').doc(uid).get(), 8000);
         if(snap.exists) acc=snap.data();
-        else await db.collection('accounts').doc(uid).set(acc);
-      }catch(e){ /* Firestore indisponible pour l'instant : on continue quand même avec les infos saisies */ }
+        else await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000);
+      }catch(e){ /* Firestore lent ou indisponible : on continue quand même avec les infos saisies */ }
       const key=ensurePoints(phone);
       if(pendingRef && cleanPhone(pendingRef)!==cleanPhone(phone) && !points[key].referredBy){
         points[key].referredBy=cleanPhone(pendingRef);
@@ -611,8 +617,8 @@ async function authSubmit(){
       }
       await completeLogin(uid, acc);
     }else{
-      try{ await auth.signInWithEmailAndPassword(email,password); }
-      catch(e){ showToast(authErrorMessage(e)); }
+      try{ await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000); }
+      catch(e){ showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : authErrorMessage(e)); }
     }
   } finally {
     btn.disabled=false;
@@ -626,13 +632,13 @@ auth.onAuthStateChanged(async (user)=>{
   if(user){
     if(me && me.uid===user.uid) return;
     let acc=null;
-    try{ const snap=await db.collection('accounts').doc(user.uid).get(); acc=snap.exists?snap.data():null; }catch(e){}
+    try{ const snap=await withTimeout(db.collection('accounts').doc(user.uid).get(), 8000); acc=snap.exists?snap.data():null; }catch(e){}
     if(!acc){
       // Compte authentifié mais sans fiche accounts (ex. écriture Firestore
       // ayant échoué à l'inscription) : on récupère au moins l'email pour ne
       // pas laisser la personne bloquée derrière l'écran de connexion.
       acc={name:'', phone:'', email:user.email||''};
-      try{ await db.collection('accounts').doc(user.uid).set({...acc, createdAt:Date.now()}); }catch(e){}
+      try{ await withTimeout(db.collection('accounts').doc(user.uid).set({...acc, createdAt:Date.now()}), 8000); }catch(e){}
     }
     await completeLogin(user.uid, acc);
   }else{

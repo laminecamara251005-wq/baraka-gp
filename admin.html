@@ -118,6 +118,12 @@ let adminSub='profiles', adminOpenThreadPhone=null;
 let pollTimer=null;
 
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')), ms))
+  ]);
+}
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'; setTimeout(()=>t.classList.remove('show'),3000); }
 function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
 function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
@@ -139,11 +145,11 @@ function countHabits(phone,country,type){
 
 // ---- STORAGE (Firestore, un document par enregistrement — même base que index.html) ----
 async function fetchCollectionArray(name){
-  const snap=await db.collection(name).get();
+  const snap=await withTimeout(db.collection(name).get(), 8000);
   return snap.docs.map(d=>d.data());
 }
 async function fetchCollectionMap(name){
-  const snap=await db.collection(name).get();
+  const snap=await withTimeout(db.collection(name).get(), 8000);
   const map={};
   snap.forEach(d=>{ map[d.id]=d.data(); });
   return map;
@@ -180,8 +186,8 @@ async function adminSignIn(){
   const email=document.getElementById('adminEmail').value.trim();
   const password=document.getElementById('adminPassword').value;
   if(!email||!password){ showToast("Merci de remplir l'email et le mot de passe"); return; }
-  try{ await auth.signInWithEmailAndPassword(email,password); }
-  catch(e){ showToast("Identifiants incorrects"); }
+  try{ await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000); }
+  catch(e){ showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : "Identifiants incorrects"); }
 }
 async function adminForgotPassword(){
   const email=document.getElementById('adminEmail').value.trim();
