@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baraka GP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF6EF; --panel:#FFFFFF; --ink:#1F2B24; --ink-soft:#5B6660;
+    --green:#1E6F5C; --green-dark:#154F42; --green-pale:#E7F0EC;
+    --gold:#C9922F; --gold-soft:#F3E6C8; --line:#E6DFCC; --radius:14px;
+    --red:#B4453E; --red-soft:#F3E1DF;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+  .wrap{max-width:720px;margin:0 auto;padding:0 20px 80px;}
+
+  header{padding:26px 20px 18px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--green) 0%,var(--green-dark) 100%);}
+  header .routes{position:absolute;inset:0;opacity:.14;pointer-events:none;}
+  header .brand{position:relative;color:#F5EFDD;}
+  header .brand .star{width:32px;height:32px;margin:0 auto 6px;}
+  header h1{font-size:26px;color:#F5EFDD;letter-spacing:.5px;}
+  header p{margin:5px 0 0;color:#D9CBA3;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;}
+
+  .points-bar{position:relative;margin-top:14px;background:rgba(255,255,255,.12);border-radius:999px;padding:8px 16px;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#F5EFDD;cursor:pointer;}
+  .points-bar b{color:var(--gold);}
+
+  .tabs{display:flex;gap:5px;margin:20px 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px;overflow-x:auto;}
+  .tab{flex:1;text-align:center;padding:10px 4px;border-radius:999px;font-weight:600;font-size:11.6px;cursor:pointer;color:var(--ink-soft);transition:.2s;user-select:none;white-space:nowrap;}
+  .tab.active{background:var(--green);color:#fff;}
+
+  .hamburger{position:absolute;top:22px;right:20px;width:38px;height:38px;border-radius:10px;border:none;background:rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;z-index:5;}
+  .hamburger span{display:block;width:18px;height:2px;background:#F5EFDD;border-radius:2px;}
+
+  .drawer-overlay{position:fixed;inset:0;background:rgba(31,43,36,.45);display:none;z-index:70;}
+  .drawer-overlay.show{display:block;}
+  .drawer-panel{position:fixed;top:0;right:0;bottom:0;width:78%;max-width:320px;background:var(--panel);z-index:71;transform:translateX(100%);transition:transform .28s ease;box-shadow:-8px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column;padding:10px 0;}
+  .drawer-panel.show{transform:translateX(0);}
+  .drawer-head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px 10px;font-family:'Fraunces',serif;font-size:16px;color:var(--ink);border-bottom:1px solid var(--line);margin-bottom:6px;}
+  .drawer-close{background:none;border:none;font-size:18px;color:var(--ink-soft);cursor:pointer;}
+  .drawer-item{padding:15px 20px;font-size:14.5px;font-weight:600;color:var(--ink);cursor:pointer;border-left:3px solid transparent;}
+  .drawer-item:hover{background:var(--bg);}
+  .drawer-item.active{color:var(--green-dark);border-left-color:var(--green);background:var(--green-pale);}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:16px;}
+  .panel h2{font-size:19px;margin-bottom:4px;}
+  .panel .sub{color:var(--ink-soft);font-size:13px;margin-bottom:16px;}
+
+  label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:13px 0 6px;text-transform:uppercase;letter-spacing:.4px;}
+  label:first-of-type{margin-top:0;}
+  select, input, textarea{width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--line);background:#FCFAF5;font-family:'Inter',sans-serif;font-size:14.5px;color:var(--ink);}
+  textarea{resize:vertical;min-height:64px;}
+  select:focus, input:focus, textarea:focus{outline:none;border-color:var(--green);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .hint{font-size:11.5px;color:var(--ink-soft);margin-top:5px;}
+
+  .btn{margin-top:18px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;transition:.15s;}
+  .btn:hover{background:var(--green-dark);}
+  .btn.gold{background:var(--gold);} .btn.gold:hover{background:#B07F24;}
+  .btn.red{background:var(--red);} .btn.red:hover{background:#963530;}
+  .btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink);}
+  .btn.sm{margin-top:8px;padding:9px;font-size:13px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+
+  .results-head{display:flex;justify-content:space-between;align-items:baseline;margin:20px 2px 10px;}
+  .results-head h3{font-size:15.5px;} .results-head span{font-size:12.5px;color:var(--ink-soft);}
+
+  .gp-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:12px;}
+  .gp-card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .route{font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;color:var(--green-dark);}
+  .route .dots{color:var(--gold);margin:0 5px;font-weight:400;}
+  .price{background:var(--gold-soft);color:#8A611D;font-weight:700;font-size:13px;padding:5px 10px;border-radius:999px;white-space:nowrap;}
+  .meta{margin-top:7px;font-size:13px;color:var(--ink-soft);display:flex;gap:12px;flex-wrap:wrap;}
+  .meta b{color:var(--ink);}
+  .stars{color:var(--gold);font-size:13px;}
+
+  .empty{text-align:center;padding:34px 20px;color:var(--ink-soft);}
+  .empty .star{width:28px;height:28px;margin:0 auto 10px;opacity:.5;}
+  .empty b{color:var(--ink);display:block;margin-bottom:4px;font-family:'Fraunces',serif;font-size:16px;}
+
+  .badge{margin-top:10px;font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;display:inline-block;}
+  .badge.verified{background:var(--green-pale);color:var(--green-dark);}
+  .badge.pending{background:var(--gold-soft);color:#8A611D;}
+  .badge.danger{background:var(--red-soft);color:var(--red);}
+
+  .overlay{position:fixed;inset:0;background:rgba(31,43,36,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel);border-radius:16px;max-width:400px;width:100%;padding:24px;text-align:left;max-height:86vh;overflow-y:auto;}
+  .modal.center{text-align:center;}
+  .modal .star{width:28px;height:28px;margin:0 auto 8px;}
+  .modal h3{font-size:18px;margin-bottom:6px;}
+  .modal p{color:var(--ink-soft);font-size:13.5px;line-height:1.5;margin:0 0 14px;}
+  .modal .price-big{font-family:'Fraunces',serif;font-size:24px;color:var(--green-dark);margin-bottom:2px;}
+  .modal .price-note{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green-dark);color:#fff;padding:12px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90vw;text-align:center;}
+  .toast.show{opacity:1;transform:translate(-50%,-6px);}
+  .toast.gold{background:var(--gold);}
+
+  footer{text-align:center;padding:8px 20px 0;color:var(--ink-soft);font-size:12px;}
+
+  .rules-box{margin-top:16px;background:var(--gold-soft);border-radius:12px;padding:13px 15px;}
+  .rules-title{font-weight:700;font-size:13px;color:#7A5619;margin-bottom:9px;}
+  .check-line{display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink);margin:0 0 8px;cursor:pointer;}
+  .check-line:last-child{margin-bottom:0;}
+  .check-line input{width:auto;margin-top:2px;accent-color:var(--green);}
+
+  .profile-status{margin-top:14px;padding:12px 15px;border-radius:12px;font-size:13px;}
+  .profile-status.verified{background:var(--green-pale);color:var(--green-dark);}
+  .profile-status.pending{background:var(--gold-soft);color:#8A611D;}
+  .profile-status b{display:block;font-family:'Fraunces',serif;font-size:14.5px;margin-bottom:2px;}
+
+  .msg-icon{width:34px;height:34px;border-radius:999px;border:none;background:var(--green);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+  /* ORDER CARD */
+  .order-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:14px;}
+  .order-card .route{font-size:15.5px;}
+  .status-pill{display:inline-block;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;}
+  .status-pill.pending{background:var(--gold-soft);color:#8A611D;}
+  .status-pill.accepted{background:var(--green-pale);color:var(--green-dark);}
+  .status-pill.paid{background:#E4E9F5;color:#33447A;}
+  .status-pill.delivered{background:var(--green-pale);color:var(--green-dark);}
+  .status-pill.completed{background:var(--green);color:#fff;}
+  .status-pill.refused, .status-pill.cancelled_gp, .status-pill.cancelled_client, .status-pill.expired{background:var(--red-soft);color:var(--red);}
+
+  .progress{display:flex;gap:3px;margin:12px 0 4px;}
+  .progress span{flex:1;height:5px;border-radius:3px;background:var(--line);}
+  .progress span.done{background:var(--green);}
+  .progress span.failed{background:var(--red);}
+  .progress-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-soft);margin-bottom:10px;}
+
+  .countdown{font-size:12px;font-weight:600;color:var(--red);background:var(--red-soft);padding:6px 11px;border-radius:8px;display:inline-block;margin-top:8px;}
+
+  .chat-thread{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;padding:4px 2px;margin:10px 0;}
+  .bubble{max-width:78%;padding:8px 12px;border-radius:13px;font-size:13.5px;line-height:1.4;}
+  .bubble.mine{align-self:flex-end;background:var(--green);color:#fff;border-bottom-right-radius:4px;}
+  .bubble.theirs{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-bottom-left-radius:4px;}
+  .bubble .time{display:block;font-size:10px;opacity:.65;margin-top:2px;}
+  .chat-input{display:flex;gap:7px;margin-top:6px;}
+  .chat-input textarea{min-height:40px;} .chat-input button{width:auto;margin:0;padding:0 16px;flex-shrink:0;}
+
+  .stars-input{display:flex;gap:6px;justify-content:center;margin:14px 0;font-size:30px;}
+  .stars-input span{cursor:pointer;color:var(--line);}
+  .stars-input span.on{color:var(--gold);}
+
+  .admin-list{margin-top:14px;}
+  .admin-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;text-align:left;}
+  .admin-card img{max-width:100%;border-radius:8px;margin:8px 0;}
+  .admin-card .name-check{font-size:12.5px;color:var(--ink-soft);margin:4px 0 8px;}
+  .admin-actions{display:flex;gap:8px;}
+  .admin-actions button{flex:1;padding:9px;border-radius:8px;border:none;font-weight:600;font-size:12.5px;cursor:pointer;}
+  .btn-approve{background:var(--green);color:#fff;}
+  .btn-reject{background:var(--red-soft);color:var(--red);}
+  .type-pill{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-bottom:7px;margin-right:5px;letter-spacing:.3px;}
+  .type-pill.gp{background:var(--green-pale);color:var(--green-dark);}
+  .type-pill.colis{background:var(--gold-soft);color:#8A611D;}
+  .type-pill.profile{background:#E4E9F5;color:#33447A;}
+  .admin-subtab{display:flex;gap:5px;margin-bottom:14px;flex-wrap:wrap;}
+  .admin-subtab div{flex:1;min-width:70px;text-align:center;padding:8px 3px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;background:var(--bg);color:var(--ink-soft);}
+  .admin-subtab div.active{background:var(--green);color:#fff;}
+  .thread-row{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;cursor:pointer;background:var(--panel);}
+  .unread{background:var(--gold);color:#fff;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;}
+
+  .ref-box{background:var(--gold-soft);border-radius:12px;padding:16px;margin-bottom:14px;}
+  .ref-box .link-row{display:flex;gap:8px;margin-top:8px;}
+  .ref-box input{background:#fff;font-size:12px;}
+  .ref-box button{width:auto;margin:0;padding:0 14px;flex-shrink:0;}
+  .points-progress{background:var(--line);height:8px;border-radius:99px;margin:10px 0 4px;overflow:hidden;}
+  .points-progress > div{height:100%;background:var(--gold);}
+
+  .role-toggle{display:flex;gap:6px;margin-bottom:14px;}
+  .role-toggle div{flex:1;text-align:center;padding:9px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--panel);border:1px solid var(--line);color:var(--ink-soft);}
+  .role-toggle div.active{background:var(--green);color:#fff;border-color:var(--green);}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="routes" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#F5EFDD" stroke-width="2" fill="none" stroke-dasharray="1 8" stroke-linecap="round">
+      <path d="M200 100 Q 130 60 60 30"/><path d="M200 100 Q 150 140 90 175"/>
+      <path d="M200 100 Q 260 140 320 175"/><path d="M200 100 Q 270 60 340 30"/>
+    </g>
+  </svg>
+  <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="brand">
+    <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
+    <h1>Baraka GP</h1>
+    <p>Vos colis, partout en confiance</p>
+    <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
+  </div>
+</header>
+
+<!-- DRAWER MENU -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<nav class="drawer-panel" id="drawerPanel">
+  <div class="drawer-head">
+    <span>Menu</span>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-item active" id="tabSearch" onclick="switchTab('search')">🔍 Chercher un GP</div>
+  <div class="drawer-item" id="tabSend" onclick="switchTab('send')">📦 Envoyer un colis</div>
+  <div class="drawer-item" id="tabPublish" onclick="switchTab('publish')">✈️ Je voyage</div>
+  <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')">🧾 Mes commandes</div>
+  <div class="drawer-item" id="tabPoints" onclick="switchTab('points')">🌟 Mes points</div>
+  <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')">💬 Support</div>
+  <div class="drawer-item" onclick="closeDrawer();openAdmin();">⚙️ Espace admin</div>
+</nav>
+
+<div class="wrap">
+
+
+  <!-- SEARCH -->
+  <div id="viewSearch">
+    <div class="panel">
+      <h2>Où envoyez-vous votre colis ?</h2>
+      <div class="sub">Trouvez un voyageur qui part bientôt sur votre trajet</div>
+      <div class="row2">
+        <div><label>Ville de départ</label><input type="text" id="searchFrom" list="fromCities" placeholder="Paris"></div>
+        <div><label>Ville d'arrivée</label><input type="text" id="searchTo" list="toCities" placeholder="Nouakchott"></div>
+      </div>
+      <datalist id="fromCities"></datalist><datalist id="toCities"></datalist>
+      <label>Destination</label>
+      <select id="searchCountry">
+        <option value="">Toutes les destinations</option>
+        <option value="Mauritanie">🇲🇷 Mauritanie</option>
+        <option value="Sénégal">🇸🇳 Sénégal</option>
+        <option value="Mali">🇲🇱 Mali</option>
+        <option value="Égypte">🇪🇬 Égypte</option>
+      </select>
+      <label>Date souhaitée (approximative)</label>
+      <input type="date" id="searchDate">
+      <button class="btn" onclick="renderResults()">Rechercher</button>
+    </div>
+    <div class="results-head"><h3>Voyageurs disponibles</h3><span id="resultCount"></span></div>
+    <div id="resultsList"></div>
+  </div>
+
+  <!-- SEND (colis sans GP précis) -->
+  <div id="viewSend" style="display:none;">
+    <div class="panel">
+      <h2>Décrivez votre colis</h2>
+      <div class="sub">Pas encore trouvé de voyageur ? Décrivez votre besoin, nous vous alertons dès qu'un GP correspond.</div>
+      <label>Votre prénom</label><input type="text" id="sName" placeholder="Ex. Fatou">
+      <label>Votre numéro</label><input type="tel" id="sPhone" placeholder="Ex. 06 12 34 56 78">
+      <div class="row2">
+        <div><label>Ville de départ</label><input type="text" id="sFrom" placeholder="Paris"></div>
+        <div><label>Ville d'arrivée</label><input type="text" id="sTo" placeholder="Nouakchott"></div>
+      </div>
+      <label>Pays de destination</label>
+      <select id="sCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option></select>
+      <label>Date d'envoi souhaitée</label><input type="date" id="sDate">
+      <label>Poids approximatif</label><input type="number" id="sKg" placeholder="Ex. 5" min="1">
+      <label>Description du contenu</label><textarea id="sDesc" placeholder="Ex. Vêtements et quelques cadeaux"></textarea>
+      <label>Photo du colis</label><input type="file" id="sPhoto" accept="image/*">
+      <label>Valeur déclarée</label><input type="number" id="sValue" placeholder="Ex. 60" min="1">
+      <div class="hint">Plafond 150€.</div>
+      <div class="rules-box">
+        <div class="rules-title">⚠️ Objets strictement interdits</div>
+        <label class="check-line"><input type="checkbox" id="ruleCash"> Aucune espèce</label>
+        <label class="check-line"><input type="checkbox" id="ruleDocs"> Aucun document officiel d'un tiers</label>
+        <label class="check-line"><input type="checkbox" id="ruleValuables"> Aucun bijou non déclaré</label>
+        <label class="check-line"><input type="checkbox" id="ruleIllegal"> Aucun produit illicite</label>
+      </div>
+      <button class="btn gold" onclick="publishColis()">Envoyer ma demande</button>
+    </div>
+  </div>
+
+  <!-- PUBLISH GP -->
+  <div id="viewPublish" style="display:none;">
+    <div class="panel">
+      <h2>Publiez votre trajet</h2>
+      <div class="sub">Vous voyagez bientôt ? Gagnez de l'argent avec la place libre dans votre valise.</div>
+      <label>Votre prénom</label><input type="text" id="pName" placeholder="Ex. Amadou">
+      <label>Votre numéro</label><input type="tel" id="pPhone" placeholder="Ex. 06 12 34 56 78" onblur="checkProfile()">
+      <div id="profileStatusBox"></div>
+      <label>Billet pour ce voyage</label><input type="file" id="pTicket" accept="image/*,.pdf">
+      <div class="hint">À fournir à chaque trajet.</div>
+      <div id="docsSection">
+        <label>Pièce d'identité</label><input type="file" id="pId" accept="image/*">
+        <div class="hint">Une seule fois.</div>
+      </div>
+      <div class="row2">
+        <div><label>Ville de départ</label><input type="text" id="pFrom" placeholder="Paris"></div>
+        <div><label>Ville d'arrivée</label><input type="text" id="pTo" placeholder="Nouakchott"></div>
+      </div>
+      <label>Pays de destination</label>
+      <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option></select>
+      <label>Date du voyage</label><input type="date" id="pDate">
+      <label>Kg disponibles</label><input type="number" id="pKg" placeholder="Ex. 8" min="1">
+      <div class="rules-box">
+        <div class="rules-title">🙏 Engagement du voyageur</div>
+        <label class="check-line"><input type="checkbox" id="ruleCheck"> Je transporte uniquement des colis vérifiés, sans les ouvrir</label>
+        <label class="check-line"><input type="checkbox" id="ruleCheck2"> Je confirme la remise au destinataire</label>
+      </div>
+      <button class="btn gold" onclick="publishListing()">Publier mon trajet</button>
+    </div>
+  </div>
+
+  <!-- ORDERS -->
+  <div id="viewOrders" style="display:none;">
+    <div class="role-toggle">
+      <div class="active" id="roleClient" onclick="switchRole('client')">📤 Mes envois</div>
+      <div id="roleGp" onclick="switchRole('gp')">✈️ Commandes reçues (GP)</div>
+    </div>
+    <div id="ordersList"></div>
+  </div>
+
+  <!-- POINTS -->
+  <div id="viewPoints" style="display:none;">
+    <div class="panel" id="pointsPanel"></div>
+  </div>
+
+  <!-- MESSAGES (support) -->
+  <div id="viewMessages" style="display:none;">
+    <div class="panel">
+      <h2>Support Baraka GP</h2>
+      <div class="sub">Une question, un souci ? Écrivez-nous ici.</div>
+      <div class="chat-thread" id="chatThread"></div>
+      <div class="chat-input">
+        <textarea id="chatInput" placeholder="Écrivez votre message..."></textarea>
+        <button class="btn" style="margin-top:0;" onclick="sendUserMessage()">Envoyer</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Baraka GP — service de mise en relation entre particuliers &nbsp;·&nbsp; <span onclick="openAdmin()" style="cursor:pointer;text-decoration:underline;">Admin</span></footer>
+</div>
+
+<!-- ORDER MODAL (commander) -->
+<div class="overlay" id="orderOverlay">
+  <div class="modal">
+    <h3>Commander ce voyageur</h3>
+    <div class="sub" id="orderRouteInfo" style="color:var(--ink-soft);font-size:13px;margin-bottom:14px;"></div>
+    <label>Poids de votre colis (kg)</label>
+    <input type="number" id="oKg" min="1" oninput="updateOrderPrice()">
+    <label>Description du contenu</label>
+    <textarea id="oDesc" placeholder="Ex. Vêtements, cadeaux"></textarea>
+    <label>Photo du colis</label>
+    <input type="file" id="oPhoto" accept="image/*">
+    <label>Valeur déclarée</label>
+    <input type="number" id="oValue" placeholder="Ex. 60" oninput="updateOrderPrice()">
+    <div class="hint">Plafond 150€.</div>
+    <label>Lieu de remise proposé</label>
+    <input type="text" id="oLocation" placeholder="Ex. Gare du Nord, Paris">
+    <label>Horaire de remise proposé</label>
+    <input type="datetime-local" id="oTime">
+    <div class="rules-box">
+      <div class="rules-title">⚠️ Objets strictement interdits</div>
+      <label class="check-line"><input type="checkbox" id="oRuleCash"> Aucune espèce</label>
+      <label class="check-line"><input type="checkbox" id="oRuleDocs"> Aucun document officiel d'un tiers</label>
+      <label class="check-line"><input type="checkbox" id="oRuleValuables"> Aucun bijou non déclaré</label>
+      <label class="check-line"><input type="checkbox" id="oRuleIllegal"> Aucun produit illicite</label>
+    </div>
+    <div id="orderDiscountBox"></div>
+    <div class="panel" style="margin:14px 0 0;padding:14px;background:var(--bg);">
+      <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span>Prix total</span><b id="oPriceTotal">—</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-top:4px;"><span>Dont commission Baraka GP</span><span id="oCommission">—</span></div>
+    </div>
+    <button class="btn gold" onclick="submitOrder()">Envoyer la commande</button>
+    <button class="btn ghost" onclick="closeOrderModal()">Annuler</button>
+  </div>
+</div>
+
+<!-- RATING MODAL -->
+<div class="overlay" id="ratingOverlay">
+  <div class="modal center">
+    <h3>Comment s'est passée la livraison ?</h3>
+    <p>Votre avis aide les autres à choisir en toute confiance.</p>
+    <div class="stars-input" id="starsInput">
+      <span data-v="1" onclick="setStars(1)">★</span><span data-v="2" onclick="setStars(2)">★</span>
+      <span data-v="3" onclick="setStars(3)">★</span><span data-v="4" onclick="setStars(4)">★</span>
+      <span data-v="5" onclick="setStars(5)">★</span>
+    </div>
+    <textarea id="ratingComment" placeholder="Un commentaire (optionnel)"></textarea>
+    <button class="btn" onclick="submitRating()">Envoyer mon avis</button>
+  </div>
+</div>
+
+<!-- DELIVERY CODE MODAL -->
+<div class="overlay" id="codeOverlay">
+  <div class="modal center">
+    <h3 id="codeModalTitle">Code de livraison</h3>
+    <p id="codeModalText"></p>
+    <div id="codeModalContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- IDENTITY MODAL -->
+<div class="overlay" id="overlayId">
+  <div class="modal center">
+    <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
+    <h3>Comment vous appelez-vous ?</h3>
+    <p>Juste pour cette fois — on vous reconnaîtra ensuite automatiquement.</p>
+    <input type="text" id="idName" placeholder="Votre prénom">
+    <input type="tel" id="idPhone" placeholder="Votre numéro">
+    <button class="btn" onclick="confirmIdentity()">Continuer</button>
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div class="overlay" id="adminOverlay">
+  <div class="modal" style="max-width:480px;max-height:86vh;">
+    <h3 style="margin-bottom:14px;">Espace admin</h3>
+    <div id="adminLogin">
+      <input type="password" id="adminCode" placeholder="Code admin">
+      <button class="btn" onclick="checkAdminCode()">Entrer</button>
+      <button class="btn ghost" onclick="closeAdmin()">Fermer</button>
+    </div>
+    <div id="adminPanel" style="display:none;">
+      <div class="admin-subtab">
+        <div class="active" id="subtabProfiles" onclick="switchAdminSub('profiles')">Identités</div>
+        <div id="subtabOrders" onclick="switchAdminSub('orders')">Commandes</div>
+        <div id="subtabListings" onclick="switchAdminSub('listings')">Annonces</div>
+        <div id="subtabMessages" onclick="switchAdminSub('messages')">Support</div>
+      </div>
+      <div class="admin-list" id="adminList"></div>
+      <button class="btn ghost" onclick="closeAdmin()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ADMIN_CODE = "barakagp2026";
+const PRICE_PER_KG = 8;
+const COMMISSION_PER_KG = 2;
+const LISTINGS_KEY = "baraka-gp-listings";
+const PROFILES_KEY = "baraka-gp-profiles";
+const ALERTS_KEY = "baraka-gp-alerts";
+const MESSAGES_KEY = "baraka-gp-messages";
+const ORDERS_KEY = "baraka-gp-orders";
+const ORDER_MSGS_KEY = "baraka-gp-order-messages";
+const POINTS_KEY = "baraka-gp-points";
+
+let listings=[], profiles={}, alerts=[], messages={}, orders=[], orderMsgs={}, points={};
+let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0;
+let adminSub='profiles', adminOpenThreadPhone=null, adminOpenOrderId=null;
+let currentOrderChatId=null, ordersRole='client';
+let pollTimer=null, pendingRef=null;
+
+function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function showToast(msg, gold){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(gold?' gold':''); setTimeout(()=>t.classList.remove('show'),3000); }
+function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+function fmtDateTime(dt){ if(!dt) return "—"; return new Date(dt).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(dt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function flag(c){ return {Mauritanie:"🇲🇷",Sénégal:"🇸🇳",Mali:"🇲🇱",Égypte:"🇪🇬"}[c] || "🌍"; }
+
+// ---- STORAGE ----
+async function loadAll(){
+  try{ const r=await window.storage.get(LISTINGS_KEY,true); listings=r&&r.value?JSON.parse(r.value):[]; }catch(e){ listings=[]; }
+  try{ const r=await window.storage.get(PROFILES_KEY,true); profiles=r&&r.value?JSON.parse(r.value):{}; }catch(e){ profiles={}; }
+  try{ const r=await window.storage.get(ALERTS_KEY,true); alerts=r&&r.value?JSON.parse(r.value):[]; }catch(e){ alerts=[]; }
+  try{ const r=await window.storage.get(MESSAGES_KEY,true); messages=r&&r.value?JSON.parse(r.value):{}; }catch(e){ messages={}; }
+  try{ const r=await window.storage.get(ORDERS_KEY,true); orders=r&&r.value?JSON.parse(r.value):[]; }catch(e){ orders=[]; }
+  try{ const r=await window.storage.get(ORDER_MSGS_KEY,true); orderMsgs=r&&r.value?JSON.parse(r.value):{}; }catch(e){ orderMsgs={}; }
+  try{ const r=await window.storage.get(POINTS_KEY,true); points=r&&r.value?JSON.parse(r.value):{}; }catch(e){ points={}; }
+}
+async function saveListings(){ try{ await window.storage.set(LISTINGS_KEY, JSON.stringify(listings), true);}catch(e){} }
+async function saveProfiles(){ try{ await window.storage.set(PROFILES_KEY, JSON.stringify(profiles), true);}catch(e){} }
+async function saveAlerts(){ try{ await window.storage.set(ALERTS_KEY, JSON.stringify(alerts), true);}catch(e){} }
+async function saveMessages(){ try{ await window.storage.set(MESSAGES_KEY, JSON.stringify(messages), true);}catch(e){} }
+async function saveOrders(){ try{ await window.storage.set(ORDERS_KEY, JSON.stringify(orders), true);}catch(e){} }
+async function saveOrderMsgs(){ try{ await window.storage.set(ORDER_MSGS_KEY, JSON.stringify(orderMsgs), true);}catch(e){} }
+async function savePoints(){ try{ await window.storage.set(POINTS_KEY, JSON.stringify(points), true);}catch(e){} }
+
+function compressImage(file){
+  return new Promise((resolve,reject)=>{
+    if(file.type==='application/pdf'){ resolve({type:'pdf',name:file.name,data:null}); return; }
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        const maxW=700, scale=Math.min(1,maxW/img.width);
+        canvas.width=img.width*scale; canvas.height=img.height*scale;
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        resolve({type:'image',name:file.name,data:canvas.toDataURL('image/jpeg',0.6)});
+      };
+      img.onerror=reject; img.src=e.target.result;
+    };
+    reader.onerror=reject; reader.readAsDataURL(file);
+  });
+}
+
+// ---- IDENTITY ----
+async function loadMe(){
+  try{ const r=await window.storage.get('baraka-gp-me',false); if(r&&r.value) me=JSON.parse(r.value); }catch(e){ me=null; }
+}
+async function saveMe(name,phone){
+  const isNew = !me;
+  me={name,phone};
+  try{ await window.storage.set('baraka-gp-me', JSON.stringify(me), false); }catch(e){}
+  ensurePoints(phone);
+  if(isNew && pendingRef && cleanPhone(pendingRef)!==cleanPhone(phone)){
+    const key=cleanPhone(phone);
+    if(!points[key].referredBy){
+      points[key].referredBy = cleanPhone(pendingRef);
+      points[key].points += 20;
+      await savePoints();
+      showToast("🎉 Bienvenue ! +20 points grâce à votre parrainage", true);
+    }
+  }
+  updatePointsHeader();
+}
+function ensureIdentity(cb){
+  if(me && me.name && me.phone){ cb(); return; }
+  window._idCallback = cb;
+  document.getElementById('overlayId').classList.add('show');
+}
+function confirmIdentity(){
+  const name=document.getElementById('idName').value.trim();
+  const phone=document.getElementById('idPhone').value.trim();
+  if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
+  saveMe(name,phone).then(()=>{
+    document.getElementById('overlayId').classList.remove('show');
+    if(window._idCallback) window._idCallback();
+  });
+}
+
+// ---- POINTS / LOYALTY ----
+function ensurePoints(phone){
+  const key=cleanPhone(phone);
+  if(!points[key]) points[key] = { points:0, referredBy:null, firstOrderCredited:false };
+  return key;
+}
+function availableDiscounts(phone){
+  const key=cleanPhone(phone);
+  const p = points[key] ? points[key].points : 0;
+  return Math.floor(p/50);
+}
+function updatePointsHeader(){
+  if(!me){ document.getElementById('pointsBarHeader').style.display='none'; return; }
+  const key=ensurePoints(me.phone);
+  document.getElementById('pointsBarHeader').style.display='inline-flex';
+  document.getElementById('pointsHeaderVal').textContent = points[key].points;
+}
+async function awardPoints(phone, amount, reasonToast){
+  const key=ensurePoints(phone);
+  const before = Math.floor(points[key].points/50);
+  points[key].points += amount;
+  const after = Math.floor(points[key].points/50);
+  await savePoints();
+  if(reasonToast) showToast(reasonToast);
+  if(after>before) showToast(`🎉 Super, vous avez une remise de ${(after-before)*5}€ disponible !`, true);
+  updatePointsHeader();
+}
+function renderPointsPanel(){
+  const key=ensurePoints(me.phone);
+  const p = points[key].points;
+  const toNext = 50 - (p % 50);
+  const discounts = availableDiscounts(me.phone);
+  const refLink = location.origin + location.pathname + '?ref=' + cleanPhone(me.phone);
+  document.getElementById('pointsPanel').innerHTML = `
+    <h2>🌟 Vos points Baraka</h2>
+    <div class="sub">Gagnez des points à chaque commande complétée, échangez-les contre des remises.</div>
+    <div style="text-align:center;padding:10px 0;">
+      <div style="font-family:'Fraunces',serif;font-size:38px;color:var(--green-dark);">${p}</div>
+      <div style="color:var(--ink-soft);font-size:13px;">points actuels</div>
+    </div>
+    <div class="points-progress"><div style="width:${(p%50)/50*100}%;"></div></div>
+    <div style="font-size:12.5px;color:var(--ink-soft);text-align:center;">${toNext} points avant votre prochaine remise de 5€</div>
+    ${discounts>0 ? `<div class="badge verified" style="display:block;text-align:center;margin-top:14px;">🎉 Vous avez ${discounts} remise(s) de 5€ disponible(s) ! Elle${discounts>1?'s':''} s'appliquera à votre prochaine commande si vous le souhaitez.</div>` : ''}
+    <div class="ref-box">
+      <b>🎁 Parrainez vos proches</b>
+      <div style="font-size:13px;color:#7A5619;margin-top:4px;">Vous gagnez 20 points à leur 1ère commande, ils gagnent 20 points à l'inscription.</div>
+      <div class="link-row">
+        <input type="text" readonly value="${refLink}" id="refLinkInput">
+        <button class="btn gold" onclick="copyRefLink()">Copier</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--ink-soft);">Comment gagner des points : +10 par commande complétée, +20 par filleul actif.</div>
+  `;
+}
+function copyRefLink(){
+  const input = document.getElementById('refLinkInput');
+  input.select();
+  try{ document.execCommand('copy'); showToast("Lien copié !"); }catch(e){ showToast("Copiez le lien manuellement"); }
+}
+
+// ---- TABS ----
+function openDrawer(){
+  document.getElementById('drawerOverlay').classList.add('show');
+  document.getElementById('drawerPanel').classList.add('show');
+}
+function closeDrawer(){
+  document.getElementById('drawerOverlay').classList.remove('show');
+  document.getElementById('drawerPanel').classList.remove('show');
+}
+function switchTab(tab){
+  closeDrawer();
+  ['search','send','publish','orders','points','messages'].forEach(t=>{
+    const el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
+    if(el) el.classList.toggle('active', t===tab);
+  });
+  ['Search','Send','Publish','Orders','Points','Messages'].forEach(v=>{
+    document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
+  });
+  stopPolling();
+  if(tab==='search') renderResults();
+  if(tab==='send' && me){ document.getElementById('sName').value=me.name; document.getElementById('sPhone').value=me.phone; }
+  if(tab==='publish' && me){ document.getElementById('pName').value=me.name; document.getElementById('pPhone').value=me.phone; checkProfile(); }
+  if(tab==='orders'){ ensureIdentity(()=>{ renderOrders(); startPolling(); }); }
+  if(tab==='points'){ ensureIdentity(()=>{ renderPointsPanel(); }); }
+  if(tab==='messages'){
+    ensureIdentity(()=>{
+      const key=ensureThread(me.phone, me.name);
+      messages[key].unreadUser=false; saveMessages();
+      renderThread(); startPolling();
+    });
+  }
+}
+function startPolling(){
+  stopPolling();
+  pollTimer=setInterval(async ()=>{
+    await loadAll();
+    if(document.getElementById('viewMessages').style.display==='block') renderThread();
+    if(document.getElementById('viewOrders').style.display==='block') renderOrders();
+    if(document.getElementById('adminPanel').style.display==='block'){
+      if(adminSub==='messages') renderAdminMessages();
+      if(adminSub==='orders') renderAdminOrders();
+    }
+  }, 4000);
+}
+function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
+
+// ---- SUPPORT MESSAGING ----
+function ensureThread(phone,name){
+  const key=cleanPhone(phone);
+  if(!messages[key]) messages[key]={name:name||'Utilisateur',unreadUser:false,unreadAdmin:false,thread:[]};
+  else if(name) messages[key].name=name;
+  return key;
+}
+async function pushMessage(phone,from,text){
+  const key=ensureThread(phone);
+  messages[key].thread.push({from,text,ts:Date.now()});
+  if(from==='admin') messages[key].unreadUser=true;
+  if(from==='user') messages[key].unreadAdmin=true;
+  await saveMessages();
+}
+function renderThread(){
+  if(!me) return;
+  const key=cleanPhone(me.phone);
+  const box=document.getElementById('chatThread');
+  const th=messages[key]?messages[key].thread:[];
+  box.innerHTML = th.length===0
+    ? `<p style="color:var(--ink-soft);font-size:13px;text-align:center;padding:16px 0;">Aucun message. Écrivez-nous !</p>`
+    : th.map(m=>`<div class="bubble ${m.from==='user'?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+async function sendUserMessage(){
+  const text=document.getElementById('chatInput').value.trim();
+  if(!text||!me) return;
+  await pushMessage(me.phone,'user',text);
+  document.getElementById('chatInput').value='';
+  renderThread();
+}
+
+// ---- PROFIL GP ----
+function checkProfile(){
+  const phone=cleanPhone(document.getElementById('pPhone').value);
+  const box=document.getElementById('profileStatusBox'), idSection=document.getElementById('docsSection');
+  if(!phone||phone.length<6){ box.innerHTML=''; idSection.style.display='block'; return; }
+  const profile=profiles[phone];
+  if(profile){
+    idSection.style.display='none';
+    box.innerHTML = profile.verified
+      ? `<div class="profile-status verified"><b>✅ Identité vérifiée</b>Ajoutez juste votre billet pour ce trajet.</div>`
+      : `<div class="profile-status pending"><b>⏳ En cours de vérification</b>Ajoutez votre billet, l'annonce sera visible dès validation.</div>`;
+  }else{
+    idSection.style.display='block';
+    box.innerHTML=`<div class="profile-status pending"><b>Nouveau voyageur</b>Pièce d'identité demandée une seule fois.</div>`;
+  }
+}
+
+// ---- SEARCH / RESULTS ----
+function updateCityLists(){
+  const gpOnly=listings.filter(l=>l.type==='gp');
+  document.getElementById('fromCities').innerHTML=[...new Set(gpOnly.map(l=>l.from).filter(Boolean))].map(c=>`<option value="${c}">`).join('');
+  document.getElementById('toCities').innerHTML=[...new Set(gpOnly.map(l=>l.to).filter(Boolean))].map(c=>`<option value="${c}">`).join('');
+}
+function gpRating(phone){
+  const key=cleanPhone(phone);
+  const p=profiles[key];
+  if(!p||!p.ratingCount) return null;
+  return (p.ratingSum/p.ratingCount);
+}
+function starsHtml(avg){
+  if(avg===null) return '';
+  const full=Math.round(avg);
+  return `<span class="stars">${'★'.repeat(full)}${'☆'.repeat(5-full)} (${avg.toFixed(1)})</span>`;
+}
+function renderResults(){
+  const country=document.getElementById('searchCountry').value;
+  const date=document.getElementById('searchDate').value;
+  const from=document.getElementById('searchFrom').value.trim().toLowerCase();
+  const to=document.getElementById('searchTo').value.trim().toLowerCase();
+  updateCityLists();
+  let filtered=listings.filter(l=>{
+    if(l.type!=='gp') return false;
+    if(country && l.country!==country) return false;
+    if(date && l.date && l.date<date) return false;
+    if(from && !l.from.toLowerCase().includes(from)) return false;
+    if(to && !l.to.toLowerCase().includes(to)) return false;
+    return true;
+  });
+  filtered.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  document.getElementById('resultCount').textContent=filtered.length+(filtered.length>1?" résultats":" résultat");
+  const list=document.getElementById('resultsList');
+  if(filtered.length===0){
+    list.innerHTML=`
+      <div class="empty">
+        <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#1E6F5C"/></svg>
+        <b>Aucun voyageur pour l'instant</b>Soyez alerté(e) dès qu'un GP correspond.
+      </div>
+      <div class="panel" style="margin-top:2px;">
+        <label>Votre prénom</label><input type="text" id="alertName" placeholder="Ex. Fatou">
+        <label>Votre numéro</label><input type="tel" id="alertPhone" placeholder="Ex. 06 12 34 56 78">
+        <button class="btn gold" onclick="createAlert()">🔔 Me prévenir dès qu'un GP correspond</button>
+      </div>`;
+    return;
+  }
+  list.innerHTML=filtered.map(l=>{
+    const profile=profiles[l.phone]||{};
+    const verified=!!profile.verified;
+    const avg=gpRating(l.phone);
+    return `
+    <div class="gp-card">
+      <div class="top">
+        <div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="price">${PRICE_PER_KG}€/kg</div>
+        </div>
+      </div>
+      <div class="meta">
+        <span>${flag(l.country)} <b>${l.country}</b></span>
+        <span>📅 <b>${fmtDate(l.date)}</b></span>
+        <span>🧳 <b>${l.kg} kg</b> dispo</span>
+      </div>
+      ${avg!==null ? `<div style="margin-top:6px;">${starsHtml(avg)}</div>` : ''}
+      ${verified ? `<div class="badge verified">✅ Voyageur vérifié</div>` : `<div class="badge pending">⏳ Vérification en cours</div>`}
+      <button class="btn gold sm" onclick='openOrderModal(${JSON.stringify(l).replace(/'/g,"&apos;")})'>Commander ce GP</button>
+    </div>`;
+  }).join('');
+}
+
+async function createAlert(){
+  const name=document.getElementById('alertName').value.trim();
+  const phone=document.getElementById('alertPhone').value.trim();
+  if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
+  alerts.push({id:Date.now().toString(),name,phone,country:document.getElementById('searchCountry').value,from:document.getElementById('searchFrom').value.trim(),to:document.getElementById('searchTo').value.trim(),notified:false,createdAt:Date.now()});
+  await saveAlerts();
+  ensureThread(phone,name); await saveMessages();
+  showToast("C'est noté, on vous préviendra 🔔");
+  document.getElementById('alertName').value=''; document.getElementById('alertPhone').value='';
+}
+function matchingAlerts(listing){
+  return alerts.filter(a=>{
+    if(a.notified) return false;
+    if(a.country && a.country!==listing.country) return false;
+    if(a.from && !listing.from.toLowerCase().includes(a.from.toLowerCase())) return false;
+    if(a.to && !listing.to.toLowerCase().includes(a.to.toLowerCase())) return false;
+    return true;
+  });
+}
+function countHabits(phone,country,type){
+  return listings.filter(l=>l.type===type && cleanPhone(l.phone)===cleanPhone(phone) && l.country===country).length;
+}
+
+// ---- ORDER MODAL (commander) ----
+function openOrderModal(listing){
+  pendingListing=listing;
+  ensureIdentity(()=>{
+    document.getElementById('orderRouteInfo').textContent = `${listing.from} → ${listing.to} · ${fmtDate(listing.date)} · max ${listing.kg}kg dispo`;
+    document.getElementById('oKg').max=listing.kg;
+    document.getElementById('oKg').value='';
+    document.getElementById('oDesc').value=''; document.getElementById('oValue').value='';
+    document.getElementById('oLocation').value=''; document.getElementById('oTime').value='';
+    ['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal'].forEach(id=>document.getElementById(id).checked=false);
+    updateOrderPrice();
+    document.getElementById('orderOverlay').classList.add('show');
+  });
+}
+function closeOrderModal(){ document.getElementById('orderOverlay').classList.remove('show'); }
+function updateOrderPrice(){
+  const kg=parseFloat(document.getElementById('oKg').value)||0;
+  const total=kg*PRICE_PER_KG, commission=kg*COMMISSION_PER_KG;
+  document.getElementById('oPriceTotal').textContent = total>0 ? total.toFixed(2)+'€' : '—';
+  document.getElementById('oCommission').textContent = commission>0 ? commission.toFixed(2)+'€' : '—';
+  const discounts = me ? availableDiscounts(me.phone) : 0;
+  const box=document.getElementById('orderDiscountBox');
+  if(discounts>0 && total>0){
+    box.innerHTML = `<label class="check-line" style="background:var(--green-pale);padding:10px 12px;border-radius:10px;"><input type="checkbox" id="useDiscount"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>`;
+  }else{ box.innerHTML=''; }
+}
+async function submitOrder(){
+  const l=pendingListing;
+  const kg=parseInt(document.getElementById('oKg').value);
+  const desc=document.getElementById('oDesc').value.trim();
+  const value=document.getElementById('oValue').value;
+  const photoFile=document.getElementById('oPhoto').files[0];
+  const location_=document.getElementById('oLocation').value.trim();
+  const time_=document.getElementById('oTime').value;
+  const rules=['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal'];
+
+  if(!kg||kg<1||kg>l.kg){ showToast(`Merci d'indiquer un poids valide (max ${l.kg}kg)`); return; }
+  if(!value){ showToast("Merci d'indiquer la valeur déclarée"); return; }
+  if(parseInt(value)>150){ showToast("Valeur déclarée trop élevée (max 150€)"); return; }
+  if(!photoFile){ showToast("Merci d'ajouter une photo du colis"); return; }
+  if(!location_||!time_){ showToast("Merci d'indiquer un lieu et un horaire de remise"); return; }
+  if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Merci de cocher toutes les cases"); return; }
+
+  showToast("Envoi en cours...");
+  let photo;
+  try{ photo=await compressImage(photoFile); }catch(e){ showToast("Impossible de lire la photo"); return; }
+
+  let total=kg*PRICE_PER_KG;
+  const commission=kg*COMMISSION_PER_KG;
+  let discountUsed=false;
+  const useDiscountEl=document.getElementById('useDiscount');
+  if(useDiscountEl && useDiscountEl.checked){
+    total=Math.max(0,total-5);
+    discountUsed=true;
+    const key=ensurePoints(me.phone);
+    points[key].points -= 50;
+    await savePoints();
+    updatePointsHeader();
+  }
+
+  const order={
+    id:Date.now().toString(), listingId:l.id,
+    gpPhone:cleanPhone(l.phone), gpName:(profiles[l.phone]||{}).name||'Voyageur',
+    clientPhone:cleanPhone(me.phone), clientName:me.name,
+    from:l.from, to:l.to, country:l.country, tripDate:l.date,
+    kg, photo, desc, value:parseInt(value),
+    priceTotal:total, commission, priceNet:(kg*PRICE_PER_KG)-commission, discountUsed,
+    pickupLocation:location_, pickupTime:time_,
+    status:'pending', deliveryCode:null, rating:null, ratingComment:null,
+    createdAt:Date.now()
+  };
+  orders.push(order);
+  await saveOrders();
+  ensureThread(me.phone, me.name);
+  closeOrderModal();
+  showToast("Commande envoyée ! En attente de réponse du voyageur 🙏");
+  switchTab('orders');
+}
+
+// ---- ORDERS TAB ----
+function switchRole(role){
+  ordersRole=role;
+  document.getElementById('roleClient').classList.toggle('active', role==='client');
+  document.getElementById('roleGp').classList.toggle('active', role==='gp');
+  renderOrders();
+}
+function statusLabel(s){
+  return {pending:'⏳ En attente',accepted:'✅ Acceptée',paid:'💳 Payée',picked_up:'🧳 Prise en charge',delivered:'📦 Remise confirmée',completed:'🎉 Terminée',refused:'❌ Refusée',cancelled_gp:'❌ Annulée par le GP',cancelled_client:'❌ Annulée',expired:'⌛ Expirée'}[s]||s;
+}
+function progressSteps(order){
+  const steps=['pending','accepted','paid','picked_up','delivered','completed'];
+  const failedStates=['refused','cancelled_gp','cancelled_client','expired'];
+  if(failedStates.includes(order.status)){
+    return steps.map((s,i)=> i===0 ? 'done' : (i===1?'failed':''));
+  }
+  const idx=steps.indexOf(order.status);
+  return steps.map((s,i)=> i<=idx ? 'done' : '');
+}
+function hoursUntil(dateStr){
+  if(!dateStr) return null;
+  const target=new Date(dateStr+"T12:00:00").getTime();
+  return (target-Date.now())/3600000;
+}
+function renderOrders(){
+  const list=document.getElementById('ordersList');
+  const myPhone=cleanPhone(me.phone);
+  const mine = ordersRole==='client'
+    ? orders.filter(o=>o.clientPhone===myPhone)
+    : orders.filter(o=>o.gpPhone===myPhone);
+  mine.sort((a,b)=>b.createdAt-a.createdAt);
+
+  if(mine.length===0){
+    list.innerHTML=`<div class="empty"><b>${ordersRole==='client'?"Aucun envoi pour l'instant":"Aucune commande reçue"}</b>${ordersRole==='client'?"Cherchez un GP pour commander.":"Vos annonces publiées apparaîtront ici dès qu'un client commande."}</div>`;
+    return;
+  }
+
+  list.innerHTML = mine.map(o=>{
+    const steps=progressSteps(o);
+    const isFailed=['refused','cancelled_gp','cancelled_client','expired'].includes(o.status);
+    const hUntilTrip=hoursUntil(o.tripDate);
+    let countdown='';
+    if(ordersRole==='client' && o.status==='accepted' && hUntilTrip!==null){
+      const hLeft=hUntilTrip-24;
+      if(hLeft>0) countdown=`<div class="countdown">⏳ ${Math.floor(hLeft)}h restantes pour valider et payer</div>`;
+      else countdown=`<div class="countdown">⌛ Délai de validation dépassé</div>`;
+    }
+    if(ordersRole==='gp' && ['accepted','paid','picked_up'].includes(o.status) && hUntilTrip!==null){
+      const hLeft=hUntilTrip-48;
+      if(hLeft>0) countdown=`<div class="countdown" style="background:var(--gold-soft);color:#8A611D;">⏳ Annulation possible encore ${Math.floor(hLeft)}h</div>`;
+    }
+    return `
+    <div class="order-card">
+      <div class="top">
+        <div class="route">${o.from} <span class="dots">✈</span> ${o.to}</div>
+        <span class="status-pill ${o.status}">${statusLabel(o.status)}</span>
+      </div>
+      <div class="meta">
+        <span>${flag(o.country)} <b>${o.country}</b></span>
+        <span>📅 <b>${fmtDate(o.tripDate)}</b></span>
+        <span>🧳 <b>${o.kg}kg</b></span>
+      </div>
+      <div class="progress">${steps.map(s=>`<span class="${s}"></span>`).join('')}</div>
+      <div class="progress-labels"><span>Envoyée</span><span>Acceptée</span><span>Payée</span><span>Prise en charge</span><span>Remise</span><span>Terminée</span></div>
+      ${countdown}
+      <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);">
+        📍 ${o.pickupLocation} · 🕒 ${fmtDateTime(o.pickupTime)}<br>
+        ${ordersRole==='client' ? `💰 Prix total : <b>${o.priceTotal.toFixed(2)}€</b>${o.discountUsed?' <span style="color:var(--green-dark);">(remise 5€ appliquée)</span>':''}` : `💰 Vous touchez : <b>${o.priceNet.toFixed(2)}€</b> (commission Baraka GP déjà déduite)`}
+      </div>
+      ${o.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${o.desc}</div>` : ''}
+      ${renderOrderActions(o)}
+      ${!isFailed && o.status!=='pending' ? `
+        <div class="chat-thread" id="oc-${o.id}" style="margin-top:12px;"></div>
+        <div class="chat-input">
+          <textarea id="oci-${o.id}" placeholder="Écrire au ${ordersRole==='client'?'voyageur':'client'}..."></textarea>
+          <button class="btn" style="margin-top:0;" onclick="sendOrderMessage('${o.id}')">Envoyer</button>
+        </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+
+  mine.forEach(o=>{ if(!['pending'].includes(o.status)) renderOrderChat(o.id); });
+}
+
+function renderOrderActions(o){
+  if(ordersRole==='gp' && o.status==='pending'){
+    return `<div class="admin-actions" style="margin-top:12px;">
+      <button class="btn-approve" onclick="respondOrder('${o.id}','accepted')">Accepter</button>
+      <button class="btn-reject" onclick="respondOrder('${o.id}','refused')">Refuser</button>
+    </div>`;
+  }
+  if(ordersRole==='client' && o.status==='accepted'){
+    const hUntilTrip=hoursUntil(o.tripDate);
+    const expired = hUntilTrip!==null && (hUntilTrip-24)<=0;
+    return `<button class="btn ${expired?'':'gold'} sm" ${expired?'disabled':''} onclick="payOrder('${o.id}')">${expired?'Délai dépassé':'💳 Payer maintenant (simulation)'}</button>`;
+  }
+  if(ordersRole==='gp' && o.status==='paid'){
+    const hUntilTrip=hoursUntil(o.tripDate);
+    const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
+    return `
+      <div class="hint" style="margin-top:10px;">Donnez ce code au client au moment où il vous remet le colis, pour confirmer votre identité.</div>
+      <div style="font-family:'Fraunces',serif;font-size:28px;letter-spacing:6px;color:var(--green-dark);text-align:center;background:var(--bg);border-radius:10px;padding:10px;margin-top:6px;">${o.pickupCode}</div>
+      ${canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
+    `;
+  }
+  if(ordersRole==='client' && o.status==='paid'){
+    return `
+      <div class="hint" style="margin-top:10px;">Demandez le code au voyageur au moment de la remise, pour confirmer que c'est bien lui.</div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <input type="text" id="pickupInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
+        <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmPickup('${o.id}')">Valider</button>
+      </div>
+    `;
+  }
+  if(ordersRole==='gp' && o.status==='picked_up'){
+    const hUntilTrip=hoursUntil(o.tripDate);
+    const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
+    let html = `<button class="btn sm" onclick="markDelivered('${o.id}')">📦 Marquer comme remis</button>`;
+    if(canCancel) html += `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>`;
+    return html;
+  }
+  if(ordersRole==='gp' && ['accepted'].includes(o.status)){
+    const hUntilTrip=hoursUntil(o.tripDate);
+    const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
+    return canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : '';
+  }
+  if(ordersRole==='client' && o.status==='delivered'){
+    return `<div class="hint" style="margin-top:10px;">Demandez le code à 4 chiffres au voyageur pour confirmer la réception.</div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <input type="text" id="codeInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
+        <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmDelivery('${o.id}')">Valider</button>
+      </div>`;
+  }
+  if(ordersRole==='client' && o.status==='completed' && !o.rating){
+    return `<button class="btn ghost sm" onclick="openRating('${o.id}')">⭐ Noter ce voyageur</button>`;
+  }
+  if(o.status==='completed' && o.rating){
+    return `<div class="hint" style="margin-top:10px;">${starsHtml(o.rating)} ${o.ratingComment?'— "'+o.ratingComment+'"':''}</div>`;
+  }
+  return '';
+}
+
+async function respondOrder(orderId, status){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  o.status=status;
+  await saveOrders();
+  showToast(status==='accepted' ? "Commande acceptée !" : "Mise à jour effectuée");
+  renderOrders();
+}
+async function payOrder(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  o.status='paid';
+  o.pickupCode = String(Math.floor(1000+Math.random()*9000));
+  await saveOrders();
+  showToast("Paiement simulé confirmé 💳");
+  renderOrders();
+}
+async function confirmPickup(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  const input=document.getElementById('pickupInput-'+orderId);
+  if(!o||!input) return;
+  if(input.value.trim()!==o.pickupCode){ showToast("Code incorrect, redemandez-le au voyageur"); return; }
+  o.status='picked_up';
+  await saveOrders();
+  showToast("Prise en charge confirmée ! ✈️");
+  renderOrders();
+}
+async function markDelivered(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  o.deliveryCode = String(Math.floor(1000+Math.random()*9000));
+  o.status='delivered';
+  await saveOrders();
+  document.getElementById('codeModalTitle').textContent='Code à donner au destinataire';
+  document.getElementById('codeModalText').textContent='Communiquez ce code au destinataire à la remise du colis. Le client le saisira pour confirmer la réception.';
+  document.getElementById('codeModalContent').innerHTML = `<div style="font-family:'Fraunces',serif;font-size:36px;letter-spacing:8px;color:var(--green-dark);text-align:center;margin:10px 0;">${o.deliveryCode}</div><button class="btn" onclick="document.getElementById('codeOverlay').classList.remove('show')">Fermer</button>`;
+  document.getElementById('codeOverlay').classList.add('show');
+  renderOrders();
+}
+async function confirmDelivery(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  const input=document.getElementById('codeInput-'+orderId);
+  if(!o||!input) return;
+  if(input.value.trim()!==o.deliveryCode){ showToast("Code incorrect, vérifiez avec le voyageur"); return; }
+  o.status='completed';
+  await saveOrders();
+  await awardPoints(o.clientPhone, 10, "🎉 Commande terminée, +10 points !");
+  const gpKey=ensurePoints(o.gpPhone);
+  const clientPointsKey=cleanPhone(o.clientPhone);
+  if(points[clientPointsKey] && points[clientPointsKey].referredBy && !points[clientPointsKey].firstOrderCredited){
+    points[clientPointsKey].firstOrderCredited=true;
+    const referrerKey=points[clientPointsKey].referredBy;
+    points[referrerKey] = points[referrerKey] || {points:0, referredBy:null, firstOrderCredited:false};
+    points[referrerKey].points += 20;
+    await savePoints();
+  }
+  showToast("Livraison confirmée, merci ! 🎉");
+  renderOrders();
+}
+function openRating(orderId){
+  ratingOrderId=orderId; ratingStars=0;
+  document.querySelectorAll('#starsInput span').forEach(s=>s.classList.remove('on'));
+  document.getElementById('ratingComment').value='';
+  document.getElementById('ratingOverlay').classList.add('show');
+}
+function setStars(n){
+  ratingStars=n;
+  document.querySelectorAll('#starsInput span').forEach(s=>s.classList.toggle('on', parseInt(s.dataset.v)<=n));
+}
+async function submitRating(){
+  if(ratingStars===0){ showToast("Choisissez une note"); return; }
+  const o=orders.find(x=>x.id===ratingOrderId);
+  if(!o) return;
+  o.rating=ratingStars;
+  o.ratingComment=document.getElementById('ratingComment').value.trim();
+  await saveOrders();
+  const gpKey=cleanPhone(o.gpPhone);
+  if(profiles[gpKey]){
+    profiles[gpKey].ratingSum = (profiles[gpKey].ratingSum||0) + ratingStars;
+    profiles[gpKey].ratingCount = (profiles[gpKey].ratingCount||0) + 1;
+    await saveProfiles();
+  }
+  document.getElementById('ratingOverlay').classList.remove('show');
+  showToast("Merci pour votre avis !");
+  renderOrders();
+}
+
+// ---- ORDER CHAT ----
+function renderOrderChat(orderId){
+  const box=document.getElementById('oc-'+orderId);
+  if(!box) return;
+  const th=orderMsgs[orderId]||[];
+  box.innerHTML = th.length===0
+    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">Aucun message.</p>`
+    : th.map(m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+async function sendOrderMessage(orderId){
+  const input=document.getElementById('oci-'+orderId);
+  const text=input.value.trim();
+  if(!text) return;
+  if(!orderMsgs[orderId]) orderMsgs[orderId]=[];
+  orderMsgs[orderId].push({from:ordersRole, text, ts:Date.now()});
+  await saveOrderMsgs();
+  input.value='';
+  renderOrderChat(orderId);
+}
+
+// ---- PUBLISH GP / COLIS ----
+async function publishListing(){
+  const name=document.getElementById('pName').value.trim();
+  const phoneRaw=document.getElementById('pPhone').value.trim();
+  const phone=cleanPhone(phoneRaw);
+  const from=document.getElementById('pFrom').value.trim();
+  const to=document.getElementById('pTo').value.trim();
+  const country=document.getElementById('pCountry').value;
+  const date=document.getElementById('pDate').value;
+  const kg=document.getElementById('pKg').value;
+  const ticketFile=document.getElementById('pTicket').files[0];
+
+  if(!name||!phone||!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
+  if(!ticketFile){ showToast("Merci d'ajouter votre billet"); return; }
+  if(!me||me.phone!==phoneRaw) await saveMe(name,phoneRaw);
+
+  const hasProfile=!!profiles[phone];
+  if(!hasProfile){
+    const idFile=document.getElementById('pId').files[0];
+    if(!idFile){ showToast("Merci d'ajouter une pièce d'identité"); return; }
+    showToast("Envoi en cours...");
+    let idPhoto;
+    try{ idPhoto=await compressImage(idFile); }catch(e){ showToast("Fichier illisible"); return; }
+    profiles[phone]={name,phone:phoneRaw,idPhoto,verified:false,createdAt:Date.now(),ratingSum:0,ratingCount:0};
+    await saveProfiles();
+  }
+  const rules=['ruleCheck','ruleCheck2'];
+  if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Cochez les engagements"); return; }
+
+  showToast("Envoi en cours...");
+  let ticket;
+  try{ ticket=await compressImage(ticketFile); }catch(e){ showToast("Billet illisible"); return; }
+
+  listings.push({id:Date.now().toString(),type:'gp',phone,from,to,country,date,kg:parseInt(kg),price:PRICE_PER_KG,ticket});
+  await saveListings();
+  showToast(hasProfile?"Trajet publié !":"Trajet publié ! Identité en attente de vérification 🙏");
+
+  ['pName','pFrom','pTo','pDate','pKg','pTicket','pId'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pPhone').value=phoneRaw;
+  rules.forEach(id=>document.getElementById(id).checked=false);
+  switchTab('search');
+}
+
+async function publishColis(){
+  const name=document.getElementById('sName').value.trim();
+  const phone=document.getElementById('sPhone').value.trim();
+  const from=document.getElementById('sFrom').value.trim();
+  const to=document.getElementById('sTo').value.trim();
+  const country=document.getElementById('sCountry').value;
+  const date=document.getElementById('sDate').value;
+  const kg=document.getElementById('sKg').value;
+  const desc=document.getElementById('sDesc').value.trim();
+  const value=document.getElementById('sValue').value;
+  const photoFile=document.getElementById('sPhoto').files[0];
+
+  if(!name||!phone||!from||!to||!kg||!value){ showToast("Merci de remplir tous les champs"); return; }
+  if(!me||me.phone!==phone) await saveMe(name,phone);
+  if(parseInt(value)>150){ showToast("Valeur trop élevée (max 150€)"); return; }
+  if(!photoFile){ showToast("Merci d'ajouter une photo"); return; }
+  const rules=['ruleCash','ruleDocs','ruleValuables','ruleIllegal'];
+  if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Cochez toutes les cases"); return; }
+
+  showToast("Envoi en cours...");
+  let photo;
+  try{ photo=await compressImage(photoFile); }catch(e){ showToast("Photo illisible"); return; }
+
+  listings.push({id:Date.now().toString(),type:'colis',name,phone,from,to,country,date,kg:parseInt(kg),value:parseInt(value),desc,verified:false,photo});
+  await saveListings();
+  ensureThread(phone,name); await saveMessages();
+  showToast("Demande envoyée ! 🙏");
+
+  ['sName','sPhone','sFrom','sTo','sDate','sKg','sDesc','sPhoto','sValue'].forEach(id=>document.getElementById(id).value='');
+  rules.forEach(id=>document.getElementById(id).checked=false);
+  switchTab('search');
+}
+
+// ---- ADMIN ----
+function openAdmin(){
+  document.getElementById('adminOverlay').classList.add('show');
+  document.getElementById('adminLogin').style.display='block';
+  document.getElementById('adminPanel').style.display='none';
+  document.getElementById('adminCode').value='';
+}
+function closeAdmin(){ document.getElementById('adminOverlay').classList.remove('show'); }
+function checkAdminCode(){
+  if(document.getElementById('adminCode').value===ADMIN_CODE){
+    document.getElementById('adminLogin').style.display='none';
+    document.getElementById('adminPanel').style.display='block';
+    switchAdminSub('profiles');
+  }else showToast("Code incorrect");
+}
+function switchAdminSub(sub){
+  adminSub=sub; adminOpenThreadPhone=null; adminOpenOrderId=null;
+  document.getElementById('subtabProfiles').classList.toggle('active',sub==='profiles');
+  document.getElementById('subtabOrders').classList.toggle('active',sub==='orders');
+  document.getElementById('subtabListings').classList.toggle('active',sub==='listings');
+  document.getElementById('subtabMessages').classList.toggle('active',sub==='messages');
+  if(sub==='profiles') renderAdminProfiles();
+  else if(sub==='orders') renderAdminOrders();
+  else if(sub==='listings') renderAdminListings();
+  else renderAdminMessages();
+}
+function renderAdminProfiles(){
+  const list=document.getElementById('adminList');
+  const entries=Object.entries(profiles);
+  if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucun profil.</p>'; return; }
+  list.innerHTML=entries.slice().reverse().map(([phone,p])=>`
+    <div class="admin-card">
+      <span class="type-pill profile">👤 IDENTITÉ</span><br>
+      <b>${p.name}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${p.phone}</span>
+      <div class="name-check">Pièce d'identité</div>
+      ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${p.idPhoto?p.idPhoto.name:'non fourni'}</p>`}
+      <div class="admin-actions">
+        <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
+        <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+function renderAdminOrders(){
+  const list=document.getElementById('adminList');
+  if(orders.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune commande.</p>'; return; }
+  list.innerHTML=orders.slice().reverse().map(o=>`
+    <div class="admin-card">
+      <span class="type-pill gp">${statusLabel(o.status)}</span><br>
+      <b>${o.clientName}</b> → <b>${o.gpName}</b> · ${o.from} → ${o.to}<br>
+      <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
+      <div class="admin-actions">
+        <button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>
+      </div>
+    </div>`).join('');
+}
+async function adminCancelOrder(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(o){ o.status='cancelled_client'; await saveOrders(); renderAdminOrders(); showToast("Commande annulée"); }
+}
+function renderAdminListings(){
+  const list=document.getElementById('adminList');
+  if(listings.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune annonce.</p>'; return; }
+  list.innerHTML=listings.slice().reverse().map(l=>{
+    const isGp=l.type==='gp';
+    const profile=isGp?(profiles[l.phone]||{}):null;
+    const habitCount=countHabits(l.phone,l.country,l.type);
+    const matches=isGp?matchingAlerts(l):[];
+    return `
+    <div class="admin-card">
+      <span class="type-pill ${isGp?'gp':'colis'}">${isGp?'✈️ VOYAGEUR':'📦 COLIS'}</span>
+      ${habitCount>1?`<span class="type-pill profile">🔁 Habitué (${habitCount}x)</span>`:''}<br>
+      <b>${isGp?(profile.name||'?'):l.name}</b> — ${l.from} → ${l.to} (${l.country})<br>
+      <span style="color:var(--ink-soft);font-size:12.5px;">📱 ${isGp?profile.phone:l.phone} · ${fmtDate(l.date)} · ${l.kg}kg${!isGp&&l.value?` · valeur ${l.value}€`:''}</span>
+      ${isGp?`<div style="margin-top:6px;font-size:12px;">${profile.verified?'✅ Identité vérifiée':'⏳ Non vérifiée'}</div>`:''}
+      ${isGp&&l.ticket?`<div class="name-check">Billet</div>${l.ticket.type==='image'?`<img src="${l.ticket.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${l.ticket.name}</p>`}`:''}
+      ${!isGp&&l.desc?`<div style="font-size:12.5px;margin-top:6px;">📝 ${l.desc}</div>`:''}
+      ${!isGp&&l.photo?(l.photo.type==='image'?`<img src="${l.photo.data}">`:''):''}
+      ${isGp&&matches.length>0?`<div class="name-check">🔔 ${matches.length} à prévenir</div>${matches.map(a=>`<div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px;"><span>${a.name}</span><button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11.5px;" onclick="notifyAlert('${a.id}','${l.from}','${l.to}','${fmtDate(l.date)}')">Notifier</button></div>`).join('')}`:''}
+      <div class="admin-actions">
+        ${!isGp?`<button class="btn-approve" onclick="setColisVerified('${l.id}',true)">${l.verified?'✅ Vérifié':'Approuver'}</button>`:''}
+        <button class="btn-reject" onclick="removeListing('${l.id}')">Supprimer</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function notifyAlert(alertId,from,to,date){
+  const a=alerts.find(x=>x.id===alertId);
+  if(!a) return;
+  await pushMessage(a.phone,'admin',`Bonjour ${a.name}, un voyageur part de ${from} vers ${to} le ${date} ! Répondez ici pour être mis en relation.`);
+  a.notified=true; await saveAlerts();
+  showToast("Message envoyé"); renderAdminListings();
+}
+function renderAdminMessages(){
+  const list=document.getElementById('adminList');
+  if(adminOpenThreadPhone){
+    const th=messages[adminOpenThreadPhone];
+    if(!th){ adminOpenThreadPhone=null; renderAdminMessages(); return; }
+    list.innerHTML=`
+      <button class="btn ghost sm" onclick="adminOpenThreadPhone=null;renderAdminMessages();">← Retour</button>
+      <div style="font-weight:700;margin:10px 0;">${th.name} · ${adminOpenThreadPhone}</div>
+      <div class="chat-thread">${th.thread.map(m=>`<div class="bubble ${m.from==='admin'?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('')||'<p style="color:var(--ink-soft);font-size:12.5px;">Aucun message.</p>'}</div>
+      <div class="chat-input"><textarea id="adminChatInput" placeholder="Répondre..."></textarea><button class="btn" style="margin-top:0;" onclick="sendAdminMessage()">Envoyer</button></div>`;
+    return;
+  }
+  const entries=Object.entries(messages).sort((a,b)=>{
+    const la=a[1].thread[a[1].thread.length-1]?.ts||0, lb=b[1].thread[b[1].thread.length-1]?.ts||0;
+    return lb-la;
+  });
+  if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune conversation.</p>'; return; }
+  list.innerHTML=entries.map(([phone,th])=>{
+    const last=th.thread[th.thread.length-1];
+    return `<div class="thread-row" onclick="adminOpenThreadPhone='${phone}';renderAdminMessages();">
+      <div><b>${th.name}</b><br><span style="color:var(--ink-soft);font-size:12px;">${last?last.text.slice(0,38)+(last.text.length>38?'…':''):'Pas de message'}</span></div>
+      ${th.unreadAdmin?`<span class="unread">Nouveau</span>`:''}
+    </div>`;
+  }).join('');
+}
+async function sendAdminMessage(){
+  const text=document.getElementById('adminChatInput').value.trim();
+  if(!text||!adminOpenThreadPhone) return;
+  await pushMessage(adminOpenThreadPhone,'admin',text);
+  messages[adminOpenThreadPhone].unreadAdmin=false;
+  await saveMessages(); renderAdminMessages();
+}
+async function setProfileVerified(phone,val){ if(profiles[phone]){ profiles[phone].verified=val; await saveProfiles(); renderAdminProfiles(); showToast("Mis à jour"); } }
+async function removeProfile(phone){ delete profiles[phone]; await saveProfiles(); renderAdminProfiles(); showToast("Supprimé"); }
+async function setColisVerified(id,val){ const l=listings.find(x=>x.id===id); if(l){ l.verified=val; await saveListings(); renderAdminListings(); showToast("Mis à jour"); } }
+async function removeListing(id){ listings=listings.filter(x=>x.id!==id); await saveListings(); renderAdminListings(); showToast("Supprimé"); }
+
+// ---- INIT ----
+(async function(){
+  const params=new URLSearchParams(location.search);
+  pendingRef = params.get('ref');
+  await loadAll();
+  await loadMe();
+  if(me) updatePointsHeader();
+  renderResults();
+})();
+</script>
+
+</body>
+</html>
