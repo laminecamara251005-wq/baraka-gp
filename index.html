@@ -219,23 +219,22 @@
   <div id="viewSearch">
     <div class="panel">
       <h2>Où envoyez-vous votre colis ?</h2>
-      <div class="sub">Indiquez votre trajet pour voir les voyageurs disponibles</div>
+      <div class="sub">Tous les voyageurs disponibles sont listés ci-dessous — filtrez par trajet si besoin</div>
       <div class="row2">
-        <div><label>Ville de départ</label><input type="text" id="searchFrom" list="fromCities" placeholder="Paris"></div>
-        <div><label>Ville d'arrivée</label><input type="text" id="searchTo" list="toCities" placeholder="Nouakchott"></div>
+        <div><label>Ville de départ</label><input type="text" id="searchFrom" list="fromCities" oninput="renderResults()" placeholder="Paris"></div>
+        <div><label>Ville d'arrivée</label><input type="text" id="searchTo" list="toCities" oninput="renderResults()" placeholder="Nouakchott"></div>
       </div>
       <datalist id="fromCities"></datalist><datalist id="toCities"></datalist>
       <label>Destination</label>
-      <select id="searchCountry">
+      <select id="searchCountry" onchange="renderResults()">
         <option value="">Toutes les destinations</option>
         <option value="Mauritanie">🇲🇷 Mauritanie</option>
         <option value="Sénégal">🇸🇳 Sénégal</option>
         <option value="Mali">🇲🇱 Mali</option>
         <option value="Égypte">🇪🇬 Égypte</option>
       </select>
-      <button class="btn" onclick="renderResults()">🔍 Rechercher</button>
     </div>
-    <div id="searchResultsSection" style="display:none;">
+    <div id="searchResultsSection">
       <div class="results-head"><h3>Voyageurs disponibles</h3><span id="resultCount"></span></div>
       <div id="resultsList"></div>
     </div>
@@ -670,6 +669,7 @@ function switchTab(tab){
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
   stopPolling();
+  if(tab==='search') renderResults();
   if(tab==='send' && me){ document.getElementById('sName').value=me.name; document.getElementById('sPhone').value=me.phone; }
   if(tab==='publish' && me){ document.getElementById('pName').value=me.name; document.getElementById('pPhone').value=me.phone; checkProfile(); }
   if(tab==='orders'){ ensureIdentity(()=>{ renderOrders(); startPolling(); }); }
