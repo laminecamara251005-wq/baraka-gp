@@ -26,22 +26,22 @@
   header p{margin:5px 0 0;color:#D9CBA3;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;}
 
   .points-bar{position:relative;margin-top:14px;background:rgba(255,255,255,.12);border-radius:999px;padding:8px 16px;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#F5EFDD;cursor:pointer;}
-  .user-pill{position:relative;margin-top:12px;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#F5EFDD;}
-  .user-pill .avatar{width:26px;height:26px;font-size:12px;}
   .points-bar b{color:var(--gold);}
 
   .tabs{display:flex;gap:5px;margin:20px 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px;overflow-x:auto;}
   .tab{flex:1;text-align:center;padding:10px 4px;border-radius:999px;font-weight:600;font-size:11.6px;cursor:pointer;color:var(--ink-soft);transition:.2s;user-select:none;white-space:nowrap;}
   .tab.active{background:var(--green);color:#fff;}
 
-  .hamburger{position:absolute;top:22px;right:20px;width:38px;height:38px;border-radius:10px;border:none;background:rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;z-index:5;}
+  .hamburger{position:absolute;top:22px;left:20px;width:38px;height:38px;border-radius:10px;border:none;background:rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;z-index:5;}
   .hamburger span{display:block;width:18px;height:2px;background:#F5EFDD;border-radius:2px;}
+  .top-left-name{position:absolute;top:30px;left:68px;color:#F5EFDD;font-size:12.5px;font-weight:600;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:5;}
 
   .drawer-overlay{position:fixed;inset:0;background:rgba(31,43,36,.45);display:none;z-index:70;}
   .drawer-overlay.show{display:block;}
-  .drawer-panel{position:fixed;top:0;right:0;bottom:0;width:78%;max-width:320px;background:var(--panel);z-index:71;transform:translateX(100%);transition:transform .28s ease;box-shadow:-8px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column;padding:10px 0;}
+  .drawer-panel{position:fixed;top:0;left:0;bottom:0;width:78%;max-width:320px;background:var(--panel);z-index:71;transform:translateX(-100%);transition:transform .28s ease;box-shadow:8px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column;padding:10px 0;}
   .drawer-panel.show{transform:translateX(0);}
   .drawer-head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px 10px;font-family:'Fraunces',serif;font-size:16px;color:var(--ink);border-bottom:1px solid var(--line);margin-bottom:6px;}
+  .drawer-head .avatar{width:34px;height:34px;font-size:15px;}
   .drawer-close{background:none;border:none;font-size:18px;color:var(--ink-soft);cursor:pointer;}
   .drawer-item{padding:15px 20px;font-size:14.5px;font-weight:600;color:var(--ink);cursor:pointer;border-left:3px solid transparent;}
   .drawer-item:hover{background:var(--bg);}
@@ -190,14 +190,11 @@
   <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
     <span></span><span></span><span></span>
   </button>
+  <div class="top-left-name" id="topLeftName" style="display:none;"></div>
   <div class="brand">
     <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
     <h1>Baraka GP</h1>
     <p>Vos colis, partout en confiance</p>
-    <div class="user-pill" id="userPill" style="display:none;">
-      <span id="userAvatarBox"></span>
-      <span id="userNameLabel"></span>
-    </div>
     <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
   </div>
 </header>
@@ -206,7 +203,10 @@
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
 <nav class="drawer-panel" id="drawerPanel">
   <div class="drawer-head">
-    <span>Menu</span>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="drawerAvatarBox"></span>
+      <span id="drawerNameLabel">Menu</span>
+    </div>
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
   <div class="drawer-item active" id="tabSearch" onclick="switchTab('search')">🔍 Chercher un GP</div>
@@ -604,11 +604,17 @@ async function completeLogin(uid, acc){
   renderResults();
 }
 function updateUserHeader(){
-  const pill=document.getElementById('userPill');
-  if(!me){ pill.style.display='none'; return; }
-  pill.style.display='inline-flex';
-  document.getElementById('userNameLabel').textContent = me.name || 'Mon compte';
-  document.getElementById('userAvatarBox').innerHTML = (me.avatar && me.avatar.type==='image')
+  const topName=document.getElementById('topLeftName');
+  if(!me){
+    topName.style.display='none';
+    document.getElementById('drawerAvatarBox').innerHTML='';
+    document.getElementById('drawerNameLabel').textContent='Menu';
+    return;
+  }
+  topName.style.display='block';
+  topName.textContent=me.name||'Mon compte';
+  document.getElementById('drawerNameLabel').textContent=me.name||'Mon compte';
+  document.getElementById('drawerAvatarBox').innerHTML = (me.avatar && me.avatar.type==='image')
     ? `<img src="${me.avatar.data}" class="avatar">`
     : `<div class="avatar avatar-placeholder">${(me.name||'?').charAt(0).toUpperCase()}</div>`;
 }
