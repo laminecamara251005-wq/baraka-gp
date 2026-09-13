@@ -594,6 +594,15 @@ function authErrorMessage(e){
   return "Une erreur est survenue, réessayez";
 }
 async function completeLogin(uid, acc){
+  if(!acc.name){
+    // Compte créé avec un prénom manquant (ex. écriture Firestore interrompue
+    // pendant l'inscription) : on le redemande plutôt que d'afficher un texte
+    // générique en permanence.
+    let name='';
+    while(!name){ name=(window.prompt("Quel est votre prénom ?")||'').trim(); }
+    acc={...acc, name};
+    try{ await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000); }catch(e){}
+  }
   me={name:acc.name, phone:acc.phone, uid, avatar:acc.avatar||null};
   try{ localStorage.setItem('baraka-gp-me', JSON.stringify(me)); }catch(e){}
   document.getElementById('authGate').classList.remove('show');
