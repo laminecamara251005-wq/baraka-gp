@@ -26,6 +26,8 @@
   header p{margin:5px 0 0;color:#D9CBA3;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;}
 
   .points-bar{position:relative;margin-top:14px;background:rgba(255,255,255,.12);border-radius:999px;padding:8px 16px;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#F5EFDD;cursor:pointer;}
+  .user-pill{position:relative;margin-top:12px;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#F5EFDD;}
+  .user-pill .avatar{width:26px;height:26px;font-size:12px;}
   .points-bar b{color:var(--gold);}
 
   .tabs{display:flex;gap:5px;margin:20px 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px;overflow-x:auto;}
@@ -192,6 +194,10 @@
     <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
     <h1>Baraka GP</h1>
     <p>Vos colis, partout en confiance</p>
+    <div class="user-pill" id="userPill" style="display:none;">
+      <span id="userAvatarBox"></span>
+      <span id="userNameLabel"></span>
+    </div>
     <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
   </div>
 </header>
@@ -423,6 +429,8 @@
     <div id="authSignupFields">
       <input type="text" id="authName" placeholder="Votre prénom">
       <input type="tel" id="authPhone" placeholder="Votre numéro">
+      <label>Photo de profil (facultatif)</label>
+      <input type="file" id="authAvatar" accept="image/*">
     </div>
     <input type="email" id="authEmail" placeholder="Votre email" autocomplete="username">
     <input type="password" id="authPassword" placeholder="Mot de passe" autocomplete="new-password">
@@ -528,6 +536,7 @@ function compressImage(file){
 
 // ---- IDENTITY (compte Firebase Authentication, obligatoire dès l'arrivée) ----
 let authMode='signup';
+let authFlowInProgress=false;
 function switchAuthMode(){
   authMode = authMode==='signup' ? 'login' : 'signup';
   const isSignup = authMode==='signup';
@@ -560,13 +569,23 @@ function authErrorMessage(e){
   return "Une erreur est survenue, réessayez";
 }
 async function completeLogin(uid, acc){
-  me={name:acc.name, phone:acc.phone, uid};
+  me={name:acc.name, phone:acc.phone, uid, avatar:acc.avatar||null};
   try{ localStorage.setItem('baraka-gp-me', JSON.stringify(me)); }catch(e){}
   document.getElementById('authGate').classList.remove('show');
   await loadAll();
   ensurePoints(me.phone);
   updatePointsHeader();
+  updateUserHeader();
   renderResults();
+}
+function updateUserHeader(){
+  const pill=document.getElementById('userPill');
+  if(!me){ pill.style.display='none'; return; }
+  pill.style.display='inline-flex';
+  document.getElementById('userNameLabel').textContent = me.name || 'Mon compte';
+  document.getElementById('userAvatarBox').innerHTML = (me.avatar && me.avatar.type==='image')
+    ? `<img src="${me.avatar.data}" class="avatar">`
+    : `<div class="avatar avatar-placeholder">${(me.name||'?').charAt(0).toUpperCase()}</div>`;
 }
 async function authSubmit(){
   const email=document.getElementById('authEmail').value.trim();
@@ -580,42 +599,55 @@ async function authSubmit(){
       const name=document.getElementById('authName').value.trim();
       const phone=document.getElementById('authPhone').value.trim();
       if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
-      let uid;
+      // Le suivi automatique de session (onAuthStateChanged) ne doit pas
+      // intervenir pendant qu'on gère nous-mêmes la création du compte
+      // ci-dessous, sinon les deux entrent en compétition pour écrire le
+      // document accounts/{uid} et le nom/numéro tout juste saisis se
+      // retrouvent écrasés par une fiche vide.
+      authFlowInProgress=true;
       try{
-        const cred=await withTimeout(auth.createUserWithEmailAndPassword(email,password), 12000);
-        uid=cred.user.uid;
-      }catch(e){
-        if(((e&&e.code)||'').includes('email-already-in-use')){
-          // Compte probablement créé lors d'une tentative précédente interrompue
-          // (ex. écriture Firestore refusée juste après) : on tente de s'y
-          // connecter avec le mot de passe qui vient d'être tapé plutôt que de
-          // bloquer la personne.
-          try{
-            const cred2=await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000);
-            uid=cred2.user.uid;
-          }catch(e2){
-            showToast(e2.message==='timeout' ? "Connexion trop lente, réessayez" : "Cet email a déjà un compte — connectez-vous, ou utilisez « mot de passe oublié »");
+        let uid;
+        try{
+          const cred=await withTimeout(auth.createUserWithEmailAndPassword(email,password), 12000);
+          uid=cred.user.uid;
+        }catch(e){
+          if(((e&&e.code)||'').includes('email-already-in-use')){
+            // Compte probablement créé lors d'une tentative précédente interrompue
+            // (ex. écriture Firestore refusée juste après) : on tente de s'y
+            // connecter avec le mot de passe qui vient d'être tapé plutôt que de
+            // bloquer la personne.
+            try{
+              const cred2=await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000);
+              uid=cred2.user.uid;
+            }catch(e2){
+              showToast(e2.message==='timeout' ? "Connexion trop lente, réessayez" : "Cet email a déjà un compte — connectez-vous, ou utilisez « mot de passe oublié »");
+              return;
+            }
+          }else{
+            showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : authErrorMessage(e));
             return;
           }
-        }else{
-          showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : authErrorMessage(e));
-          return;
         }
+        const avatarFile=document.getElementById('authAvatar').files[0];
+        let avatar=null;
+        if(avatarFile){ try{ avatar=await compressImage(avatarFile); }catch(e){} }
+        let acc={name,phone,email,avatar,createdAt:Date.now()};
+        try{
+          const snap=await withTimeout(db.collection('accounts').doc(uid).get(), 8000);
+          if(snap.exists) acc=snap.data();
+          else await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000);
+        }catch(e){ /* Firestore lent ou indisponible : on continue quand même avec les infos saisies */ }
+        const key=ensurePoints(phone);
+        if(pendingRef && cleanPhone(pendingRef)!==cleanPhone(phone) && !points[key].referredBy){
+          points[key].referredBy=cleanPhone(pendingRef);
+          points[key].points+=20;
+          try{ await savePoints(); }catch(e){}
+          showToast("🎉 Bienvenue ! +20 points grâce à votre parrainage", true);
+        }
+        await completeLogin(uid, acc);
+      } finally {
+        authFlowInProgress=false;
       }
-      let acc={name,phone,email,createdAt:Date.now()};
-      try{
-        const snap=await withTimeout(db.collection('accounts').doc(uid).get(), 8000);
-        if(snap.exists) acc=snap.data();
-        else await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000);
-      }catch(e){ /* Firestore lent ou indisponible : on continue quand même avec les infos saisies */ }
-      const key=ensurePoints(phone);
-      if(pendingRef && cleanPhone(pendingRef)!==cleanPhone(phone) && !points[key].referredBy){
-        points[key].referredBy=cleanPhone(pendingRef);
-        points[key].points+=20;
-        try{ await savePoints(); }catch(e){}
-        showToast("🎉 Bienvenue ! +20 points grâce à votre parrainage", true);
-      }
-      await completeLogin(uid, acc);
     }else{
       try{ await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000); }
       catch(e){ showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : authErrorMessage(e)); }
@@ -629,6 +661,7 @@ async function authSignOut(){
   try{ await auth.signOut(); }catch(e){}
 }
 auth.onAuthStateChanged(async (user)=>{
+  if(authFlowInProgress) return; // authSubmit() gère déjà completeLogin() dans ce cas
   if(user){
     if(me && me.uid===user.uid) return;
     let acc=null;
@@ -643,6 +676,8 @@ auth.onAuthStateChanged(async (user)=>{
     await completeLogin(user.uid, acc);
   }else{
     me=null;
+    updatePointsHeader();
+    updateUserHeader();
     document.getElementById('authGate').classList.add('show');
   }
 });
