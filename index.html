@@ -319,6 +319,8 @@
     <div id="myTripsList"></div>
     <div class="results-head"><h3>Mes demandes de colis</h3></div>
     <div id="myColisList"></div>
+    <div class="results-head"><h3>Mes alertes</h3></div>
+    <div id="myAlertsList"></div>
   </div>
 
   <!-- ORDERS -->
@@ -949,8 +951,6 @@ function displayResults(country, from, to){
         <b>Aucun voyageur pour l'instant</b>Soyez alerté(e) dès qu'un GP correspond, ou déposez votre demande dans "Envoyer un colis".
       </div>
       <div class="panel" style="margin-top:2px;">
-        <label>Votre prénom</label><input type="text" id="alertName" placeholder="Ex. Fatou">
-        <label>Votre numéro</label><input type="tel" id="alertPhone" placeholder="Ex. 06 12 34 56 78">
         <button class="btn gold" onclick="createAlert()">📢 Publier ma demande</button>
       </div>`;
     return;
@@ -987,14 +987,11 @@ function displayResults(country, from, to){
 }
 
 async function createAlert(){
-  const name=document.getElementById('alertName').value.trim();
-  const phone=document.getElementById('alertPhone').value.trim();
-  if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
+  const name=me.name, phone=me.phone;
   alerts.push({id:Date.now().toString(),name,phone,country:document.getElementById('searchCountry').value,from:document.getElementById('searchFrom').value.trim(),to:document.getElementById('searchTo').value.trim(),notified:false,createdAt:Date.now()});
   await saveAlerts();
   ensureThread(phone,name); await saveMessages();
   showToast("Demande publiée ! On vous préviendra dès qu'un GP correspond 📢");
-  document.getElementById('alertName').value=''; document.getElementById('alertPhone').value='';
 }
 
 // ---- ORDER MODAL (commander) ----
@@ -1433,6 +1430,29 @@ function renderMyTrips(){
         <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
       </div>
     </div>`).join('');
+
+  const alertsList=document.getElementById('myAlertsList');
+  const myAlerts=alerts.filter(a=>cleanPhone(a.phone)===cleanPhone(me.phone));
+  myAlerts.sort((a,b)=>b.createdAt-a.createdAt);
+  alertsList.innerHTML = myAlerts.length===0
+    ? `<div class="empty"><b>Aucune alerte</b>Depuis la recherche, cliquez sur "Me prévenir" quand aucun voyageur ne correspond.</div>`
+    : myAlerts.map(a=>`
+    <div class="gp-card">
+      <div class="top">
+        <div class="route">${a.from || '(ville de départ non précisée)'} <span class="dots">✈</span> ${a.to || '(ville d\'arrivée non précisée)'}</div>
+        ${a.notified ? `<div class="badge verified">✅ Notifiée</div>` : `<div class="badge pending">🔔 En attente</div>`}
+      </div>
+      <div class="meta">${a.country ? `<span>${flag(a.country)} <b>${a.country}</b></span>` : ''}</div>
+      <div class="admin-actions" style="margin-top:12px;">
+        <button class="btn-reject" onclick="removeMyAlert('${a.id}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+async function removeMyAlert(id){
+  alerts=alerts.filter(x=>x.id!==id);
+  try{ await db.collection('alerts').doc(id).delete(); }catch(e){}
+  showToast("Alerte supprimée");
+  renderMyTrips();
 }
 let editingListingId=null;
 function openEditListing(id){
