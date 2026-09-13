@@ -212,6 +212,7 @@
   <div class="drawer-item active" id="tabSearch" onclick="switchTab('search')">🔍 Chercher un GP</div>
   <div class="drawer-item" id="tabSend" onclick="switchTab('send')">📦 Envoyer un colis</div>
   <div class="drawer-item" id="tabPublish" onclick="switchTab('publish')">✈️ Je voyage</div>
+  <div class="drawer-item" id="tabMytrips" onclick="switchTab('mytrips')">🧳 Mes trajets</div>
   <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')">🧾 Mes commandes</div>
   <div class="drawer-item" id="tabPoints" onclick="switchTab('points')">🌟 Mes points</div>
   <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')">💬 Support</div>
@@ -310,6 +311,12 @@
     </div>
   </div>
 
+  <!-- MY TRIPS -->
+  <div id="viewMytrips" style="display:none;">
+    <div class="results-head"><h3>Mes trajets publiés</h3></div>
+    <div id="myTripsList"></div>
+  </div>
+
   <!-- ORDERS -->
   <div id="viewOrders" style="display:none;">
     <div class="role-toggle">
@@ -390,6 +397,23 @@
     </div>
     <button class="btn gold" onclick="submitOrder()">Envoyer la commande</button>
     <button class="btn ghost" onclick="closeOrderModal()">Annuler</button>
+  </div>
+</div>
+
+<!-- EDIT TRIP MODAL -->
+<div class="overlay" id="editListingOverlay">
+  <div class="modal">
+    <h3>Modifier mon trajet</h3>
+    <div class="row2">
+      <div><label>Ville de départ</label><input type="text" id="elFrom" placeholder="Paris"></div>
+      <div><label>Ville d'arrivée</label><input type="text" id="elTo" placeholder="Nouakchott"></div>
+    </div>
+    <label>Pays de destination</label>
+    <select id="elCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option></select>
+    <label>Date du voyage</label><input type="date" id="elDate">
+    <label>Kg disponibles</label><input type="number" id="elKg" min="1">
+    <button class="btn gold" onclick="saveListingEdit()">Enregistrer</button>
+    <button class="btn ghost" onclick="closeEditListing()">Annuler</button>
   </div>
 </div>
 
@@ -754,17 +778,18 @@ function closeDrawer(){
 }
 function switchTab(tab){
   closeDrawer();
-  ['search','send','publish','orders','points','messages'].forEach(t=>{
+  ['search','send','publish','mytrips','orders','points','messages'].forEach(t=>{
     const el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
     if(el) el.classList.toggle('active', t===tab);
   });
-  ['Search','Send','Publish','Orders','Points','Messages'].forEach(v=>{
+  ['Search','Send','Publish','Mytrips','Orders','Points','Messages'].forEach(v=>{
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
   stopPolling();
   if(tab==='search') renderResults();
   if(tab==='send' && me){ document.getElementById('sName').value=me.name; document.getElementById('sPhone').value=me.phone; }
   if(tab==='publish' && me){ document.getElementById('pName').value=me.name; document.getElementById('pPhone').value=me.phone; checkProfile(); }
+  if(tab==='mytrips'){ ensureIdentity(()=>{ renderMyTrips(); startPolling(); }); }
   if(tab==='orders'){ ensureIdentity(()=>{ renderOrders(); startPolling(); }); }
   if(tab==='points'){ ensureIdentity(()=>{ renderPointsPanel(); }); }
   if(tab==='messages'){
@@ -781,6 +806,7 @@ function startPolling(){
     await loadAll();
     if(document.getElementById('viewMessages').style.display==='block') renderThread();
     if(document.getElementById('viewOrders').style.display==='block') renderOrders();
+    if(document.getElementById('viewMytrips').style.display==='block') renderMyTrips();
   }, 4000);
 }
 function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
@@ -1313,6 +1339,70 @@ async function publishListing(){
   document.getElementById('pPhone').value=phoneRaw;
   rules.forEach(id=>document.getElementById(id).checked=false);
   switchTab('search');
+}
+
+// ---- MY TRIPS (voir/modifier/supprimer ses propres trajets) ----
+function renderMyTrips(){
+  const list=document.getElementById('myTripsList');
+  const mine=listings.filter(l=>l.type==='gp' && cleanPhone(l.phone)===cleanPhone(me.phone));
+  mine.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  if(mine.length===0){
+    list.innerHTML=`<div class="empty"><b>Aucun trajet publié</b>Publiez votre premier trajet dans "Je voyage".</div>`;
+    return;
+  }
+  list.innerHTML=mine.map(l=>`
+    <div class="gp-card">
+      <div class="top">
+        <div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div>
+        <div class="price">${PRICE_PER_KG}€/kg</div>
+      </div>
+      <div class="meta">
+        <span>${flag(l.country)} <b>${l.country}</b></span>
+        <span>📅 <b>${fmtDate(l.date)}</b></span>
+        <span>🧳 <b>${l.kg} kg</b> dispo</span>
+      </div>
+      <div class="admin-actions" style="margin-top:12px;">
+        <button class="btn-approve" onclick="openEditListing('${l.id}')">Modifier</button>
+        <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+let editingListingId=null;
+function openEditListing(id){
+  const l=listings.find(x=>x.id===id);
+  if(!l) return;
+  editingListingId=id;
+  document.getElementById('elFrom').value=l.from;
+  document.getElementById('elTo').value=l.to;
+  document.getElementById('elCountry').value=l.country;
+  document.getElementById('elDate').value=l.date||'';
+  document.getElementById('elKg').value=l.kg;
+  document.getElementById('editListingOverlay').classList.add('show');
+}
+function closeEditListing(){
+  document.getElementById('editListingOverlay').classList.remove('show');
+  editingListingId=null;
+}
+async function saveListingEdit(){
+  const l=listings.find(x=>x.id===editingListingId);
+  if(!l) return;
+  const from=document.getElementById('elFrom').value.trim();
+  const to=document.getElementById('elTo').value.trim();
+  const kg=parseInt(document.getElementById('elKg').value);
+  const date=document.getElementById('elDate').value;
+  const country=document.getElementById('elCountry').value;
+  if(!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
+  l.from=from; l.to=to; l.kg=kg; l.date=date; l.country=country;
+  await saveListings();
+  showToast("Trajet mis à jour");
+  closeEditListing();
+  renderMyTrips();
+}
+async function removeMyListing(id){
+  listings=listings.filter(x=>x.id!==id);
+  try{ await db.collection('listings').doc(id).delete(); }catch(e){}
+  showToast("Trajet supprimé");
+  renderMyTrips();
 }
 
 async function publishColis(){

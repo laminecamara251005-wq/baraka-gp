@@ -29,15 +29,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Annonces (voyageurs "GP" et demandes de colis) : visibles et publiables
-    // par tout utilisateur connecté. Seul l'admin peut les vérifier/supprimer
-    // (litige, modération).
+    // Annonces (voyageurs "GP" et demandes de colis) : visibles, publiables,
+    // modifiables et supprimables par tout utilisateur connecté (l'app ne
+    // limite l'affichage des boutons modifier/supprimer qu'aux annonces de son
+    // propre numéro, sans le faire respecter côté règles — même limite que le
+    // reste de l'app, voir la section "Limite connue" du README). Seul
+    // l'admin peut en plus vérifier une annonce (champ "verified").
     match /listings/{id} {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow update: if isAdmin()
         || (isSignedIn() && !('verified' in request.resource.data.diff(resource.data).affectedKeys()));
-      allow delete: if isAdmin();
+      allow delete: if isSignedIn();
     }
 
     // Profils voyageurs (identité, billet). Seul l'admin peut vérifier/supprimer.
