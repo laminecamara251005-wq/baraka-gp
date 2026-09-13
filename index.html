@@ -720,6 +720,9 @@ auth.onAuthStateChanged(async (user)=>{
     me=null;
     updatePointsHeader();
     updateUserHeader();
+    ['authName','authPhone','authEmail','authPassword'].forEach(id=>{ document.getElementById(id).value=''; });
+    const avatarInput=document.getElementById('authAvatar');
+    if(avatarInput) avatarInput.value='';
     document.getElementById('authGate').classList.add('show');
   }
 });
