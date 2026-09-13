@@ -253,8 +253,8 @@
     <div class="panel">
       <h2>Décrivez votre colis</h2>
       <div class="sub">Pas encore trouvé de voyageur ? Décrivez votre besoin, nous vous alertons dès qu'un GP correspond.</div>
-      <label>Votre prénom</label><input type="text" id="sName" placeholder="Ex. Fatou">
-      <label>Votre numéro</label><input type="tel" id="sPhone" placeholder="Ex. 06 12 34 56 78">
+      <label>Votre prénom</label><input type="text" id="sName" placeholder="Ex. Fatou" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <label>Votre numéro</label><input type="tel" id="sPhone" placeholder="Ex. 06 12 34 56 78" readonly style="background:var(--bg);color:var(--ink-soft);">
       <div class="row2">
         <div><label>Ville de départ</label><input type="text" id="sFrom" placeholder="Paris"></div>
         <div><label>Ville d'arrivée</label><input type="text" id="sTo" placeholder="Nouakchott"></div>
@@ -283,8 +283,8 @@
     <div class="panel">
       <h2>Publiez votre trajet</h2>
       <div class="sub">Vous voyagez bientôt ? Gagnez de l'argent avec la place libre dans votre valise.</div>
-      <label>Votre prénom</label><input type="text" id="pName" placeholder="Ex. Amadou">
-      <label>Votre numéro</label><input type="tel" id="pPhone" placeholder="Ex. 06 12 34 56 78" onblur="checkProfile()">
+      <label>Votre prénom</label><input type="text" id="pName" placeholder="Ex. Amadou" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <label>Votre numéro</label><input type="tel" id="pPhone" placeholder="Ex. 06 12 34 56 78" readonly style="background:var(--bg);color:var(--ink-soft);">
       <div id="profileStatusBox"></div>
       <label>Billet pour ce voyage</label><input type="file" id="pTicket" accept="image/*,.pdf">
       <div class="hint">À fournir à chaque trajet.</div>
@@ -889,6 +889,7 @@ function renderResults(){
 function displayResults(country, from, to){
   let filtered=listings.filter(l=>{
     if(l.type!=='gp') return false;
+    if(me && cleanPhone(l.phone)===cleanPhone(me.phone)) return false;
     if(country && l.country!==country) return false;
     if(from && !l.from.toLowerCase().includes(from.toLowerCase())) return false;
     if(to && !l.to.toLowerCase().includes(to.toLowerCase())) return false;
