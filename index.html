@@ -239,6 +239,7 @@
         <option value="Sénégal">🇸🇳 Sénégal</option>
         <option value="Mali">🇲🇱 Mali</option>
         <option value="Égypte">🇪🇬 Égypte</option>
+        <option value="France">🇫🇷 France</option>
       </select>
     </div>
     <div id="searchResultsSection">
@@ -259,7 +260,7 @@
         <div><label>Ville d'arrivée</label><input type="text" id="sTo" placeholder="Nouakchott"></div>
       </div>
       <label>Pays de destination</label>
-      <select id="sCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option></select>
+      <select id="sCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
       <label>Date d'envoi souhaitée</label><input type="date" id="sDate">
       <label>Poids approximatif</label><input type="number" id="sKg" placeholder="Ex. 5" min="1">
       <label>Description du contenu</label><textarea id="sDesc" placeholder="Ex. Vêtements et quelques cadeaux"></textarea>
@@ -298,7 +299,7 @@
         <div><label>Ville d'arrivée</label><input type="text" id="pTo" placeholder="Nouakchott"></div>
       </div>
       <label>Pays de destination</label>
-      <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option></select>
+      <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
       <label>Date du voyage</label><input type="date" id="pDate">
       <label>Kg disponibles</label><input type="number" id="pKg" placeholder="Ex. 8" min="1">
       <div class="rules-box">
@@ -409,7 +410,7 @@
       <div><label>Ville d'arrivée</label><input type="text" id="elTo" placeholder="Nouakchott"></div>
     </div>
     <label>Pays de destination</label>
-    <select id="elCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option></select>
+    <select id="elCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
     <label>Date du voyage</label><input type="date" id="elDate">
     <label>Kg disponibles</label><input type="number" id="elKg" min="1">
     <button class="btn gold" onclick="saveListingEdit()">Enregistrer</button>
@@ -505,7 +506,7 @@ function showToast(msg, gold){ const t=document.getElementById('toast'); t.textC
 function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
 function fmtDateTime(dt){ if(!dt) return "—"; return new Date(dt).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(dt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
-function flag(c){ return {Mauritanie:"🇲🇷",Sénégal:"🇸🇳",Mali:"🇲🇱",Égypte:"🇪🇬"}[c] || "🌍"; }
+function flag(c){ return {Mauritanie:"🇲🇷",Sénégal:"🇸🇳",Mali:"🇲🇱",Égypte:"🇪🇬",France:"🇫🇷"}[c] || "🌍"; }
 
 // ---- STORAGE (Firestore : chaque enregistrement est son propre document, partagé entre tous les utilisateurs) ----
 async function fetchCollectionArray(name){
