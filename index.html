@@ -317,6 +317,8 @@
   <div id="viewMytrips" style="display:none;">
     <div class="results-head"><h3>Mes trajets publiés</h3></div>
     <div id="myTripsList"></div>
+    <div class="results-head"><h3>Mes demandes de colis</h3></div>
+    <div id="myColisList"></div>
   </div>
 
   <!-- ORDERS -->
@@ -1387,14 +1389,12 @@ async function publishListing(){
 
 // ---- MY TRIPS (voir/modifier/supprimer ses propres trajets) ----
 function renderMyTrips(){
-  const list=document.getElementById('myTripsList');
+  const tripsList=document.getElementById('myTripsList');
   const mine=listings.filter(l=>l.type==='gp' && cleanPhone(l.phone)===cleanPhone(me.phone));
   mine.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
-  if(mine.length===0){
-    list.innerHTML=`<div class="empty"><b>Aucun trajet publié</b>Publiez votre premier trajet dans "Je voyage".</div>`;
-    return;
-  }
-  list.innerHTML=mine.map(l=>`
+  tripsList.innerHTML = mine.length===0
+    ? `<div class="empty"><b>Aucun trajet publié</b>Publiez votre premier trajet dans "Je voyage".</div>`
+    : mine.map(l=>`
     <div class="gp-card">
       <div class="top">
         <div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div>
@@ -1405,6 +1405,29 @@ function renderMyTrips(){
         <span>📅 <b>${fmtDate(l.date)}</b></span>
         <span>🧳 <b>${l.kg} kg</b> dispo</span>
       </div>
+      <div class="admin-actions" style="margin-top:12px;">
+        <button class="btn-approve" onclick="openEditListing('${l.id}')">Modifier</button>
+        <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+
+  const colisList=document.getElementById('myColisList');
+  const myColis=listings.filter(l=>l.type==='colis' && cleanPhone(l.phone)===cleanPhone(me.phone));
+  myColis.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  colisList.innerHTML = myColis.length===0
+    ? `<div class="empty"><b>Aucune demande de colis</b>Décrivez votre colis dans "Envoyer un colis" si aucun voyageur ne correspond encore.</div>`
+    : myColis.map(l=>`
+    <div class="gp-card">
+      <div class="top">
+        <div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div>
+        ${l.verified ? `<div class="badge verified">✅ Vérifié</div>` : `<div class="badge pending">⏳ En attente</div>`}
+      </div>
+      <div class="meta">
+        <span>${flag(l.country)} <b>${l.country}</b></span>
+        <span>📅 <b>${fmtDate(l.date)}</b></span>
+        <span>📦 <b>${l.kg} kg</b></span>
+      </div>
+      ${l.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${l.desc}</div>` : ''}
       <div class="admin-actions" style="margin-top:12px;">
         <button class="btn-approve" onclick="openEditListing('${l.id}')">Modifier</button>
         <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
