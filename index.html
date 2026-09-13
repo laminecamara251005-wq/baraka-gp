@@ -256,8 +256,8 @@
       <label>Votre prénom</label><input type="text" id="sName" placeholder="Ex. Fatou" readonly style="background:var(--bg);color:var(--ink-soft);">
       <label>Votre numéro</label><input type="tel" id="sPhone" placeholder="Ex. 06 12 34 56 78" readonly style="background:var(--bg);color:var(--ink-soft);">
       <div class="row2">
-        <div><label>Ville de départ</label><input type="text" id="sFrom" placeholder="Paris"></div>
-        <div><label>Ville d'arrivée</label><input type="text" id="sTo" placeholder="Nouakchott"></div>
+        <div><label>Ville de départ</label><input type="text" id="sFrom" list="fromCities" placeholder="Paris"></div>
+        <div><label>Ville d'arrivée</label><input type="text" id="sTo" list="toCities" placeholder="Nouakchott"></div>
       </div>
       <label>Pays de destination</label>
       <select id="sCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
@@ -295,8 +295,8 @@
         <div class="hint">Une seule fois.</div>
       </div>
       <div class="row2">
-        <div><label>Ville de départ</label><input type="text" id="pFrom" placeholder="Paris"></div>
-        <div><label>Ville d'arrivée</label><input type="text" id="pTo" placeholder="Nouakchott"></div>
+        <div><label>Ville de départ</label><input type="text" id="pFrom" list="fromCities" placeholder="Paris"></div>
+        <div><label>Ville d'arrivée</label><input type="text" id="pTo" list="toCities" placeholder="Nouakchott"></div>
       </div>
       <label>Pays de destination</label>
       <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
@@ -406,8 +406,8 @@
   <div class="modal">
     <h3>Modifier mon trajet</h3>
     <div class="row2">
-      <div><label>Ville de départ</label><input type="text" id="elFrom" placeholder="Paris"></div>
-      <div><label>Ville d'arrivée</label><input type="text" id="elTo" placeholder="Nouakchott"></div>
+      <div><label>Ville de départ</label><input type="text" id="elFrom" list="fromCities" placeholder="Paris"></div>
+      <div><label>Ville d'arrivée</label><input type="text" id="elTo" list="toCities" placeholder="Nouakchott"></div>
     </div>
     <label>Pays de destination</label>
     <select id="elCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
@@ -890,10 +890,13 @@ function starsHtml(avg){
   const full=Math.round(avg);
   return `<span class="stars">${'★'.repeat(full)}${'☆'.repeat(5-full)} (${avg.toFixed(1)})</span>`;
 }
+const COMMON_CITIES=['Paris','Nouakchott','Bamako','Dakar','Le Caire'];
 function updateCityLists(){
   const gpOnly=listings.filter(l=>l.type==='gp');
-  document.getElementById('fromCities').innerHTML=[...new Set(gpOnly.map(l=>l.from).filter(Boolean))].map(c=>`<option value="${c}">`).join('');
-  document.getElementById('toCities').innerHTML=[...new Set(gpOnly.map(l=>l.to).filter(Boolean))].map(c=>`<option value="${c}">`).join('');
+  const fromCities=[...new Set([...COMMON_CITIES, ...gpOnly.map(l=>l.from).filter(Boolean)])];
+  const toCities=[...new Set([...COMMON_CITIES, ...gpOnly.map(l=>l.to).filter(Boolean)])];
+  document.getElementById('fromCities').innerHTML=fromCities.map(c=>`<option value="${c}">`).join('');
+  document.getElementById('toCities').innerHTML=toCities.map(c=>`<option value="${c}">`).join('');
 }
 function renderResults(){
   document.getElementById('searchResultsSection').style.display='block';
