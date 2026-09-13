@@ -318,6 +318,8 @@
   <div id="viewMytrips" style="display:none;">
     <div class="results-head"><h3>Mes trajets publiés</h3></div>
     <div id="myTripsList"></div>
+    <div class="results-head"><h3>Demandes de colis disponibles</h3></div>
+    <div id="availableColisList"></div>
   </div>
 
   <!-- MY REQUESTS (clients) -->
@@ -1161,7 +1163,7 @@ function renderOrders(){
       <div class="progress-labels"><span>Envoyée</span><span>Acceptée</span><span>Payée</span><span>Prise en charge</span><span>Remise</span><span>Terminée</span></div>
       ${countdown}
       <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);">
-        📍 ${o.pickupLocation} · 🕒 ${fmtDateTime(o.pickupTime)}<br>
+        ${o.pickupLocation ? `📍 ${o.pickupLocation} · 🕒 ${fmtDateTime(o.pickupTime)}<br>` : ''}
         ${ordersRole==='client' ? `💰 Prix total : <b>${o.priceTotal.toFixed(2)}€</b>${o.discountUsed?' <span style="color:var(--green-dark);">(remise 5€ appliquée)</span>':''}` : `💰 Vous touchez : <b>${o.priceNet.toFixed(2)}€</b> (commission Baraka GP déjà déduite)`}
       </div>
       ${o.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${o.desc}</div>` : ''}
@@ -1187,6 +1189,16 @@ function renderOrderActions(o){
     </div>`;
   }
   if(ordersRole==='client' && o.status==='accepted'){
+    if(!o.pickupLocation || !o.pickupTime){
+      return `
+        <div class="hint" style="margin-top:10px;">Le voyageur a accepté ! Complétez le lieu et l'horaire de remise pour continuer.</div>
+        <label>Lieu de remise proposé</label>
+        <input type="text" id="pickupLoc-${o.id}" placeholder="Ex. Gare du Nord, Paris">
+        <label>Horaire de remise proposé</label>
+        <input type="datetime-local" id="pickupTimeInput-${o.id}">
+        <button class="btn gold sm" onclick="completePickupInfo('${o.id}')">Valider</button>
+      `;
+    }
     const hUntilTrip=hoursUntil(o.tripDate);
     const expired = hUntilTrip!==null && (hUntilTrip-24)<=0;
     return `<button class="btn ${expired?'':'gold'} sm" ${expired?'disabled':''} onclick="payOrder('${o.id}')">${expired?'Délai dépassé':'💳 Payer maintenant (simulation)'}</button>`;
@@ -1243,6 +1255,17 @@ async function respondOrder(orderId, status){
   o.status=status;
   await saveOrders();
   showToast(status==='accepted' ? "Commande acceptée !" : "Mise à jour effectuée");
+  renderOrders();
+}
+async function completePickupInfo(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const loc=document.getElementById('pickupLoc-'+orderId).value.trim();
+  const time=document.getElementById('pickupTimeInput-'+orderId).value;
+  if(!loc||!time){ showToast("Merci de remplir le lieu et l'horaire"); return; }
+  o.pickupLocation=loc; o.pickupTime=time;
+  await saveOrders();
+  showToast("Infos complétées !");
   renderOrders();
 }
 async function payOrder(orderId){
@@ -1414,6 +1437,47 @@ function renderMyTrips(){
         <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
       </div>
     </div>`).join('');
+
+  const availBox=document.getElementById('availableColisList');
+  const available=listings.filter(l=>l.type==='colis' && cleanPhone(l.phone)!==cleanPhone(me.phone));
+  available.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  availBox.innerHTML = available.length===0
+    ? `<div class="empty"><b>Aucune demande disponible</b>Revenez plus tard, ou publiez votre trajet pour être trouvé plus facilement.</div>`
+    : available.map(l=>`
+    <div class="gp-card">
+      <div class="top"><div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div></div>
+      <div class="meta">
+        <span>${flag(l.country)} <b>${l.country}</b></span>
+        <span>📅 <b>${fmtDate(l.date)}</b></span>
+        <span>📦 <b>${l.kg} kg</b></span>
+      </div>
+      ${l.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${l.desc}</div>` : ''}
+      <button class="btn gold sm" onclick="acceptColisRequest('${l.id}')">Accepter cette demande</button>
+    </div>`).join('');
+}
+async function acceptColisRequest(reqId){
+  const req=listings.find(x=>x.id===reqId && x.type==='colis');
+  if(!req) return;
+  const kg=req.kg;
+  const total=kg*PRICE_PER_KG, commission=kg*COMMISSION_PER_KG;
+  const order={
+    id:Date.now().toString(), listingId:req.id,
+    gpPhone:cleanPhone(me.phone), gpName:me.name,
+    clientPhone:cleanPhone(req.phone), clientName:req.name,
+    from:req.from, to:req.to, country:req.country, tripDate:req.date,
+    kg, photo:req.photo, desc:req.desc, value:req.value,
+    priceTotal:total, commission, priceNet:total-commission, discountUsed:false,
+    pickupLocation:'', pickupTime:'',
+    status:'accepted', deliveryCode:null, rating:null, ratingComment:null,
+    packageType:'colis', createdAt:Date.now()
+  };
+  orders.push(order);
+  await saveOrders();
+  listings=listings.filter(x=>x.id!==reqId);
+  try{ await db.collection('listings').doc(reqId).delete(); }catch(e){}
+  ensureThread(req.phone, req.name);
+  showToast("Demande acceptée ! Le client doit compléter les infos de remise.");
+  renderMyTrips();
 }
 function renderMyDemandes(){
   const colisList=document.getElementById('myColisList');
