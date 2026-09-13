@@ -204,11 +204,12 @@
 <nav class="drawer-panel" id="drawerPanel">
   <div class="drawer-head">
     <div style="display:flex;align-items:center;gap:10px;">
-      <span id="drawerAvatarBox"></span>
+      <span id="drawerAvatarBox" onclick="document.getElementById('changeAvatarInput').click()" style="cursor:pointer;" title="Changer ma photo"></span>
       <span id="drawerNameLabel">Menu</span>
     </div>
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
+  <input type="file" id="changeAvatarInput" accept="image/*" style="display:none;" onchange="changeMyAvatar()">
   <div class="drawer-item active" id="tabSearch" onclick="switchTab('search')">🔍 Chercher un GP</div>
   <div class="drawer-item" id="tabSend" onclick="switchTab('send')">📦 Envoyer un colis</div>
   <div class="drawer-item" id="tabPublish" onclick="switchTab('publish')">✈️ Je voyage</div>
@@ -628,6 +629,19 @@ function updateUserHeader(){
   document.getElementById('drawerAvatarBox').innerHTML = (me.avatar && me.avatar.type==='image')
     ? `<img src="${me.avatar.data}" class="avatar">`
     : `<div class="avatar avatar-placeholder">${(me.name||'?').charAt(0).toUpperCase()}</div>`;
+}
+async function changeMyAvatar(){
+  const file=document.getElementById('changeAvatarInput').files[0];
+  if(!file || !me) return;
+  showToast("Mise à jour de la photo...");
+  let avatar;
+  try{ avatar=await compressImage(file); }catch(e){ showToast("Photo illisible"); return; }
+  me.avatar=avatar;
+  try{ localStorage.setItem('baraka-gp-me', JSON.stringify(me)); }catch(e){}
+  try{ await withTimeout(db.collection('accounts').doc(me.uid).set({avatar}, {merge:true}), 8000); }catch(e){}
+  updateUserHeader();
+  showToast("Photo de profil mise à jour !");
+  document.getElementById('changeAvatarInput').value='';
 }
 async function authSubmit(){
   const email=document.getElementById('authEmail').value.trim();
