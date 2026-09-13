@@ -212,6 +212,7 @@
   <input type="file" id="changeAvatarInput" accept="image/*" style="display:none;" onchange="changeMyAvatar()">
   <div class="drawer-item active" id="tabSearch" onclick="switchTab('search')">🔍 Chercher un GP</div>
   <div class="drawer-item" id="tabSend" onclick="switchTab('send')">📦 Envoyer un colis</div>
+  <div class="drawer-item" id="tabMydemandes" onclick="switchTab('mydemandes')">📋 Mes demandes</div>
   <div class="drawer-item" id="tabPublish" onclick="switchTab('publish')">✈️ Je voyage</div>
   <div class="drawer-item" id="tabMytrips" onclick="switchTab('mytrips')">🧳 Mes trajets</div>
   <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')">🧾 Mes commandes</div>
@@ -313,10 +314,14 @@
     </div>
   </div>
 
-  <!-- MY TRIPS -->
+  <!-- MY TRIPS (voyageurs) -->
   <div id="viewMytrips" style="display:none;">
     <div class="results-head"><h3>Mes trajets publiés</h3></div>
     <div id="myTripsList"></div>
+  </div>
+
+  <!-- MY REQUESTS (clients) -->
+  <div id="viewMydemandes" style="display:none;">
     <div class="results-head"><h3>Mes demandes de colis</h3></div>
     <div id="myColisList"></div>
     <div class="results-head"><h3>Mes alertes</h3></div>
@@ -817,11 +822,11 @@ function closeDrawer(){
 }
 function switchTab(tab){
   closeDrawer();
-  ['search','send','publish','mytrips','orders','points','messages'].forEach(t=>{
+  ['search','send','publish','mytrips','mydemandes','orders','points','messages'].forEach(t=>{
     const el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
     if(el) el.classList.toggle('active', t===tab);
   });
-  ['Search','Send','Publish','Mytrips','Orders','Points','Messages'].forEach(v=>{
+  ['Search','Send','Publish','Mytrips','Mydemandes','Orders','Points','Messages'].forEach(v=>{
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
   stopPolling();
@@ -829,6 +834,7 @@ function switchTab(tab){
   if(tab==='send' && me){ document.getElementById('sName').value=me.name; document.getElementById('sPhone').value=me.phone; }
   if(tab==='publish' && me){ document.getElementById('pName').value=me.name; document.getElementById('pPhone').value=me.phone; checkProfile(); }
   if(tab==='mytrips'){ ensureIdentity(()=>{ renderMyTrips(); startPolling(); }); }
+  if(tab==='mydemandes'){ ensureIdentity(()=>{ renderMyDemandes(); startPolling(); }); }
   if(tab==='orders'){ ensureIdentity(()=>{ renderOrders(); startPolling(); }); }
   if(tab==='points'){ ensureIdentity(()=>{ renderPointsPanel(); }); }
   if(tab==='messages'){
@@ -846,6 +852,7 @@ function startPolling(){
     if(document.getElementById('viewMessages').style.display==='block') renderThread();
     if(document.getElementById('viewOrders').style.display==='block') renderOrders();
     if(document.getElementById('viewMytrips').style.display==='block') renderMyTrips();
+    if(document.getElementById('viewMydemandes').style.display==='block') renderMyDemandes();
   }, 4000);
 }
 function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
@@ -1407,7 +1414,8 @@ function renderMyTrips(){
         <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
       </div>
     </div>`).join('');
-
+}
+function renderMyDemandes(){
   const colisList=document.getElementById('myColisList');
   const myColis=listings.filter(l=>l.type==='colis' && cleanPhone(l.phone)===cleanPhone(me.phone));
   myColis.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
@@ -1452,7 +1460,7 @@ async function removeMyAlert(id){
   alerts=alerts.filter(x=>x.id!==id);
   try{ await db.collection('alerts').doc(id).delete(); }catch(e){}
   showToast("Alerte supprimée");
-  renderMyTrips();
+  renderMyDemandes();
 }
 let editingListingId=null;
 function openEditListing(id){
@@ -1481,15 +1489,17 @@ async function saveListingEdit(){
   if(!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
   l.from=from; l.to=to; l.kg=kg; l.date=date; l.country=country;
   await saveListings();
-  showToast("Trajet mis à jour");
+  showToast("Mis à jour");
   closeEditListing();
   renderMyTrips();
+  renderMyDemandes();
 }
 async function removeMyListing(id){
   listings=listings.filter(x=>x.id!==id);
   try{ await db.collection('listings').doc(id).delete(); }catch(e){}
-  showToast("Trajet supprimé");
+  showToast("Supprimé");
   renderMyTrips();
+  renderMyDemandes();
 }
 
 async function publishColis(){
