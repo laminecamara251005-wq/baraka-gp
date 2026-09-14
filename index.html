@@ -1248,7 +1248,9 @@ function renderOrderActions(o){
     }
     const hUntilTrip=hoursUntil(o.tripDate);
     const expired = hUntilTrip!==null && (hUntilTrip-24)<=0;
-    return `<button class="btn ${expired?'':'gold'} sm" ${expired?'disabled':''} onclick="payOrder('${o.id}')">${expired?'Délai dépassé':'💳 Payer maintenant (simulation)'}</button>`;
+    const discounts = me ? availableDiscounts(me.phone) : 0;
+    const discountBox = (discounts>0 && !expired) ? `<label class="check-line" style="background:var(--green-pale);padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>` : '';
+    return `${discountBox}<button class="btn ${expired?'':'gold'} sm" ${expired?'disabled':''} onclick="payOrder('${o.id}')">${expired?'Délai dépassé':'💳 Payer maintenant (simulation)'}</button>`;
   }
   if(ordersRole==='gp' && o.status==='paid'){
     const hUntilTrip=hoursUntil(o.tripDate);
@@ -1318,6 +1320,15 @@ async function completePickupInfo(orderId){
 async function payOrder(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
+  const useDiscountEl=document.getElementById('useDiscount-'+orderId);
+  if(useDiscountEl && useDiscountEl.checked && !o.discountUsed){
+    o.priceTotal = Math.max(0, o.priceTotal-5);
+    o.discountUsed = true;
+    const key=ensurePoints(o.clientPhone);
+    points[key].points -= 50;
+    await savePoints();
+    updatePointsHeader();
+  }
   o.status='paid';
   o.pickupCode = String(Math.floor(1000+Math.random()*9000));
   await saveOrders();
