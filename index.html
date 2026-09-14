@@ -581,6 +581,27 @@ function compressImage(file){
     reader.onerror=reject; reader.readAsDataURL(file);
   });
 }
+// ---- LOCALISATION (pour suggérer un point de RDV, jamais affichée publiquement) ----
+function getGeoPosition(timeoutMs=6000){
+  return new Promise((resolve)=>{
+    if(!navigator.geolocation){ resolve(null); return; }
+    const timer=setTimeout(()=>resolve(null), timeoutMs);
+    navigator.geolocation.getCurrentPosition(
+      pos=>{ clearTimeout(timer); resolve({lat:pos.coords.latitude, lng:pos.coords.longitude}); },
+      ()=>{ clearTimeout(timer); resolve(null); },
+      {timeout:timeoutMs}
+    );
+  });
+}
+async function suggestMeetingPoint(lat1,lng1,lat2,lng2){
+  try{
+    const midLat=(lat1+lat2)/2, midLng=(lng1+lng2)/2;
+    const url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${midLat}&lon=${midLng}&zoom=16&addressdetails=0`;
+    const res=await withTimeout(fetch(url,{headers:{'Accept':'application/json'}}), 6000);
+    const data=await res.json();
+    return (data && data.display_name) ? data.display_name : null;
+  }catch(e){ return null; }
+}
 
 // ---- IDENTITY (compte Firebase Authentication, obligatoire dès l'arrivée) ----
 let authMode='signup';
@@ -1237,14 +1258,7 @@ function renderOrderActions(o){
   }
   if(ordersRole==='client' && o.status==='accepted'){
     if(!o.pickupLocation || !o.pickupTime){
-      return `
-        <div class="hint" style="margin-top:10px;">Le voyageur a accepté ! Complétez le lieu et l'horaire de remise pour continuer.</div>
-        <label>Lieu de remise proposé</label>
-        <input type="text" id="pickupLoc-${o.id}" placeholder="Ex. Gare du Nord, Paris">
-        <label>Horaire de remise proposé</label>
-        <input type="datetime-local" id="pickupTimeInput-${o.id}">
-        <button class="btn gold sm" onclick="completePickupInfo('${o.id}')">Valider</button>
-      `;
+      return `<div class="hint" style="margin-top:10px;">Le voyageur a accepté ! ${o.pickupLocation?'Il finalise l\'horaire de remise':'Il propose le lieu et l\'horaire de remise'}, vous serez prévenu(e).</div>`;
     }
     const hUntilTrip=hoursUntil(o.tripDate);
     const expired = hUntilTrip!==null && (hUntilTrip-24)<=0;
@@ -1277,6 +1291,16 @@ function renderOrderActions(o){
     if(canCancel) html += `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>`;
     return html;
   }
+  if(ordersRole==='gp' && o.status==='accepted' && (!o.pickupLocation || !o.pickupTime)){
+    return `
+      <div class="hint" style="margin-top:10px;">${o.pickupSuggested ? "L'app a suggéré un point de RDV à mi-chemin, vous pouvez l'ajuster. Ajoutez l'horaire pour continuer." : "Proposez un lieu et un horaire de remise au client."}</div>
+      <label>Lieu de remise proposé</label>
+      <input type="text" id="gpPickupLoc-${o.id}" placeholder="Ex. Gare du Nord, Paris" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
+      <label>Horaire de remise proposé</label>
+      <input type="datetime-local" id="gpPickupTime-${o.id}">
+      <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">Proposer au client</button>
+    `;
+  }
   if(ordersRole==='gp' && ['accepted'].includes(o.status)){
     const hUntilTrip=hoursUntil(o.tripDate);
     const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
@@ -1306,15 +1330,15 @@ async function respondOrder(orderId, status){
   showToast(status==='accepted' ? "Commande acceptée !" : "Mise à jour effectuée");
   renderOrders();
 }
-async function completePickupInfo(orderId){
+async function gpProposePickup(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
-  const loc=document.getElementById('pickupLoc-'+orderId).value.trim();
-  const time=document.getElementById('pickupTimeInput-'+orderId).value;
+  const loc=document.getElementById('gpPickupLoc-'+orderId).value.trim();
+  const time=document.getElementById('gpPickupTime-'+orderId).value;
   if(!loc||!time){ showToast("Merci de remplir le lieu et l'horaire"); return; }
   o.pickupLocation=loc; o.pickupTime=time;
   await saveOrders();
-  showToast("Infos complétées !");
+  showToast("Lieu et horaire proposés au client !");
   renderOrders();
 }
 async function payOrder(orderId){
@@ -1518,6 +1542,13 @@ async function acceptColisRequest(reqId){
   if(!req) return;
   const kg=req.kg;
   const total=kg*PRICE_PER_KG, commission=kg*COMMISSION_PER_KG;
+  showToast("Acceptation en cours...");
+  const gpGeo=await getGeoPosition();
+  let pickupLocation='', pickupSuggested=false;
+  if(gpGeo && req.clientLat!=null && req.clientLng!=null){
+    const suggestion=await suggestMeetingPoint(req.clientLat, req.clientLng, gpGeo.lat, gpGeo.lng);
+    if(suggestion){ pickupLocation=suggestion; pickupSuggested=true; }
+  }
   const order={
     id:Date.now().toString(), listingId:req.id,
     gpPhone:cleanPhone(me.phone), gpName:me.name,
@@ -1525,7 +1556,9 @@ async function acceptColisRequest(reqId){
     from:req.from, to:req.to, country:req.country, tripDate:req.date,
     kg, photo:req.photo, desc:req.desc, value:req.value,
     priceTotal:total, commission, priceNet:total-commission, discountUsed:false,
-    pickupLocation:'', pickupTime:'',
+    pickupLocation, pickupSuggested, pickupTime:'',
+    clientLat:req.clientLat||null, clientLng:req.clientLng||null,
+    gpLat:gpGeo?gpGeo.lat:null, gpLng:gpGeo?gpGeo.lng:null,
     status:'accepted', deliveryCode:null, rating:null, ratingComment:null,
     packageType:'colis', createdAt:Date.now()
   };
@@ -1534,7 +1567,7 @@ async function acceptColisRequest(reqId){
   listings=listings.filter(x=>x.id!==reqId);
   try{ await db.collection('listings').doc(reqId).delete(); }catch(e){}
   ensureThread(req.phone, req.name);
-  showToast("Demande acceptée ! Le client doit compléter les infos de remise.");
+  showToast(pickupSuggested ? "Demande acceptée ! Point de RDV suggéré automatiquement." : "Demande acceptée ! Proposez un lieu et un horaire de remise.");
   renderMyTrips();
 }
 function renderMyDemandes(){
@@ -1645,8 +1678,9 @@ async function publishColis(){
   showToast("Envoi en cours...");
   let photo;
   try{ photo=await compressImage(photoFile); }catch(e){ showToast("Photo illisible"); return; }
+  const geo=await getGeoPosition();
 
-  listings.push({id:Date.now().toString(),type:'colis',name,phone,from,to,country,date,kg:parseInt(kg),value:parseInt(value),desc,verified:false,photo});
+  listings.push({id:Date.now().toString(),type:'colis',name,phone,from,to,country,date,kg:parseInt(kg),value:parseInt(value),desc,verified:false,photo,clientLat:geo?geo.lat:null,clientLng:geo?geo.lng:null});
   await saveListings();
   ensureThread(phone,name); await saveMessages();
   showToast("Demande envoyée ! 🙏");
