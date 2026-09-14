@@ -942,9 +942,11 @@ function renderResults(){
   displayResults(country, from, to);
 }
 function displayResults(country, from, to){
+  const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
   let filtered=listings.filter(l=>{
     if(l.type!=='gp') return false;
     if(me && cleanPhone(l.phone)===cleanPhone(me.phone)) return false;
+    if(me && orders.some(o=>o.listingId===l.id && cleanPhone(o.clientPhone)===cleanPhone(me.phone) && activeStatuses.includes(o.status))) return false;
     if(country && l.country!==country) return false;
     if(from && !l.from.toLowerCase().includes(from.toLowerCase())) return false;
     if(to && !l.to.toLowerCase().includes(to.toLowerCase())) return false;
