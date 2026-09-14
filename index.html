@@ -34,6 +34,7 @@
 
   .hamburger{position:absolute;top:22px;left:20px;width:38px;height:38px;border-radius:10px;border:none;background:rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;z-index:5;}
   .hamburger .notif-badge{position:absolute;top:-6px;right:-6px;width:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;z-index:6;}
+  .drawer-badge{background:var(--red);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;margin-left:6px;vertical-align:middle;}
   .hamburger span{display:block;width:18px;height:2px;background:#F5EFDD;border-radius:2px;}
   .top-left-name{position:absolute;top:30px;left:68px;color:#F5EFDD;font-size:12.5px;font-weight:600;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:5;}
 
@@ -217,9 +218,9 @@
   <div class="drawer-item" id="tabMydemandes" onclick="switchTab('mydemandes')">📋 Mes demandes</div>
   <div class="drawer-item" id="tabPublish" onclick="switchTab('publish')">✈️ Je voyage</div>
   <div class="drawer-item" id="tabMytrips" onclick="switchTab('mytrips')">🧳 Mes trajets</div>
-  <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')">🧾 Mes commandes</div>
+  <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')">🧾 Mes commandes <span class="drawer-badge" id="badgeOrders" style="display:none;">0</span></div>
   <div class="drawer-item" id="tabPoints" onclick="switchTab('points')">🌟 Mes points</div>
-  <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')">💬 Support</div>
+  <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')">💬 Support <span class="drawer-badge" id="badgeMessages" style="display:none;">0</span></div>
   <div class="drawer-item" onclick="closeDrawer();authSignOut();">🔓 Se déconnecter</div>
 </nav>
 
@@ -629,19 +630,25 @@ async function completeLogin(uid, acc){
   updateNotifBadge();
   renderResults();
 }
+function setBadge(id, count){
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(count>0){ el.textContent=count>9?'9+':count; el.style.display=el.classList.contains('notif-badge')?'flex':'inline-flex'; }
+  else{ el.style.display='none'; }
+}
 function updateNotifBadge(){
-  const badge=document.getElementById('notifBadge');
-  if(!me){ badge.style.display='none'; return; }
+  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); return; }
   const myPhone=cleanPhone(me.phone);
-  let count=0;
   const msgKey=messages[myPhone];
-  if(msgKey && msgKey.unreadUser) count++;
+  const messagesCount = (msgKey && msgKey.unreadUser) ? 1 : 0;
+  let ordersCount=0;
   orders.forEach(o=>{
-    if(cleanPhone(o.clientPhone)===myPhone && ['accepted','delivered'].includes(o.status)) count++;
-    if(cleanPhone(o.gpPhone)===myPhone && ['pending','picked_up'].includes(o.status)) count++;
+    if(cleanPhone(o.clientPhone)===myPhone && ['accepted','delivered'].includes(o.status)) ordersCount++;
+    if(cleanPhone(o.gpPhone)===myPhone && ['pending','picked_up'].includes(o.status)) ordersCount++;
   });
-  if(count>0){ badge.textContent=count>9?'9+':count; badge.style.display='flex'; }
-  else{ badge.style.display='none'; }
+  setBadge('notifBadge', messagesCount+ordersCount);
+  setBadge('badgeMessages', messagesCount);
+  setBadge('badgeOrders', ordersCount);
 }
 function updateUserHeader(){
   const topName=document.getElementById('topLeftName');
