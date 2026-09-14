@@ -121,7 +121,7 @@
   .modal .price-big{font-family:'Fraunces',serif;font-size:24px;color:var(--green-dark);margin-bottom:2px;}
   .modal .price-note{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
 
-  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green-dark);color:#fff;padding:12px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90vw;text-align:center;}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green-dark);color:#fff;padding:12px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:300;max-width:90vw;text-align:center;}
   .toast.show{opacity:1;transform:translate(-50%,-6px);}
   .toast.gold{background:var(--gold);}
 
@@ -531,7 +531,7 @@ const auth = firebase.auth();
 let listings=[], profiles={}, alerts=[], messages={}, orders=[], orderMsgs={}, points={};
 let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0;
 let currentOrderChatId=null, ordersRole='client';
-let pollTimer=null, pendingRef=null, receiveMode=false;
+let pollTimer=null, pendingRef=null, receiveMode=false, receiveChatPolling=null;
 
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
 function withTimeout(promise, ms){
@@ -1268,10 +1268,23 @@ function renderOrders(){
           <button class="btn" style="margin-top:0;" onclick="sendOrderMessage('${o.id}')">Envoyer</button>
         </div>
       ` : ''}
+      ${(ordersRole==='gp' && o.recipientName && !isFailed && o.status!=='pending') ? `
+        <button class="btn ghost sm" onclick="shareWithRecipient('${o.id}')">🔗 Partager le lien avec le destinataire</button>
+        <div class="hint" style="margin-top:10px;">💬 Discussion avec le destinataire</div>
+        <div class="chat-thread" id="rc-${o.id}" style="margin-top:6px;"></div>
+        <div class="chat-input">
+          <textarea id="rci-${o.id}" placeholder="Écrire au destinataire..."></textarea>
+          <button class="btn" style="margin-top:0;" onclick="sendRecipientMessage('${o.id}')">Envoyer</button>
+        </div>
+      ` : ''}
     </div>`;
   }).join('');
 
-  mine.forEach(o=>{ if(!['pending'].includes(o.status)) renderOrderChat(o.id); });
+  mine.forEach(o=>{
+    if(!['pending'].includes(o.status)) renderOrderChat(o.id);
+    const failed=['refused','cancelled_gp','cancelled_client','expired'].includes(o.status);
+    if(ordersRole==='gp' && o.recipientName && !failed && o.status!=='pending') renderRecipientChat(o.id);
+  });
 }
 
 function renderOrderActions(o){
@@ -1400,7 +1413,7 @@ async function confirmPickup(orderId){
 async function markDelivered(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
-  o.deliveryCode = String(Math.floor(1000+Math.random()*9000));
+  if(!o.deliveryCode) o.deliveryCode = String(Math.floor(1000+Math.random()*9000));
   o.status='delivered';
   await saveOrders();
   showDeliveryCode(orderId);
@@ -1411,7 +1424,7 @@ function showDeliveryCode(orderId){
   if(!o) return;
   const receiveLink = location.origin + location.pathname + '?receive=' + orderId;
   document.getElementById('codeModalTitle').textContent='À transmettre au destinataire';
-  document.getElementById('codeModalText').textContent = (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp) et ce code, à donner à la remise du colis. Il confirmera lui-même la réception, sans avoir besoin de compte.";
+  document.getElementById('codeModalText').textContent = (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp). Il pourra vous écrire directement depuis ce lien, sans compte, et entrera le code à la remise du colis pour confirmer la réception.";
   document.getElementById('codeModalContent').innerHTML = `
     <div style="font-family:'Fraunces',serif;font-size:36px;letter-spacing:8px;color:var(--green-dark);text-align:center;margin:10px 0;">${o.deliveryCode}</div>
     <label>Lien de confirmation</label>
@@ -1490,6 +1503,33 @@ async function sendOrderMessage(orderId){
   await saveOrderMsgs();
   input.value='';
   renderOrderChat(orderId);
+}
+// ---- CHAT AVEC LE DESTINATAIRE (voyageur ↔ destinataire sans compte) ----
+function renderRecipientChat(orderId){
+  const box=document.getElementById('rc-'+orderId);
+  if(!box) return;
+  const th=orderMsgs[orderId+'_recipient']||[];
+  box.innerHTML = th.length===0
+    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">Aucun message.</p>`
+    : th.map(m=>`<div class="bubble ${m.from==='gp'?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+async function sendRecipientMessage(orderId){
+  const input=document.getElementById('rci-'+orderId);
+  const text=input.value.trim();
+  if(!text) return;
+  const key=orderId+'_recipient';
+  if(!orderMsgs[key]) orderMsgs[key]=[];
+  orderMsgs[key].push({from:'gp', text, ts:Date.now()});
+  await saveOrderMsgs();
+  input.value='';
+  renderRecipientChat(orderId);
+}
+async function shareWithRecipient(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  if(!o.deliveryCode){ o.deliveryCode=String(Math.floor(1000+Math.random()*9000)); await saveOrders(); }
+  showDeliveryCode(orderId);
 }
 
 // ---- PUBLISH GP / COLIS ----
@@ -1770,20 +1810,29 @@ async function initReceiveMode(orderId){
 }
 function renderReceiveContent(orderId, order){
   const content=document.getElementById('receiveContent');
+  let statusHtml;
   if(order.status==='completed'){
-    content.innerHTML=`<div class="sub" style="text-align:center;">✅ Réception déjà confirmée. Merci !</div>`;
-    return;
+    statusHtml=`<div class="sub" style="text-align:center;">✅ Réception déjà confirmée. Merci !</div>`;
+  }else if(order.status!=='delivered'){
+    statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'a pas encore remis ce colis. Revenez sur ce lien une fois le colis en main. Vous pouvez déjà lui écrire ci-dessous.</div>`;
+  }else{
+    statusHtml=`
+      <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${order.recipientName},<br>`:''}confirmez que vous avez bien reçu le colis (${order.from} → ${order.to}) en entrant le code à 4 chiffres donné par le voyageur.</div>
+      <label>Code à 4 chiffres</label>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="receiveCodeInput" placeholder="Ex. 4821" maxlength="4">
+      <button class="btn gold" onclick="confirmReceiveDelivery('${orderId}')">Confirmer la réception</button>
+    `;
   }
-  if(order.status!=='delivered'){
-    content.innerHTML=`<div class="sub" style="text-align:center;">Le voyageur n'a pas encore remis ce colis. Revenez sur ce lien une fois le colis en main.</div>`;
-    return;
-  }
-  content.innerHTML=`
-    <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${order.recipientName},<br>`:''}confirmez que vous avez bien reçu le colis (${order.from} → ${order.to}) en entrant le code à 4 chiffres donné par le voyageur.</div>
-    <label>Code à 4 chiffres</label>
-    <input type="text" inputmode="numeric" pattern="[0-9]*" id="receiveCodeInput" placeholder="Ex. 4821" maxlength="4">
-    <button class="btn gold" onclick="confirmReceiveDelivery('${orderId}')">Confirmer la réception</button>
+  content.innerHTML = statusHtml + `
+    <div class="hint" style="margin-top:16px;">💬 Message au voyageur</div>
+    <div class="chat-thread" id="receiveChatThread" style="margin-top:6px;"></div>
+    <div class="chat-input">
+      <textarea id="receiveChatInput" placeholder="Écrire au voyageur..."></textarea>
+      <button class="btn" style="margin-top:0;" onclick="sendReceiveMessage('${orderId}')">Envoyer</button>
+    </div>
   `;
+  loadReceiveChat(orderId);
+  if(!receiveChatPolling){ receiveChatPolling=setInterval(()=>loadReceiveChat(orderId), 6000); }
 }
 async function confirmReceiveDelivery(orderId){
   const input=document.getElementById('receiveCodeInput');
@@ -1801,8 +1850,35 @@ async function confirmReceiveDelivery(orderId){
     await withTimeout(db.collection('orders').doc(orderId).update({status:'completed'}), 8000);
     await grantOrderCompletionRewards(order.clientPhone);
   }catch(e){ showToast("Erreur, réessayez"); return; }
-  document.getElementById('receiveContent').innerHTML=`<div class="sub" style="text-align:center;">✅ Réception confirmée, merci${order.recipientName?' '+order.recipientName:''} !</div>`;
   showToast("Merci, réception confirmée ! 🎉");
+  renderReceiveContent(orderId, {...order, status:'completed'});
+}
+async function loadReceiveChat(orderId){
+  const el=document.getElementById('receiveChatThread');
+  if(!el) return;
+  try{
+    const snap=await withTimeout(db.collection('orderMsgs').doc(orderId+'_recipient').get(), 8000);
+    const thread=(snap.exists && snap.data().thread) || [];
+    el.innerHTML = thread.length===0
+      ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:6px 0;">Aucun message.</p>`
+      : thread.map(m=>`<div class="bubble ${m.from==='recipient'?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+    el.scrollTop = el.scrollHeight;
+  }catch(e){}
+}
+async function sendReceiveMessage(orderId){
+  const input=document.getElementById('receiveChatInput');
+  if(!input) return;
+  const text=input.value.trim();
+  if(!text) return;
+  input.value='';
+  try{
+    const ref=db.collection('orderMsgs').doc(orderId+'_recipient');
+    const snap=await withTimeout(ref.get(), 8000);
+    const thread=(snap.exists && snap.data().thread) || [];
+    thread.push({from:'recipient', text, ts:Date.now()});
+    await withTimeout(ref.set({thread}), 8000);
+    loadReceiveChat(orderId);
+  }catch(e){ showToast("Erreur d'envoi, réessayez"); }
 }
 
 // ---- INIT ----
