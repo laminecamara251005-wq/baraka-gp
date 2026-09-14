@@ -26,6 +26,10 @@ Firebase Firestore et partagées entre tous les utilisateurs. `index.html` et
    C'est le même système de connexion que les utilisateurs normaux de
    `index.html` (inscription libre, prénom + numéro + email + mot de passe) —
    il faut donc explicitement marquer certains comptes comme admin (étape 6).
+   Activez aussi **« Anonyme »** dans la même page : c'est ce qui permet au
+   destinataire d'un colis (qui n'a pas de compte Baraka GP) de confirmer sa
+   réception via le lien reçu du voyageur, sans avoir à s'inscrire. Sans ça,
+   le lien de confirmation de réception (`?receive=...`) reste bloqué.
 5. Déployez les règles de sécurité (`firestore.rules`) avec la
    [CLI Firebase](https://firebase.google.com/docs/cli), ou collez le contenu
    du fichier dans **Firestore Database → Règles → Publier** :
@@ -61,3 +65,9 @@ n'est modifié que par son propriétaire (ça nécessiterait de lier chaque
 enregistrement au compte de son auteur, plus large que ce qui est fait ici).
 Une vérification réelle du numéro nécessiterait Firebase Phone Auth (SMS),
 qui demande la formule payante Blaze.
+
+Le lien de confirmation de réception (`?receive=...`) est protégé par le code
+à 4 chiffres à saisir, pas par le lien lui-même : toute personne qui devine ou
+intercepte le lien ET le code pourrait valider une réception à la place du
+vrai destinataire. C'est le même niveau de sécurité que le code de remise
+utilisé plus tôt dans le parcours, pas un vrai contrôle d'identité.
