@@ -33,6 +33,7 @@
   .tab.active{background:var(--green);color:#fff;}
 
   .hamburger{position:absolute;top:22px;left:20px;width:38px;height:38px;border-radius:10px;border:none;background:rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;z-index:5;}
+  .hamburger .notif-badge{position:absolute;top:-6px;right:-6px;width:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;z-index:6;}
   .hamburger span{display:block;width:18px;height:2px;background:#F5EFDD;border-radius:2px;}
   .top-left-name{position:absolute;top:30px;left:68px;color:#F5EFDD;font-size:12.5px;font-weight:600;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:5;}
 
@@ -189,6 +190,7 @@
   </svg>
   <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
     <span></span><span></span><span></span>
+    <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
   </button>
   <div class="top-left-name" id="topLeftName" style="display:none;"></div>
   <div class="brand">
@@ -624,7 +626,22 @@ async function completeLogin(uid, acc){
   ensurePoints(me.phone);
   updatePointsHeader();
   updateUserHeader();
+  updateNotifBadge();
   renderResults();
+}
+function updateNotifBadge(){
+  const badge=document.getElementById('notifBadge');
+  if(!me){ badge.style.display='none'; return; }
+  const myPhone=cleanPhone(me.phone);
+  let count=0;
+  const msgKey=messages[myPhone];
+  if(msgKey && msgKey.unreadUser) count++;
+  orders.forEach(o=>{
+    if(cleanPhone(o.clientPhone)===myPhone && ['accepted','delivered'].includes(o.status)) count++;
+    if(cleanPhone(o.gpPhone)===myPhone && ['pending','picked_up'].includes(o.status)) count++;
+  });
+  if(count>0){ badge.textContent=count>9?'9+':count; badge.style.display='flex'; }
+  else{ badge.style.display='none'; }
 }
 function updateUserHeader(){
   const topName=document.getElementById('topLeftName');
@@ -745,6 +762,7 @@ auth.onAuthStateChanged(async (user)=>{
     me=null;
     updatePointsHeader();
     updateUserHeader();
+    updateNotifBadge();
     ['authName','authPhone','authEmail','authPassword'].forEach(id=>{ document.getElementById(id).value=''; });
     const avatarInput=document.getElementById('authAvatar');
     if(avatarInput) avatarInput.value='';
@@ -824,6 +842,7 @@ function closeDrawer(){
 }
 function switchTab(tab){
   closeDrawer();
+  updateNotifBadge();
   ['search','send','publish','mytrips','mydemandes','orders','points','messages'].forEach(t=>{
     const el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
     if(el) el.classList.toggle('active', t===tab);
@@ -843,7 +862,7 @@ function switchTab(tab){
     ensureIdentity(()=>{
       const key=ensureThread(me.phone, me.name);
       messages[key].unreadUser=false; saveMessages();
-      renderThread(); startPolling();
+      renderThread(); startPolling(); updateNotifBadge();
     });
   }
 }
@@ -855,6 +874,7 @@ function startPolling(){
     if(document.getElementById('viewOrders').style.display==='block') renderOrders();
     if(document.getElementById('viewMytrips').style.display==='block') renderMyTrips();
     if(document.getElementById('viewMydemandes').style.display==='block') renderMyDemandes();
+    updateNotifBadge();
   }, 4000);
 }
 function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
