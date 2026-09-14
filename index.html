@@ -737,8 +737,8 @@ async function authSubmit(){
           else await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000);
         }catch(e){ /* Firestore lent ou indisponible : on continue quand même avec les infos saisies */ }
         const key=ensurePoints(phone);
-        if(pendingRef && cleanPhone(pendingRef)!==cleanPhone(phone) && !points[key].referredBy){
-          points[key].referredBy=cleanPhone(pendingRef);
+        if(pendingRef && pendingRef!==points[key].refCode && !points[key].referredBy){
+          points[key].referredBy=pendingRef;
           points[key].points+=20;
           try{ await savePoints(); }catch(e){}
           showToast("🎉 Bienvenue ! +20 points grâce à votre parrainage", true);
@@ -787,9 +787,16 @@ auth.onAuthStateChanged(async (user)=>{
 function ensureIdentity(cb){ cb(); }
 
 // ---- POINTS / LOYALTY ----
+function genRefCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';
+  for(let i=0;i<6;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
 function ensurePoints(phone){
   const key=cleanPhone(phone);
-  if(!points[key]) points[key] = { points:0, referredBy:null, firstOrderCredited:false };
+  if(!points[key]) points[key] = { points:0, referredBy:null, firstOrderCredited:false, refCode:genRefCode() };
+  if(!points[key].refCode){ points[key].refCode=genRefCode(); savePoints(); }
   return key;
 }
 function availableDiscounts(phone){
@@ -818,7 +825,7 @@ function renderPointsPanel(){
   const p = points[key].points;
   const toNext = 50 - (p % 50);
   const discounts = availableDiscounts(me.phone);
-  const refLink = location.origin + location.pathname + '?ref=' + cleanPhone(me.phone);
+  const refLink = location.origin + location.pathname + '?ref=' + points[key].refCode;
   document.getElementById('pointsPanel').innerHTML = `
     <h2>🌟 Vos points Baraka</h2>
     <div class="sub">Gagnez des points à chaque commande complétée, échangez-les contre des remises.</div>
@@ -1348,9 +1355,9 @@ async function confirmDelivery(orderId){
   const clientPointsKey=cleanPhone(o.clientPhone);
   if(points[clientPointsKey] && points[clientPointsKey].referredBy && !points[clientPointsKey].firstOrderCredited){
     points[clientPointsKey].firstOrderCredited=true;
-    const referrerKey=points[clientPointsKey].referredBy;
-    points[referrerKey] = points[referrerKey] || {points:0, referredBy:null, firstOrderCredited:false};
-    points[referrerKey].points += 20;
+    const referrerCode=points[clientPointsKey].referredBy;
+    const referrerKey=Object.keys(points).find(k=>points[k] && points[k].refCode===referrerCode);
+    if(referrerKey) points[referrerKey].points += 20;
     await savePoints();
   }
   showToast("Livraison confirmée, merci ! 🎉");
