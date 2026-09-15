@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Baraka GP — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAF6EF; --panel:#FFFFFF; --ink:#1F2B24; --ink-soft:#5B6660;
+    --green:#1E6F5C; --green-dark:#154F42; --green-pale:#E7F0EC;
+    --gold:#C9922F; --gold-soft:#F3E6C8; --line:#E6DFCC; --radius:14px;
+    --red:#B4453E; --red-soft:#F3E1DF; --input-bg:#FCFAF5;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#121A16; --panel:#1C2620; --ink:#EDEFEC; --ink-soft:#9BA69E;
+      --line:#33403A; --input-bg:#212B25; color-scheme:dark;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+  .wrap{max-width:720px;margin:0 auto;padding:0 20px 80px;}
+
+  header{padding:22px 20px;text-align:center;background:linear-gradient(180deg,var(--green) 0%,var(--green-dark) 100%);display:flex;align-items:center;justify-content:space-between;}
+  header h1{font-size:19px;color:#F5EFDD;}
+  header button{background:rgba(255,255,255,.14);border:none;color:#F5EFDD;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin:20px 0;}
+  .panel h2{font-size:19px;margin-bottom:16px;}
+  label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:13px 0 6px;text-transform:uppercase;letter-spacing:.4px;}
+  label:first-of-type{margin-top:0;}
+  input, textarea{width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--line);background:var(--input-bg);font-family:'Inter',sans-serif;font-size:16px;color:var(--ink);}
+  input:focus, textarea:focus{outline:none;border-color:var(--green);}
+  .btn{margin-top:18px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;}
+  .btn:hover{background:var(--green-dark);}
+  .btn.sm{margin-top:8px;padding:9px;font-size:13px;}
+
+  .admin-subtab{display:flex;gap:5px;margin:20px 0 14px;flex-wrap:wrap;}
+  .admin-subtab div{flex:1;min-width:70px;text-align:center;padding:10px 3px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:var(--panel);border:1px solid var(--line);color:var(--ink-soft);}
+  .admin-subtab div.active{background:var(--green);color:#fff;border-color:var(--green);}
+
+  .admin-list{margin-top:6px;}
+  .admin-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;text-align:left;}
+  .admin-card img{max-width:100%;border-radius:8px;margin:8px 0;}
+  .admin-card .name-check{font-size:12.5px;color:var(--ink-soft);margin:4px 0 8px;}
+  .admin-actions{display:flex;gap:8px;margin-top:10px;}
+  .admin-actions button{flex:1;padding:9px;border-radius:8px;border:none;font-weight:600;font-size:12.5px;cursor:pointer;}
+  .btn-approve{background:var(--green);color:#fff;}
+  .btn-reject{background:var(--red-soft);color:var(--red);}
+  .type-pill{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;margin-bottom:7px;margin-right:5px;letter-spacing:.3px;}
+  .type-pill.gp{background:var(--green-pale);color:var(--green-dark);}
+  .type-pill.colis{background:var(--gold-soft);color:#8A611D;}
+  .type-pill.profile{background:#E4E9F5;color:#33447A;}
+  .thread-row{display:flex;justify-content:space-between;align-items:center;padding:11px 13px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;cursor:pointer;background:var(--panel);}
+  .unread{background:var(--gold);color:#fff;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;}
+
+  .chat-thread{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;padding:4px 2px;margin:10px 0;}
+  .bubble{max-width:78%;padding:8px 12px;border-radius:13px;font-size:13.5px;line-height:1.4;}
+  .bubble.mine{align-self:flex-end;background:var(--green);color:#fff;border-bottom-right-radius:4px;}
+  .bubble.theirs{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-bottom-left-radius:4px;}
+  .bubble .time{display:block;font-size:10px;opacity:.65;margin-top:2px;}
+  .chat-input{display:flex;gap:7px;margin-top:6px;}
+  .chat-input textarea{min-height:40px;resize:vertical;} .chat-input button{width:auto;margin:0;padding:0 16px;flex-shrink:0;}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green-dark);color:#fff;padding:12px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90vw;text-align:center;}
+  .toast.show{opacity:1;transform:translate(-50%,-6px);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Baraka GP — Admin</h1>
+  <button id="signOutBtn" style="display:none;" onclick="adminSignOut()">Se déconnecter</button>
+</header>
+
+<div class="wrap">
+  <div id="loginView" class="panel">
+    <h2>Connexion</h2>
+    <label>Email</label><input type="email" id="adminEmail" placeholder="vous@example.com" autocomplete="username">
+    <label>Mot de passe</label><input type="password" id="adminPassword" placeholder="Mot de passe" autocomplete="current-password">
+    <button class="btn" onclick="adminSignIn()">Se connecter</button>
+    <p style="margin-top:10px;font-size:13px;">
+      <a href="javascript:void(0)" onclick="adminForgotPassword()" style="color:var(--ink-soft);text-decoration:underline;">Mot de passe oublié ?</a>
+    </p>
+  </div>
+
+  <div id="panelView" style="display:none;">
+    <div class="admin-subtab">
+      <div class="active" id="subtabProfiles" onclick="switchAdminSub('profiles')">Identités</div>
+      <div id="subtabOrders" onclick="switchAdminSub('orders')">Commandes</div>
+      <div id="subtabListings" onclick="switchAdminSub('listings')">Annonces</div>
+      <div id="subtabAlerts" onclick="switchAdminSub('alerts')">Alertes</div>
+      <div id="subtabMessages" onclick="switchAdminSub('messages')">Support</div>
+    </div>
+    <div class="admin-list" id="adminList"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+// Doit pointer vers le MÊME projet Firebase que index.html, pour lire/écrire les mêmes données.
+const firebaseConfig = {
+  apiKey: "AIzaSyD67E8efC3xhu2Uavp3htKhDnOjZDkRz94",
+  authDomain: "baraka-gp.firebaseapp.com",
+  projectId: "baraka-gp",
+  storageBucket: "baraka-gp.firebasestorage.app",
+  messagingSenderId: "708826047607",
+  appId: "1:708826047607:web:0b1c85defdc1a157f5d272"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let listings=[], profiles={}, alerts=[], messages={}, orders=[];
+let adminSub='profiles', adminOpenThreadPhone=null;
+let pollTimer=null;
+
+function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escJs(s){ return esc(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")); }
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')), ms))
+  ]);
+}
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'; setTimeout(()=>t.classList.remove('show'),3000); }
+function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function statusLabel(s){
+  return {pending:'⏳ En attente',accepted:'✅ Acceptée',paid:'💳 Payée',picked_up:'🧳 Prise en charge',delivered:'📦 Remise confirmée',completed:'🎉 Terminée',refused:'❌ Refusée',cancelled_gp:'❌ Annulée par le GP',cancelled_client:'❌ Annulée',expired:'⌛ Expirée'}[s]||s;
+}
+function matchingAlerts(listing){
+  return alerts.filter(a=>{
+    if(a.notified) return false;
+    if(a.country && a.country!==listing.country) return false;
+    if(a.from && !listing.from.toLowerCase().includes(a.from.toLowerCase())) return false;
+    if(a.to && !listing.to.toLowerCase().includes(a.to.toLowerCase())) return false;
+    return true;
+  });
+}
+function countHabits(phone,country,type){
+  return listings.filter(l=>l.type===type && cleanPhone(l.phone)===cleanPhone(phone) && l.country===country).length;
+}
+
+// ---- STORAGE (Firestore, un document par enregistrement — même base que index.html) ----
+async function fetchCollectionArray(name){
+  const snap=await withTimeout(db.collection(name).get(), 8000);
+  return snap.docs.map(d=>d.data());
+}
+async function fetchCollectionMap(name){
+  const snap=await withTimeout(db.collection(name).get(), 8000);
+  const map={};
+  snap.forEach(d=>{ map[d.id]=d.data(); });
+  return map;
+}
+async function loadAll(){
+  try{ listings=await fetchCollectionArray('listings'); }catch(e){ listings=[]; }
+  try{ profiles=await fetchCollectionMap('profiles'); }catch(e){ profiles={}; }
+  try{ alerts=await fetchCollectionArray('alerts'); }catch(e){ alerts=[]; }
+  try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
+  try{ orders=await fetchCollectionArray('orders'); }catch(e){ orders=[]; }
+}
+async function saveListings(){ try{ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }catch(e){} }
+async function saveProfiles(){ try{ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }catch(e){} }
+async function saveAlerts(){ try{ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }catch(e){} }
+async function saveMessages(){ try{ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }catch(e){} }
+async function saveOrders(){ try{ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }catch(e){} }
+
+function ensureThread(phone,name){
+  const key=cleanPhone(phone);
+  if(!messages[key]) messages[key]={name:name||'Utilisateur',unreadUser:false,unreadAdmin:false,thread:[]};
+  else if(name) messages[key].name=name;
+  return key;
+}
+async function pushMessage(phone,from,text){
+  const key=ensureThread(phone);
+  messages[key].thread.push({from,text,ts:Date.now()});
+  if(from==='admin') messages[key].unreadUser=true;
+  if(from==='user') messages[key].unreadAdmin=true;
+  await saveMessages();
+}
+
+// ---- AUTH ----
+async function adminSignIn(){
+  const email=document.getElementById('adminEmail').value.trim();
+  const password=document.getElementById('adminPassword').value;
+  if(!email||!password){ showToast("Merci de remplir l'email et le mot de passe"); return; }
+  try{ await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000); }
+  catch(e){ showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : "Identifiants incorrects"); }
+}
+async function adminForgotPassword(){
+  const email=document.getElementById('adminEmail').value.trim();
+  if(!email){ showToast("Indiquez votre email ci-dessus, puis retapez sur ce lien"); return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    showToast("Email envoyé ! Vérifiez votre boîte de réception 📩");
+  }catch(e){
+    const code=(e && e.code)||'';
+    if(code.includes('user-not-found')) showToast("Aucun compte n'existe avec cet email");
+    else showToast("Une erreur est survenue, réessayez");
+  }
+}
+async function adminSignOut(){
+  stopPolling();
+  try{ await auth.signOut(); }catch(e){}
+}
+auth.onAuthStateChanged(async (user)=>{
+  if(user){
+    let isAdmin=false;
+    try{
+      const snap=await withTimeout(db.collection('admins').doc(user.uid).get(), 8000);
+      isAdmin=snap.exists;
+    }catch(e){}
+    if(!isAdmin){
+      stopPolling();
+      document.getElementById('loginView').style.display='block';
+      document.getElementById('panelView').style.display='none';
+      document.getElementById('signOutBtn').style.display='inline-block';
+      showToast("Ce compte n'est pas reconnu comme admin (UID absent de la collection « admins »).");
+      try{ await auth.signOut(); }catch(e){}
+      return;
+    }
+  }
+  document.getElementById('loginView').style.display = user ? 'none' : 'block';
+  document.getElementById('panelView').style.display = user ? 'block' : 'none';
+  document.getElementById('signOutBtn').style.display = user ? 'inline-block' : 'none';
+  if(user){
+    await loadAll();
+    switchAdminSub('profiles');
+    startPolling();
+  }else{
+    stopPolling();
+  }
+});
+function startPolling(){
+  stopPolling();
+  pollTimer=setInterval(async ()=>{
+    await loadAll();
+    if(adminSub==='profiles') renderAdminProfiles();
+    else if(adminSub==='orders') renderAdminOrders();
+    else if(adminSub==='listings') renderAdminListings();
+    else if(adminSub==='alerts') renderAdminAlerts();
+    else renderAdminMessages();
+  }, 4000);
+}
+function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
+
+// ---- PANEL ----
+function switchAdminSub(sub){
+  adminSub=sub; adminOpenThreadPhone=null;
+  document.getElementById('subtabProfiles').classList.toggle('active',sub==='profiles');
+  document.getElementById('subtabOrders').classList.toggle('active',sub==='orders');
+  document.getElementById('subtabListings').classList.toggle('active',sub==='listings');
+  document.getElementById('subtabAlerts').classList.toggle('active',sub==='alerts');
+  document.getElementById('subtabMessages').classList.toggle('active',sub==='messages');
+  if(sub==='profiles') renderAdminProfiles();
+  else if(sub==='orders') renderAdminOrders();
+  else if(sub==='listings') renderAdminListings();
+  else if(sub==='alerts') renderAdminAlerts();
+  else renderAdminMessages();
+}
+function renderAdminAlerts(){
+  const list=document.getElementById('adminList');
+  if(alerts.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune alerte.</p>'; return; }
+  list.innerHTML=alerts.slice().reverse().map(a=>`
+    <div class="admin-card">
+      <span class="type-pill ${a.notified?'gp':'colis'}">${a.notified?'✅ Déjà notifié':'🔔 En attente'}</span><br>
+      <b>${esc(a.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(a.phone)}</span>
+      <div class="name-check">Trajet souhaité</div>
+      <p style="font-size:13.5px;margin:0;">${esc(a.from) || '(ville de départ non précisée)'} → ${esc(a.to) || '(ville d\'arrivée non précisée)'}${a.country ? ' · ' + esc(a.country) : ''}</p>
+      <div class="name-check">Demande créée le ${fmtTime(a.createdAt)}</div>
+      <div class="admin-actions">
+        <button class="btn-reject" onclick="removeAlert('${a.id}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+async function removeAlert(id){
+  alerts=alerts.filter(x=>x.id!==id);
+  try{ await db.collection('alerts').doc(id).delete(); }catch(e){}
+  renderAdminAlerts(); showToast("Supprimé");
+}
+function renderAdminProfiles(){
+  const list=document.getElementById('adminList');
+  const entries=Object.entries(profiles);
+  if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucun profil.</p>'; return; }
+  list.innerHTML=entries.slice().reverse().map(([phone,p])=>`
+    <div class="admin-card">
+      <span class="type-pill profile">👤 IDENTITÉ</span><br>
+      <b>${esc(p.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(p.phone)}</span>
+      ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
+      <div class="name-check">Pièce d'identité</div>
+      ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(p.idPhoto?p.idPhoto.name:'non fourni')}</p>`}
+      <div class="admin-actions">
+        <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
+        <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+function renderAdminOrders(){
+  const list=document.getElementById('adminList');
+  if(orders.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune commande.</p>'; return; }
+  list.innerHTML=orders.slice().reverse().map(o=>`
+    <div class="admin-card">
+      <span class="type-pill gp">${statusLabel(o.status)}</span>
+      <span class="type-pill colis">${o.packageType==='valise' ? '🧳 Valise entière' : '📦 Colis'}</span><br>
+      <b>${esc(o.clientName)}</b> → <b>${esc(o.gpName)}</b> · ${esc(o.from)} → ${esc(o.to)}<br>
+      <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
+      ${o.weightProof&&o.weightProof.type==='image'?`<div class="name-check">Photo sur balance</div><img src="${o.weightProof.data}">`:''}
+      <div class="admin-actions">
+        ${['refused','cancelled_gp','cancelled_client','expired'].includes(o.status) ? '' : `<button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>`}
+        <button class="btn-reject" onclick="removeOrder('${o.id}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+async function adminCancelOrder(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(o){ o.status='cancelled_client'; await saveOrders(); renderAdminOrders(); showToast("Commande annulée"); }
+}
+async function removeOrder(orderId){
+  orders=orders.filter(x=>x.id!==orderId);
+  try{ await db.collection('orders').doc(orderId).delete(); }catch(e){}
+  renderAdminOrders(); showToast("Commande supprimée");
+}
+function renderAdminListings(){
+  const list=document.getElementById('adminList');
+  if(listings.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune annonce.</p>'; return; }
+  list.innerHTML=listings.slice().reverse().map(l=>{
+    const isGp=l.type==='gp';
+    const profile=isGp?(profiles[l.phone]||{}):null;
+    const habitCount=countHabits(l.phone,l.country,l.type);
+    const matches=isGp?matchingAlerts(l):[];
+    return `
+    <div class="admin-card">
+      <span class="type-pill ${isGp?'gp':'colis'}">${isGp?'✈️ VOYAGEUR':'📦 COLIS'}</span>
+      ${habitCount>1?`<span class="type-pill profile">🔁 Habitué (${habitCount}x)</span>`:''}<br>
+      <b>${esc(isGp?(profile.name||'?'):l.name)}</b> — ${esc(l.from)} → ${esc(l.to)} (${esc(l.country)})<br>
+      <span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(isGp?profile.phone:l.phone)} · ${fmtDate(l.date)} · ${l.kg}kg${!isGp&&l.value?` · valeur ${l.value}€`:''}</span>
+      ${isGp?`<div style="margin-top:6px;font-size:12px;">${profile.verified?'✅ Identité vérifiée':'⏳ Non vérifiée'}</div>`:''}
+      ${isGp&&l.ticket?`<div class="name-check">Billet</div>${l.ticket.type==='image'?`<img src="${l.ticket.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(l.ticket.name)}</p>`}`:''}
+      ${!isGp&&l.desc?`<div style="font-size:12.5px;margin-top:6px;">📝 ${esc(l.desc)}</div>`:''}
+      ${!isGp&&l.photo?(l.photo.type==='image'?`<img src="${l.photo.data}">`:''):''}
+      ${isGp&&matches.length>0?`<div class="name-check">🔔 ${matches.length} à prévenir</div>${matches.map(a=>`<div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px;"><span>${esc(a.name)}</span><button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11.5px;" onclick="notifyAlert('${a.id}','${escJs(l.from)}','${escJs(l.to)}','${fmtDate(l.date)}')">Notifier</button></div>`).join('')}`:''}
+      <div class="admin-actions">
+        ${!isGp?`<button class="btn-approve" onclick="setColisVerified('${l.id}',true)">${l.verified?'✅ Vérifié':'Approuver'}</button>`:''}
+        <button class="btn-reject" onclick="removeListing('${l.id}')">Supprimer</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function notifyAlert(alertId,from,to,date){
+  const a=alerts.find(x=>x.id===alertId);
+  if(!a) return;
+  await pushMessage(a.phone,'admin',`Bonjour ${a.name}, un voyageur part de ${from} vers ${to} le ${date} ! Répondez ici pour être mis en relation.`);
+  a.notified=true; await saveAlerts();
+  showToast("Message envoyé"); renderAdminListings();
+}
+function renderAdminMessages(){
+  const list=document.getElementById('adminList');
+  if(adminOpenThreadPhone){
+    const th=messages[adminOpenThreadPhone];
+    if(!th){ adminOpenThreadPhone=null; renderAdminMessages(); return; }
+    list.innerHTML=`
+      <button class="btn ghost sm" onclick="adminOpenThreadPhone=null;renderAdminMessages();">← Retour</button>
+      <div style="font-weight:700;margin:10px 0;">${esc(th.name)} · ${esc(adminOpenThreadPhone)}</div>
+      <div class="chat-thread">${th.thread.map(m=>`<div class="bubble ${m.from==='admin'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('')||'<p style="color:var(--ink-soft);font-size:12.5px;">Aucun message.</p>'}</div>
+      <div class="chat-input"><textarea id="adminChatInput" placeholder="Répondre..."></textarea><button class="btn" style="margin-top:0;" onclick="sendAdminMessage()">Envoyer</button></div>`;
+    return;
+  }
+  const entries=Object.entries(messages).sort((a,b)=>{
+    const la=a[1].thread[a[1].thread.length-1]?.ts||0, lb=b[1].thread[b[1].thread.length-1]?.ts||0;
+    return lb-la;
+  });
+  if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune conversation.</p>'; return; }
+  list.innerHTML=entries.map(([phone,th])=>{
+    const last=th.thread[th.thread.length-1];
+    return `<div class="thread-row" onclick="adminOpenThreadPhone='${phone}';renderAdminMessages();">
+      <div><b>${esc(th.name)}</b><br><span style="color:var(--ink-soft);font-size:12px;">${last?esc(last.text.slice(0,38)+(last.text.length>38?'…':'')):'Pas de message'}</span></div>
+      ${th.unreadAdmin?`<span class="unread">Nouveau</span>`:''}
+    </div>`;
+  }).join('');
+}
+async function sendAdminMessage(){
+  const text=document.getElementById('adminChatInput').value.trim();
+  if(!text||!adminOpenThreadPhone) return;
+  await pushMessage(adminOpenThreadPhone,'admin',text);
+  messages[adminOpenThreadPhone].unreadAdmin=false;
+  await saveMessages(); renderAdminMessages();
+}
+async function setProfileVerified(phone,val){ if(profiles[phone]){ profiles[phone].verified=val; await saveProfiles(); renderAdminProfiles(); showToast("Mis à jour"); } }
+async function removeProfile(phone){
+  delete profiles[phone];
+  try{ await db.collection('profiles').doc(phone).delete(); }catch(e){}
+  renderAdminProfiles(); showToast("Supprimé");
+}
+async function setColisVerified(id,val){ const l=listings.find(x=>x.id===id); if(l){ l.verified=val; await saveListings(); renderAdminListings(); showToast("Mis à jour"); } }
+async function removeListing(id){
+  listings=listings.filter(x=>x.id!==id);
+  try{ await db.collection('listings').doc(id).delete(); }catch(e){}
+  renderAdminListings(); showToast("Supprimé");
+}
+</script>
+
+</body>
+</html>

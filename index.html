@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Baraka GP</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1E6F5C">
+<!-- Permet d'ouvrir l'app en plein écran (sans barre Safari) une fois ajoutée à l'écran d'accueil sur iPhone -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Baraka GP">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+// Applique le thème choisi avant l'affichage, pour éviter un flash clair puis sombre
+(function(){
+  try{
+    var t=localStorage.getItem('baraka-gp-theme');
+    if(t==='dark'||t==='light') document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
+<style>
+  :root{
+    --bg:#FAF6EF; --panel:#FFFFFF; --ink:#1F2B24; --ink-soft:#5B6660;
+    --green:#1E6F5C; --green-dark:#154F42; --green-pale:#E7F0EC;
+    --gold:#C9922F; --gold-soft:#F3E6C8; --line:#E6DFCC; --radius:14px;
+    --red:#B4453E; --red-soft:#F3E1DF; --input-bg:#FCFAF5;
+    color-scheme:light dark;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121A16; --panel:#1C2620; --ink:#EDEFEC; --ink-soft:#9BA69E;
+      --line:#33403A; --input-bg:#212B25; color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121A16; --panel:#1C2620; --ink:#EDEFEC; --ink-soft:#9BA69E;
+    --line:#33403A; --input-bg:#212B25; color-scheme:dark;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
+  .wrap{max-width:720px;margin:0 auto;padding:0 20px 80px;}
+
+  header{padding:26px 20px 18px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--green) 0%,var(--green-dark) 100%);}
+  header .routes{position:absolute;inset:0;opacity:.14;pointer-events:none;}
+  header .brand{position:relative;color:#F5EFDD;}
+  header .brand .star{width:32px;height:32px;margin:0 auto 6px;}
+  header h1{font-size:26px;color:#F5EFDD;letter-spacing:.5px;}
+  header p{margin:5px 0 0;color:#D9CBA3;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;}
+
+  .points-bar{position:relative;margin-top:14px;background:rgba(255,255,255,.12);border-radius:999px;padding:8px 16px;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#F5EFDD;cursor:pointer;}
+  .points-bar b{color:var(--gold);}
+
+  .tabs{display:flex;gap:5px;margin:20px 0 16px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px;overflow-x:auto;}
+  .tab{flex:1;text-align:center;padding:10px 4px;border-radius:999px;font-weight:600;font-size:11.6px;cursor:pointer;color:var(--ink-soft);transition:.2s;user-select:none;white-space:nowrap;}
+  .tab.active{background:var(--green);color:#fff;}
+
+  .hamburger{position:absolute;top:22px;left:20px;width:38px;height:38px;border-radius:10px;border:none;background:rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;z-index:5;}
+  .hamburger .notif-badge{position:absolute;top:-6px;right:-6px;width:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;z-index:6;}
+  .drawer-badge{background:var(--red);color:#fff;font-size:11px;font-weight:700;min-width:18px;height:18px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px;margin-left:6px;vertical-align:middle;}
+  .hamburger span{display:block;width:18px;height:2px;background:#F5EFDD;border-radius:2px;}
+  .top-left-name{position:absolute;top:30px;left:68px;color:#F5EFDD;font-size:12.5px;font-weight:600;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:5;}
+
+  .drawer-overlay{position:fixed;inset:0;background:rgba(31,43,36,.45);display:none;z-index:70;}
+  .drawer-overlay.show{display:block;}
+  .drawer-panel{position:fixed;top:0;left:0;bottom:0;width:78%;max-width:320px;background:var(--panel);z-index:71;transform:translateX(-100%);transition:transform .28s ease;box-shadow:8px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column;padding:10px 0;}
+  .drawer-panel.show{transform:translateX(0);}
+  .drawer-head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px 10px;font-family:'Fraunces',serif;font-size:16px;color:var(--ink);border-bottom:1px solid var(--line);margin-bottom:6px;}
+  .drawer-head .avatar{width:34px;height:34px;font-size:15px;}
+  .drawer-close{background:none;border:none;font-size:18px;color:var(--ink-soft);cursor:pointer;}
+  .drawer-item{padding:15px 20px;font-size:14.5px;font-weight:600;color:var(--ink);cursor:pointer;border-left:3px solid transparent;}
+  .drawer-item:hover{background:var(--bg);}
+  .drawer-item.active{color:var(--green-dark);border-left-color:var(--green);background:var(--green-pale);}
+  .drawer-item.static{cursor:default;display:flex;align-items:center;justify-content:space-between;}
+  .drawer-item.static:hover{background:none;}
+  .switch{position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch-slider{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:.2s;cursor:pointer;}
+  .switch-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .switch input:checked + .switch-slider{background:var(--green);}
+  .switch input:checked + .switch-slider:before{transform:translateX(18px);}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:16px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
+  .panel h2{font-size:19px;margin-bottom:4px;}
+  .panel .sub{color:var(--ink-soft);font-size:13px;margin-bottom:16px;}
+
+  label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:13px 0 6px;text-transform:uppercase;letter-spacing:.4px;}
+  label:first-of-type{margin-top:0;}
+  select, input, textarea{width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--line);background:var(--input-bg);font-family:'Inter',sans-serif;font-size:16px;color:var(--ink);}
+  textarea{resize:vertical;min-height:64px;}
+  select:focus, input:focus, textarea:focus{outline:none;border-color:var(--green);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .hint{font-size:11.5px;color:var(--ink-soft);margin-top:5px;}
+
+  .btn{margin-top:18px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;transition:.15s;}
+  .btn:hover{background:var(--green-dark);}
+  .btn.gold{background:var(--gold);} .btn.gold:hover{background:#B07F24;}
+  .btn.red{background:var(--red);} .btn.red:hover{background:#963530;}
+  .btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink);}
+  .btn.sm{margin-top:8px;padding:9px;font-size:13px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+
+  .results-head{display:flex;justify-content:space-between;align-items:baseline;margin:20px 2px 10px;}
+  .results-head h3{font-size:15.5px;} .results-head span{font-size:12.5px;color:var(--ink-soft);}
+
+  .gp-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:12px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
+  .gp-card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .route{font-family:'Fraunces',serif;font-size:16.5px;font-weight:600;color:var(--green-dark);}
+  .route .dots{color:var(--gold);margin:0 5px;font-weight:400;}
+  .price{background:var(--gold-soft);color:#8A611D;font-weight:700;font-size:13px;padding:5px 10px;border-radius:999px;white-space:nowrap;}
+  .meta{margin-top:7px;font-size:13px;color:var(--ink-soft);display:flex;gap:12px;flex-wrap:wrap;}
+  .meta b{color:var(--ink);}
+  .stars{color:var(--gold);font-size:13px;}
+  .avatar{width:42px;height:42px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+  .avatar-placeholder{background:var(--green-pale);color:var(--green-dark);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:700;font-size:17px;}
+
+  .order-section-title{font-family:'Fraunces',serif;font-size:15px;color:var(--green-dark);margin:22px 0 4px;padding-top:14px;border-top:1px solid var(--line);}
+  .order-section-title:first-of-type{border-top:none;margin-top:0;padding-top:0;}
+  .toggle-row{display:flex;gap:8px;}
+  .toggle-opt{flex:1;text-align:center;padding:11px;border-radius:10px;border:1.5px solid var(--line);font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .toggle-opt.active{background:var(--green);border-color:var(--green);color:#fff;}
+  .price-recap{margin:16px 0 0;padding:14px 16px;background:var(--green-pale);border-radius:12px;}
+  .price-recap-row{display:flex;justify-content:space-between;font-size:14.5px;font-weight:700;color:var(--green-dark);}
+  .price-recap-row.sub{font-size:12px;font-weight:500;color:var(--ink-soft);margin-top:4px;}
+
+  .empty{text-align:center;padding:34px 20px;color:var(--ink-soft);}
+  .empty .star{width:28px;height:28px;margin:0 auto 10px;opacity:.5;}
+  .empty b{color:var(--ink);display:block;margin-bottom:4px;font-family:'Fraunces',serif;font-size:16px;}
+  .search-spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;margin:0 auto;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .badge{margin-top:10px;font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;display:inline-block;}
+  .badge.verified{background:var(--green-pale);color:var(--green-dark);}
+  .badge.pending{background:var(--gold-soft);color:#8A611D;}
+  .badge.danger{background:var(--red-soft);color:var(--red);}
+
+  .overlay{position:fixed;inset:0;background:rgba(31,43,36,.5);display:none;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .overlay.show{display:flex;}
+  .modal{background:var(--panel);border-radius:16px;max-width:400px;width:100%;padding:24px;text-align:left;max-height:86vh;overflow-y:auto;}
+  .modal.center{text-align:center;}
+  .modal .star{width:28px;height:28px;margin:0 auto 8px;}
+  .modal h3{font-size:18px;margin-bottom:6px;}
+  .modal p{color:var(--ink-soft);font-size:13.5px;line-height:1.5;margin:0 0 14px;}
+  .modal .price-big{font-family:'Fraunces',serif;font-size:24px;color:var(--green-dark);margin-bottom:2px;}
+  .modal .price-note{font-size:12px;color:var(--ink-soft);margin-bottom:14px;}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--green-dark);color:#fff;padding:12px 20px;border-radius:999px;font-size:13.5px;font-weight:600;opacity:0;pointer-events:none;transition:.25s;z-index:300;max-width:90vw;text-align:center;}
+  .toast.show{opacity:1;transform:translate(-50%,-6px);}
+  .toast.gold{background:var(--gold);}
+
+  footer{text-align:center;padding:8px 20px 0;color:var(--ink-soft);font-size:12px;}
+
+  .rules-box{margin-top:16px;background:var(--gold-soft);border-radius:12px;padding:13px 15px;}
+  .rules-title{font-weight:700;font-size:13px;color:#7A5619;margin-bottom:9px;}
+  .check-line{display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink);margin:0 0 8px;cursor:pointer;}
+  .check-line:last-child{margin-bottom:0;}
+  .check-line input{width:auto;margin-top:2px;accent-color:var(--green);}
+
+  .profile-status{margin-top:14px;padding:12px 15px;border-radius:12px;font-size:13px;}
+  .profile-status.verified{background:var(--green-pale);color:var(--green-dark);}
+  .profile-status.pending{background:var(--gold-soft);color:#8A611D;}
+  .profile-status b{display:block;font-family:'Fraunces',serif;font-size:14.5px;margin-bottom:2px;}
+
+  .msg-icon{width:34px;height:34px;border-radius:999px;border:none;background:var(--green);color:#fff;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+  /* ORDER CARD */
+  .order-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:14px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
+  .order-card .route{font-size:15.5px;}
+  .status-pill{display:inline-block;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;}
+  .status-pill.pending{background:var(--gold-soft);color:#8A611D;}
+  .status-pill.accepted{background:var(--green-pale);color:var(--green-dark);}
+  .status-pill.paid{background:#E4E9F5;color:#33447A;}
+  .status-pill.delivered{background:var(--green-pale);color:var(--green-dark);}
+  .status-pill.completed{background:var(--green);color:#fff;}
+  .status-pill.refused, .status-pill.cancelled_gp, .status-pill.cancelled_client, .status-pill.expired{background:var(--red-soft);color:var(--red);}
+
+  .progress{display:flex;gap:3px;margin:12px 0 4px;}
+  .progress span{flex:1;height:5px;border-radius:3px;background:var(--line);}
+  .progress span.done{background:var(--green);}
+  .progress span.failed{background:var(--red);}
+  .progress-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--ink-soft);margin-bottom:10px;}
+
+  .countdown{font-size:12px;font-weight:600;color:var(--red);background:var(--red-soft);padding:6px 11px;border-radius:8px;display:inline-block;margin-top:8px;}
+
+  .chat-thread{display:flex;flex-direction:column;gap:7px;max-height:260px;overflow-y:auto;padding:4px 2px;margin:10px 0;}
+  .bubble{max-width:78%;padding:8px 12px;border-radius:13px;font-size:13.5px;line-height:1.4;}
+  .bubble.mine{align-self:flex-end;background:var(--green);color:#fff;border-bottom-right-radius:4px;}
+  .bubble.theirs{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-bottom-left-radius:4px;}
+  .bubble .time{display:block;font-size:10px;opacity:.65;margin-top:2px;}
+  .chat-input{display:flex;gap:7px;margin-top:6px;}
+  .chat-input textarea{min-height:40px;} .chat-input button{width:auto;margin:0;padding:0 16px;flex-shrink:0;}
+
+  .stars-input{display:flex;gap:6px;justify-content:center;margin:14px 0;font-size:30px;}
+  .stars-input span{cursor:pointer;color:var(--line);}
+  .stars-input span.on{color:var(--gold);}
+
+  .admin-actions{display:flex;gap:8px;}
+  .admin-actions button{flex:1;padding:9px;border-radius:8px;border:none;font-weight:600;font-size:12.5px;cursor:pointer;}
+  .btn-approve{background:var(--green);color:#fff;}
+  .btn-reject{background:var(--red-soft);color:var(--red);}
+
+  .ref-box{background:var(--gold-soft);border-radius:12px;padding:16px;margin-bottom:14px;}
+  .link-row{display:flex;gap:8px;margin-top:8px;}
+  .link-row input{background:var(--panel);font-size:12px;}
+  .link-row button{width:auto;margin:0;padding:0 14px;flex-shrink:0;}
+  .points-progress{background:var(--line);height:8px;border-radius:99px;margin:10px 0 4px;overflow:hidden;}
+  .points-progress > div{height:100%;background:var(--gold);}
+
+  .role-toggle{display:flex;gap:6px;margin-bottom:14px;}
+  .role-toggle div{flex:1;text-align:center;padding:9px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--panel);border:1px solid var(--line);color:var(--ink-soft);}
+  .role-toggle div.active{background:var(--green);color:#fff;border-color:var(--green);}
+</style>
+</head>
+<body>
+
+<!-- RECEIVE GATE (destinataire, sans compte) -->
+<div class="overlay" id="receiveGate" style="z-index:200;background:var(--bg);">
+  <div class="modal" style="max-width:380px;">
+    <div style="text-align:center;margin-bottom:6px;">
+      <svg viewBox="0 0 40 40" style="width:32px;height:32px;" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
+    </div>
+    <h3 style="text-align:center;">Réception de colis</h3>
+    <div id="receiveContent"></div>
+  </div>
+</div>
+
+<header>
+  <svg class="routes" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#F5EFDD" stroke-width="2" fill="none" stroke-dasharray="1 8" stroke-linecap="round">
+      <path d="M200 100 Q 130 60 60 30"/><path d="M200 100 Q 150 140 90 175"/>
+      <path d="M200 100 Q 260 140 320 175"/><path d="M200 100 Q 270 60 340 30"/>
+    </g>
+  </svg>
+  <button class="hamburger" onclick="openDrawer()" aria-label="Menu">
+    <span></span><span></span><span></span>
+    <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+  </button>
+  <div class="top-left-name" id="topLeftName" style="display:none;"></div>
+  <div class="brand">
+    <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
+    <h1>Baraka GP</h1>
+    <p>Vos colis, partout en confiance</p>
+    <div class="points-bar" onclick="switchTab('points')" id="pointsBarHeader" style="display:none;">🌟 <b id="pointsHeaderVal">0</b> points Baraka</div>
+  </div>
+</header>
+
+<!-- DRAWER MENU -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<nav class="drawer-panel" id="drawerPanel">
+  <div class="drawer-head">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="drawerAvatarBox" onclick="document.getElementById('changeAvatarInput').click()" style="cursor:pointer;" title="Changer ma photo"></span>
+      <span id="drawerNameLabel">Menu</span>
+    </div>
+    <button class="drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <input type="file" id="changeAvatarInput" accept="image/*" style="display:none;" onchange="changeMyAvatar()">
+  <div class="drawer-item active" id="tabSearch" onclick="switchTab('search')">🔍 Chercher un GP</div>
+  <div class="drawer-item" id="tabSend" onclick="switchTab('send')">📦 Envoyer un colis</div>
+  <div class="drawer-item" id="tabMydemandes" onclick="switchTab('mydemandes')">📋 Mes demandes</div>
+  <div class="drawer-item" id="tabPublish" onclick="switchTab('publish')">✈️ Je voyage</div>
+  <div class="drawer-item" id="tabMytrips" onclick="switchTab('mytrips')">🧳 Mes trajets</div>
+  <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')">🧾 Mes commandes <span class="drawer-badge" id="badgeOrders" style="display:none;">0</span></div>
+  <div class="drawer-item" id="tabPoints" onclick="switchTab('points')">🌟 Mes points</div>
+  <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')">💬 Support <span class="drawer-badge" id="badgeMessages" style="display:none;">0</span></div>
+  <div class="drawer-item static">
+    <span>🌙 Mode sombre</span>
+    <label class="switch">
+      <input type="checkbox" id="darkModeToggle" onchange="setDarkMode(this.checked)">
+      <span class="switch-slider"></span>
+    </label>
+  </div>
+  <div class="drawer-item" onclick="closeDrawer();authSignOut();">🔓 Se déconnecter</div>
+</nav>
+
+<div class="wrap">
+
+
+  <!-- SEARCH -->
+  <div id="viewSearch">
+    <div class="panel">
+      <h2>Où envoyez-vous votre colis ?</h2>
+      <div class="sub">Tous les voyageurs disponibles sont listés ci-dessous — filtrez par trajet si besoin</div>
+      <div class="row2">
+        <div><label>Ville de départ</label><input type="text" id="searchFrom" list="fromCities" oninput="renderResults()" placeholder="Paris"></div>
+        <div><label>Ville d'arrivée</label><input type="text" id="searchTo" list="toCities" oninput="autoSetCountry('searchTo','searchCountry');renderResults();" placeholder="Nouakchott"></div>
+      </div>
+      <datalist id="fromCities"></datalist><datalist id="toCities"></datalist>
+      <label>Destination</label>
+      <select id="searchCountry" onchange="renderResults()">
+        <option value="">Toutes les destinations</option>
+        <option value="Mauritanie">🇲🇷 Mauritanie</option>
+        <option value="Sénégal">🇸🇳 Sénégal</option>
+        <option value="Mali">🇲🇱 Mali</option>
+        <option value="Égypte">🇪🇬 Égypte</option>
+        <option value="France">🇫🇷 France</option>
+      </select>
+    </div>
+    <div id="searchResultsSection">
+      <div class="results-head"><h3>Voyageurs disponibles</h3><span id="resultCount"></span></div>
+      <div id="resultsList"></div>
+    </div>
+  </div>
+
+  <!-- SEND (colis sans GP précis) -->
+  <div id="viewSend" style="display:none;">
+    <div class="panel">
+      <h2>Décrivez votre colis</h2>
+      <div class="sub">Pas encore trouvé de voyageur ? Décrivez votre besoin, nous vous alertons dès qu'un GP correspond.</div>
+      <label>Votre prénom</label><input type="text" id="sName" placeholder="Ex. Fatou" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <label>Votre numéro</label><input type="tel" id="sPhone" placeholder="Ex. 06 12 34 56 78" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <div class="row2">
+        <div><label>Ville de départ</label><input type="text" id="sFrom" list="fromCities" placeholder="Paris"></div>
+        <div><label>Ville d'arrivée</label><input type="text" id="sTo" list="toCities" oninput="autoSetCountry('sTo','sCountry')" placeholder="Nouakchott"></div>
+      </div>
+      <label>Pays de destination</label>
+      <select id="sCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
+      <label>Nom du destinataire</label><input type="text" id="sRecipient" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
+      <div class="hint">Pour que le voyageur sache à qui remettre le colis. Son numéro reste privé, comme le vôtre.</div>
+      <label>Date d'envoi souhaitée</label><input type="date" id="sDate">
+      <label>Poids approximatif</label><input type="number" id="sKg" placeholder="Ex. 5" min="1">
+      <label>Description du contenu</label><textarea id="sDesc" placeholder="Ex. Vêtements et quelques cadeaux"></textarea>
+      <label>Photo du colis</label><input type="file" id="sPhoto" accept="image/*">
+      <label>Valeur déclarée</label><input type="number" id="sValue" placeholder="Ex. 60" min="1">
+      <div class="hint">Plafond 150€.</div>
+      <div class="rules-box">
+        <div class="rules-title">⚠️ Objets strictement interdits</div>
+        <label class="check-line"><input type="checkbox" id="ruleCash"> Espèces</label>
+        <label class="check-line"><input type="checkbox" id="ruleDocs"> Document officiel d'un tiers</label>
+        <label class="check-line"><input type="checkbox" id="ruleValuables"> Bijou non déclaré</label>
+        <label class="check-line"><input type="checkbox" id="ruleIllegal"> Produit illicite</label>
+      </div>
+      <button class="btn gold" onclick="publishColis()">Envoyer ma demande</button>
+    </div>
+  </div>
+
+  <!-- PUBLISH GP -->
+  <div id="viewPublish" style="display:none;">
+    <div class="panel">
+      <h2>Publiez votre trajet</h2>
+      <div class="sub">Vous voyagez bientôt ? Gagnez de l'argent avec la place libre dans votre valise.</div>
+      <label>Votre prénom</label><input type="text" id="pName" placeholder="Ex. Amadou" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <label>Votre numéro</label><input type="tel" id="pPhone" placeholder="Ex. 06 12 34 56 78" readonly style="background:var(--bg);color:var(--ink-soft);">
+      <div id="profileStatusBox"></div>
+      <label>Billet pour ce voyage</label><input type="file" id="pTicket" accept="image/*,.pdf">
+      <div class="hint">À fournir à chaque trajet.</div>
+      <div id="docsSection">
+        <label>Photo de profil</label><input type="file" id="pAvatar" accept="image/*">
+        <div class="hint">Visible sur vos annonces, inspire confiance.</div>
+        <label>Pièce d'identité</label><input type="file" id="pId" accept="image/*">
+        <div class="hint">Une seule fois.</div>
+      </div>
+      <div class="row2">
+        <div><label>Ville de départ</label><input type="text" id="pFrom" list="fromCities" placeholder="Paris"></div>
+        <div><label>Ville d'arrivée</label><input type="text" id="pTo" list="toCities" oninput="autoSetCountry('pTo','pCountry')" placeholder="Nouakchott"></div>
+      </div>
+      <label>Pays de destination</label>
+      <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
+      <label>Date du voyage</label><input type="date" id="pDate">
+      <label>Kg disponibles</label><input type="number" id="pKg" placeholder="Ex. 8" min="1">
+      <div class="rules-box">
+        <div class="rules-title">🙏 Engagement du voyageur</div>
+        <label class="check-line"><input type="checkbox" id="ruleCheck"> Je transporte uniquement des colis vérifiés, sans les ouvrir</label>
+        <label class="check-line"><input type="checkbox" id="ruleCheck2"> Je confirme la remise au destinataire</label>
+        <label class="check-line"><input type="checkbox" id="ruleCheck3"> Je certifie que mon billet et mon identité sont exacts, et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</label>
+      </div>
+      <button class="btn gold" onclick="publishListing()">Publier mon trajet</button>
+    </div>
+  </div>
+
+  <!-- MY TRIPS (voyageurs) -->
+  <div id="viewMytrips" style="display:none;">
+    <div class="results-head"><h3>Mes trajets publiés</h3></div>
+    <div id="myTripsList"></div>
+    <div class="results-head"><h3>Demandes de colis disponibles</h3></div>
+    <div id="availableColisList"></div>
+  </div>
+
+  <!-- MY REQUESTS (clients) -->
+  <div id="viewMydemandes" style="display:none;">
+    <div class="results-head"><h3>Mes demandes de colis</h3></div>
+    <div id="myColisList"></div>
+    <div class="results-head"><h3>Mes alertes</h3></div>
+    <div id="myAlertsList"></div>
+  </div>
+
+  <!-- ORDERS -->
+  <div id="viewOrders" style="display:none;">
+    <div class="role-toggle">
+      <div class="active" id="roleClient" onclick="switchRole('client')">📤 Mes envois</div>
+      <div id="roleGp" onclick="switchRole('gp')">✈️ Commandes reçues (GP)</div>
+    </div>
+    <div id="ordersList"></div>
+  </div>
+
+  <!-- POINTS -->
+  <div id="viewPoints" style="display:none;">
+    <div class="panel" id="pointsPanel"></div>
+  </div>
+
+  <!-- MESSAGES (support) -->
+  <div id="viewMessages" style="display:none;">
+    <div class="panel">
+      <h2>Support Baraka GP</h2>
+      <div class="sub">Une question, un souci ? Écrivez-nous ici.</div>
+      <div class="chat-thread" id="chatThread"></div>
+      <div class="chat-input">
+        <textarea id="chatInput" placeholder="Écrivez votre message..."></textarea>
+        <button class="btn" style="margin-top:0;" onclick="sendUserMessage()">Envoyer</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Baraka GP — service de mise en relation entre particuliers</footer>
+</div>
+
+<!-- ORDER MODAL (commander) -->
+<div class="overlay" id="orderOverlay">
+  <div class="modal">
+    <h3>Choisir ce voyageur</h3>
+    <div class="sub" id="orderRouteInfo" style="color:var(--ink-soft);font-size:13px;margin-bottom:16px;"></div>
+
+    <div class="order-section-title">📦 Votre envoi</div>
+    <label>Type d'envoi</label>
+    <div class="toggle-row">
+      <div class="toggle-opt active" id="typeColisBtn" onclick="setPackageType('colis')">Colis</div>
+      <div class="toggle-opt" id="typeValiseBtn" onclick="setPackageType('valise')">Valise entière</div>
+    </div>
+    <label>Poids (kg)</label>
+    <input type="number" id="oKg" min="1" oninput="updateOrderPrice()">
+    <label>Description du contenu</label>
+    <textarea id="oDesc" placeholder="Ex. Vêtements, cadeaux"></textarea>
+    <label>Photo du colis</label>
+    <input type="file" id="oPhoto" accept="image/*">
+    <label>Photo du colis sur une balance</label>
+    <input type="file" id="oWeightProof" accept="image/*">
+    <div class="hint">Permet de vérifier que le poids déclaré est correct.</div>
+    <label>Valeur déclarée</label>
+    <input type="number" id="oValue" placeholder="Ex. 60" oninput="updateOrderPrice()">
+    <div class="hint">Plafond 150€.</div>
+    <label>Nom du destinataire</label>
+    <input type="text" id="oRecipient" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
+
+    <div class="order-section-title">📍 Remise du colis</div>
+    <label>Lieu proposé</label>
+    <input type="text" id="oLocation" placeholder="Ex. Gare du Nord, Paris">
+    <label>Horaire proposé</label>
+    <input type="datetime-local" id="oTime">
+
+    <div class="order-section-title">✅ Vérifications</div>
+    <div class="rules-box">
+      <div class="rules-title">⚠️ Objets strictement interdits</div>
+      <label class="check-line"><input type="checkbox" id="oRuleCash"> Espèces</label>
+      <label class="check-line"><input type="checkbox" id="oRuleDocs"> Document officiel d'un tiers</label>
+      <label class="check-line"><input type="checkbox" id="oRuleValuables"> Bijou non déclaré</label>
+      <label class="check-line"><input type="checkbox" id="oRuleIllegal"> Produit illicite</label>
+    </div>
+    <div class="rules-box" style="background:var(--green-pale);">
+      <div class="rules-title" style="color:var(--green-dark);">📄 Attestation</div>
+      <label class="check-line"><input type="checkbox" id="oLiability"> Je certifie l'exactitude des informations fournies et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</label>
+    </div>
+
+    <div id="orderDiscountBox"></div>
+    <div class="price-recap">
+      <div class="price-recap-row"><span>Prix total</span><b id="oPriceTotal">—</b></div>
+    </div>
+    <button class="btn gold" onclick="submitOrder()">Envoyer la commande</button>
+    <button class="btn ghost" onclick="closeOrderModal()">Annuler</button>
+  </div>
+</div>
+
+<!-- EDIT TRIP MODAL -->
+<div class="overlay" id="editListingOverlay">
+  <div class="modal">
+    <h3>Modifier mon trajet</h3>
+    <div class="row2">
+      <div><label>Ville de départ</label><input type="text" id="elFrom" list="fromCities" placeholder="Paris"></div>
+      <div><label>Ville d'arrivée</label><input type="text" id="elTo" list="toCities" oninput="autoSetCountry('elTo','elCountry')" placeholder="Nouakchott"></div>
+    </div>
+    <label>Pays de destination</label>
+    <select id="elCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
+    <label>Date du voyage</label><input type="date" id="elDate">
+    <label>Kg disponibles</label><input type="number" id="elKg" min="1">
+    <button class="btn gold" onclick="saveListingEdit()">Enregistrer</button>
+    <button class="btn ghost" onclick="closeEditListing()">Annuler</button>
+  </div>
+</div>
+
+<!-- RATING MODAL -->
+<div class="overlay" id="ratingOverlay">
+  <div class="modal center">
+    <h3>Comment s'est passée la livraison ?</h3>
+
+    <p>Votre avis aide les autres à choisir en toute confiance.</p>
+    <div class="stars-input" id="starsInput">
+      <span data-v="1" onclick="setStars(1)">★</span><span data-v="2" onclick="setStars(2)">★</span>
+      <span data-v="3" onclick="setStars(3)">★</span><span data-v="4" onclick="setStars(4)">★</span>
+      <span data-v="5" onclick="setStars(5)">★</span>
+    </div>
+    <textarea id="ratingComment" placeholder="Un commentaire (optionnel)"></textarea>
+    <button class="btn" onclick="submitRating()">Envoyer mon avis</button>
+  </div>
+</div>
+
+<!-- DELIVERY CODE MODAL -->
+<div class="overlay" id="codeOverlay">
+  <div class="modal center">
+    <h3 id="codeModalTitle">Code de livraison</h3>
+    <p id="codeModalText"></p>
+    <div id="codeModalContent"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- AUTH GATE -->
+<div class="overlay show" id="authGate">
+  <div class="modal center">
+    <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#C9922F"/></svg>
+    <h3 id="authTitle">Créer un compte</h3>
+    <p id="authSub">Un compte gratuit pour suivre vos envois et vos trajets.</p>
+    <div id="authSignupFields">
+      <input type="text" id="authName" placeholder="Votre prénom">
+      <input type="tel" id="authPhone" placeholder="Votre numéro">
+      <label>Photo de profil (facultatif)</label>
+      <input type="file" id="authAvatar" accept="image/*">
+    </div>
+    <input type="email" id="authEmail" placeholder="Votre email" autocomplete="username">
+    <input type="password" id="authPassword" placeholder="Mot de passe" autocomplete="new-password">
+    <button class="btn" id="authSubmitBtn" onclick="authSubmit()">Créer mon compte</button>
+    <p style="margin-top:14px;font-size:13px;">
+      <span id="authSwitchText">Déjà un compte ?</span>
+      <a href="javascript:void(0)" onclick="switchAuthMode()" style="color:var(--green-dark);font-weight:600;text-decoration:underline;" id="authSwitchLink">Se connecter</a>
+    </p>
+    <p style="margin-top:6px;font-size:13px;display:none;" id="authForgotRow">
+      <a href="javascript:void(0)" onclick="authForgotPassword()" style="color:var(--ink-soft);text-decoration:underline;">Mot de passe oublié ?</a>
+    </p>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+const PRICE_PER_KG = 10;
+const COMMISSION_PER_KG = 2;
+
+// Remplacez par la config de votre projet Firebase (Console Firebase > Paramètres du projet > Vos applications > SDK).
+const firebaseConfig = {
+  apiKey: "AIzaSyD67E8efC3xhu2Uavp3htKhDnOjZDkRz94",
+  authDomain: "baraka-gp.firebaseapp.com",
+  projectId: "baraka-gp",
+  storageBucket: "baraka-gp.firebasestorage.app",
+  messagingSenderId: "708826047607",
+  appId: "1:708826047607:web:0b1c85defdc1a157f5d272"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+
+let listings=[], profiles={}, alerts=[], messages={}, orders=[], orderMsgs={}, points={};
+let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0;
+let currentOrderChatId=null, ordersRole='client';
+let pollTimer=null, pendingRef=null, receiveMode=false, receiveChatPolling=null;
+
+function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error('timeout')), ms))
+  ]);
+}
+function showToast(msg, gold){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(gold?' gold':''); setTimeout(()=>t.classList.remove('show'),3000); }
+function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+function fmtDateTime(dt){ if(!dt) return "—"; return new Date(dt).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(dt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function flag(c){ return {Mauritanie:"🇲🇷",Sénégal:"🇸🇳",Mali:"🇲🇱",Égypte:"🇪🇬",France:"🇫🇷"}[c] || "🌍"; }
+
+// ---- STORAGE (Firestore : chaque enregistrement est son propre document, partagé entre tous les utilisateurs) ----
+async function fetchCollectionArray(name){
+  const snap=await withTimeout(db.collection(name).get(), 8000);
+  return snap.docs.map(d=>d.data());
+}
+async function fetchCollectionMap(name){
+  const snap=await withTimeout(db.collection(name).get(), 8000);
+  const map={};
+  snap.forEach(d=>{ map[d.id]=d.data(); });
+  return map;
+}
+async function loadAll(){
+  try{ listings=await fetchCollectionArray('listings'); }catch(e){ listings=[]; }
+  try{ profiles=await fetchCollectionMap('profiles'); }catch(e){ profiles={}; }
+  try{ alerts=await fetchCollectionArray('alerts'); }catch(e){ alerts=[]; }
+  try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
+  try{ orders=await fetchCollectionArray('orders'); }catch(e){ orders=[]; }
+  try{
+    const omMap=await fetchCollectionMap('orderMsgs');
+    orderMsgs={};
+    Object.keys(omMap).forEach(id=>{ orderMsgs[id]=omMap[id].thread||[]; });
+  }catch(e){ orderMsgs={}; }
+  try{ points=await fetchCollectionMap('points'); }catch(e){ points={}; }
+}
+async function saveListings(){ try{ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }catch(e){} }
+async function saveProfiles(){ try{ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }catch(e){} }
+async function saveAlerts(){ try{ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }catch(e){} }
+async function saveMessages(){ try{ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }catch(e){} }
+async function saveOrders(){ try{ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }catch(e){} }
+async function saveOrderMsgs(){ try{ const batch=db.batch(); Object.keys(orderMsgs).forEach(id=>batch.set(db.collection('orderMsgs').doc(id), {thread:orderMsgs[id]})); await batch.commit(); }catch(e){} }
+async function savePoints(){ try{ const batch=db.batch(); Object.keys(points).forEach(k=>batch.set(db.collection('points').doc(k), points[k])); await batch.commit(); }catch(e){} }
+
+function compressImage(file){
+  return new Promise((resolve,reject)=>{
+    if(file.type==='application/pdf'){ resolve({type:'pdf',name:file.name,data:null}); return; }
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const canvas=document.createElement('canvas');
+        const maxW=700, scale=Math.min(1,maxW/img.width);
+        canvas.width=img.width*scale; canvas.height=img.height*scale;
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        resolve({type:'image',name:file.name,data:canvas.toDataURL('image/jpeg',0.6)});
+      };
+      img.onerror=reject; img.src=e.target.result;
+    };
+    reader.onerror=reject; reader.readAsDataURL(file);
+  });
+}
+// ---- LOCALISATION (pour suggérer un point de RDV, jamais affichée publiquement) ----
+function getGeoPosition(timeoutMs=6000){
+  return new Promise((resolve)=>{
+    if(!navigator.geolocation){ resolve(null); return; }
+    const timer=setTimeout(()=>resolve(null), timeoutMs);
+    navigator.geolocation.getCurrentPosition(
+      pos=>{ clearTimeout(timer); resolve({lat:pos.coords.latitude, lng:pos.coords.longitude}); },
+      ()=>{ clearTimeout(timer); resolve(null); },
+      {timeout:timeoutMs}
+    );
+  });
+}
+async function suggestMeetingPoint(lat1,lng1,lat2,lng2){
+  try{
+    const midLat=(lat1+lat2)/2, midLng=(lng1+lng2)/2;
+    const url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${midLat}&lon=${midLng}&zoom=16&addressdetails=0`;
+    const res=await withTimeout(fetch(url,{headers:{'Accept':'application/json'}}), 6000);
+    const data=await res.json();
+    return (data && data.display_name) ? data.display_name : null;
+  }catch(e){ return null; }
+}
+
+// ---- IDENTITY (compte Firebase Authentication, obligatoire dès l'arrivée) ----
+let authMode='signup';
+let authFlowInProgress=false;
+function switchAuthMode(){
+  authMode = authMode==='signup' ? 'login' : 'signup';
+  const isSignup = authMode==='signup';
+  document.getElementById('authTitle').textContent = isSignup ? 'Créer un compte' : 'Connexion';
+  document.getElementById('authSub').textContent = isSignup ? 'Un compte gratuit pour suivre vos envois et vos trajets.' : 'Contente de vous revoir !';
+  document.getElementById('authSignupFields').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('authSubmitBtn').textContent = isSignup ? 'Créer mon compte' : 'Se connecter';
+  document.getElementById('authSwitchText').textContent = isSignup ? 'Déjà un compte ?' : "Pas encore de compte ?";
+  document.getElementById('authSwitchLink').textContent = isSignup ? 'Se connecter' : "S'inscrire";
+  document.getElementById('authForgotRow').style.display = isSignup ? 'none' : 'block';
+}
+async function authForgotPassword(){
+  const email=document.getElementById('authEmail').value.trim();
+  if(!email){ showToast("Indiquez votre email ci-dessus, puis retapez sur ce lien"); return; }
+  try{
+    await auth.sendPasswordResetEmail(email);
+    showToast("Email envoyé ! Vérifiez votre boîte de réception 📩");
+  }catch(e){
+    const code=(e && e.code)||'';
+    if(code.includes('user-not-found')) showToast("Aucun compte n'existe avec cet email");
+    else showToast(authErrorMessage(e));
+  }
+}
+function authErrorMessage(e){
+  const code = (e && e.code) || '';
+  if(code.includes('email-already-in-use')) return "Cet email a déjà un compte, connectez-vous plutôt";
+  if(code.includes('weak-password')) return "Mot de passe trop court (6 caractères minimum)";
+  if(code.includes('invalid-email')) return "Email invalide";
+  if(code.includes('user-not-found')||code.includes('wrong-password')||code.includes('invalid-credential')) return "Email ou mot de passe incorrect";
+  return "Une erreur est survenue, réessayez";
+}
+async function completeLogin(uid, acc){
+  if(!acc.name || !acc.phone){
+    // Compte créé avec un prénom et/ou un numéro manquant (ex. écriture
+    // Firestore interrompue pendant l'inscription) : on les redemande plutôt
+    // que de laisser des champs verrouillés vides pour toujours.
+    let name=acc.name||'';
+    while(!name){ name=(window.prompt("Quel est votre prénom ?")||'').trim(); }
+    let phone=acc.phone||'';
+    while(!phone){ phone=(window.prompt("Quel est votre numéro de téléphone ?")||'').trim(); }
+    acc={...acc, name, phone};
+    try{ await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000); }catch(e){}
+  }
+  me={name:acc.name, phone:acc.phone, uid, avatar:acc.avatar||null};
+  try{ localStorage.setItem('baraka-gp-me', JSON.stringify(me)); }catch(e){}
+  document.getElementById('authGate').classList.remove('show');
+  await loadAll();
+  ensurePoints(me.phone);
+  updatePointsHeader();
+  updateUserHeader();
+  updateNotifBadge();
+  renderResults();
+}
+function setBadge(id, count){
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(count>0){ el.textContent=count>9?'9+':count; el.style.display=el.classList.contains('notif-badge')?'flex':'inline-flex'; }
+  else{ el.style.display='none'; }
+}
+function updateNotifBadge(){
+  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); return; }
+  const myPhone=cleanPhone(me.phone);
+  const msgKey=messages[myPhone];
+  const messagesCount = (msgKey && msgKey.unreadUser) ? 1 : 0;
+  let ordersCount=0;
+  orders.forEach(o=>{
+    if(cleanPhone(o.clientPhone)===myPhone && ['accepted','delivered'].includes(o.status)) ordersCount++;
+    if(cleanPhone(o.gpPhone)===myPhone && ['pending','picked_up'].includes(o.status)) ordersCount++;
+  });
+  setBadge('notifBadge', messagesCount+ordersCount);
+  setBadge('badgeMessages', messagesCount);
+  setBadge('badgeOrders', ordersCount);
+}
+function updateUserHeader(){
+  const topName=document.getElementById('topLeftName');
+  if(!me){
+    topName.style.display='none';
+    document.getElementById('drawerAvatarBox').innerHTML='';
+    document.getElementById('drawerNameLabel').textContent='Menu';
+    return;
+  }
+  topName.style.display='block';
+  topName.textContent=me.name||'Mon compte';
+  document.getElementById('drawerNameLabel').textContent=me.name||'Mon compte';
+  document.getElementById('drawerAvatarBox').innerHTML = (me.avatar && me.avatar.type==='image')
+    ? `<img src="${me.avatar.data}" class="avatar">`
+    : `<div class="avatar avatar-placeholder">${esc((me.name||'?').charAt(0).toUpperCase())}</div>`;
+}
+async function changeMyAvatar(){
+  const file=document.getElementById('changeAvatarInput').files[0];
+  if(!file || !me) return;
+  showToast("Mise à jour de la photo...");
+  let avatar;
+  try{ avatar=await compressImage(file); }catch(e){ showToast("Photo illisible"); return; }
+  me.avatar=avatar;
+  try{ localStorage.setItem('baraka-gp-me', JSON.stringify(me)); }catch(e){}
+  try{ await withTimeout(db.collection('accounts').doc(me.uid).set({avatar}, {merge:true}), 8000); }catch(e){}
+  updateUserHeader();
+  showToast("Photo de profil mise à jour !");
+  document.getElementById('changeAvatarInput').value='';
+}
+async function authSubmit(){
+  const email=document.getElementById('authEmail').value.trim();
+  const password=document.getElementById('authPassword').value;
+  if(!email||!password){ showToast("Merci de remplir l'email et le mot de passe"); return; }
+  const btn=document.getElementById('authSubmitBtn');
+  if(btn.disabled) return;
+  btn.disabled=true;
+  try{
+    if(authMode==='signup'){
+      const name=document.getElementById('authName').value.trim();
+      const phone=document.getElementById('authPhone').value.trim();
+      if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
+      // Le suivi automatique de session (onAuthStateChanged) ne doit pas
+      // intervenir pendant qu'on gère nous-mêmes la création du compte
+      // ci-dessous, sinon les deux entrent en compétition pour écrire le
+      // document accounts/{uid} et le nom/numéro tout juste saisis se
+      // retrouvent écrasés par une fiche vide.
+      authFlowInProgress=true;
+      try{
+        let uid;
+        try{
+          const cred=await withTimeout(auth.createUserWithEmailAndPassword(email,password), 12000);
+          uid=cred.user.uid;
+        }catch(e){
+          if(((e&&e.code)||'').includes('email-already-in-use')){
+            // Compte probablement créé lors d'une tentative précédente interrompue
+            // (ex. écriture Firestore refusée juste après) : on tente de s'y
+            // connecter avec le mot de passe qui vient d'être tapé plutôt que de
+            // bloquer la personne.
+            try{
+              const cred2=await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000);
+              uid=cred2.user.uid;
+            }catch(e2){
+              showToast(e2.message==='timeout' ? "Connexion trop lente, réessayez" : "Cet email a déjà un compte — connectez-vous, ou utilisez « mot de passe oublié »");
+              return;
+            }
+          }else{
+            showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : authErrorMessage(e));
+            return;
+          }
+        }
+        const avatarFile=document.getElementById('authAvatar').files[0];
+        let avatar=null;
+        if(avatarFile){ try{ avatar=await compressImage(avatarFile); }catch(e){} }
+        let acc={name,phone,email,avatar,createdAt:Date.now()};
+        try{
+          const snap=await withTimeout(db.collection('accounts').doc(uid).get(), 8000);
+          if(snap.exists) acc=snap.data();
+          else await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000);
+        }catch(e){ /* Firestore lent ou indisponible : on continue quand même avec les infos saisies */ }
+        const key=ensurePoints(phone);
+        if(pendingRef && pendingRef!==points[key].refCode && !points[key].referredBy){
+          points[key].referredBy=pendingRef;
+          points[key].points+=10;
+          try{ await savePoints(); }catch(e){}
+          showToast("🎉 Bienvenue ! +10 points grâce à votre parrainage", true);
+        }
+        await completeLogin(uid, acc);
+      } finally {
+        authFlowInProgress=false;
+      }
+    }else{
+      try{ await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000); }
+      catch(e){ showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : authErrorMessage(e)); }
+    }
+  } finally {
+    btn.disabled=false;
+  }
+}
+async function authSignOut(){
+  stopPolling();
+  try{ await auth.signOut(); }catch(e){}
+}
+auth.onAuthStateChanged(async (user)=>{
+  if(receiveMode) return; // page de confirmation de réception : ne pas afficher l'app normale
+  if(authFlowInProgress) return; // authSubmit() gère déjà completeLogin() dans ce cas
+  if(user){
+    if(me && me.uid===user.uid) return;
+    let acc=null;
+    try{ const snap=await withTimeout(db.collection('accounts').doc(user.uid).get(), 8000); acc=snap.exists?snap.data():null; }catch(e){}
+    if(!acc){
+      // Compte authentifié mais sans fiche accounts (ex. écriture Firestore
+      // ayant échoué à l'inscription) : on récupère au moins l'email pour ne
+      // pas laisser la personne bloquée derrière l'écran de connexion.
+      acc={name:'', phone:'', email:user.email||''};
+      try{ await withTimeout(db.collection('accounts').doc(user.uid).set({...acc, createdAt:Date.now()}), 8000); }catch(e){}
+    }
+    await completeLogin(user.uid, acc);
+  }else{
+    me=null;
+    updatePointsHeader();
+    updateUserHeader();
+    updateNotifBadge();
+    ['authName','authPhone','authEmail','authPassword'].forEach(id=>{ document.getElementById(id).value=''; });
+    const avatarInput=document.getElementById('authAvatar');
+    if(avatarInput) avatarInput.value='';
+    document.getElementById('authGate').classList.add('show');
+  }
+});
+function ensureIdentity(cb){ cb(); }
+
+// ---- POINTS / LOYALTY ----
+function genRefCode(){
+  const chars='abcdefghjkmnpqrstuvwxyz23456789';
+  let code;
+  do{
+    code='';
+    for(let i=0;i<4;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  }while(Object.values(points).some(p=>p && p.refCode===code));
+  return code;
+}
+function ensurePoints(phone){
+  const key=cleanPhone(phone);
+  if(!points[key]) points[key] = { points:0, referredBy:null, firstOrderCredited:false, refCode:genRefCode() };
+  if(!points[key].refCode){ points[key].refCode=genRefCode(); savePoints(); }
+  return key;
+}
+function availableDiscounts(phone){
+  const key=cleanPhone(phone);
+  const p = points[key] ? points[key].points : 0;
+  return Math.floor(p/50);
+}
+function updatePointsHeader(){
+  if(!me){ document.getElementById('pointsBarHeader').style.display='none'; return; }
+  const key=ensurePoints(me.phone);
+  document.getElementById('pointsBarHeader').style.display='inline-flex';
+  document.getElementById('pointsHeaderVal').textContent = points[key].points;
+}
+async function awardPoints(phone, amount, reasonToast){
+  const key=ensurePoints(phone);
+  const before = Math.floor(points[key].points/50);
+  points[key].points += amount;
+  const after = Math.floor(points[key].points/50);
+  await savePoints();
+  if(reasonToast) showToast(reasonToast);
+  if(after>before) showToast(`🎉 Super, vous avez une remise de ${(after-before)*5}€ disponible !`, true);
+  updatePointsHeader();
+}
+function renderPointsPanel(){
+  const key=ensurePoints(me.phone);
+  const p = points[key].points;
+  const toNext = 50 - (p % 50);
+  const discounts = availableDiscounts(me.phone);
+  const refLink = location.origin + location.pathname + '?ref=' + points[key].refCode;
+  document.getElementById('pointsPanel').innerHTML = `
+    <h2>🌟 Vos points Baraka</h2>
+    <div class="sub">Gagnez des points à chaque commande complétée, échangez-les contre des remises.</div>
+    <div style="text-align:center;padding:10px 0;">
+      <div style="font-family:'Fraunces',serif;font-size:38px;color:var(--green-dark);">${p}</div>
+      <div style="color:var(--ink-soft);font-size:13px;">points actuels</div>
+    </div>
+    <div class="points-progress"><div style="width:${(p%50)/50*100}%;"></div></div>
+    <div style="font-size:12.5px;color:var(--ink-soft);text-align:center;">${toNext} points avant votre prochaine remise de 5€</div>
+    ${discounts>0 ? `<div class="badge verified" style="display:block;text-align:center;margin-top:14px;">🎉 Vous avez ${discounts} remise(s) de 5€ disponible(s) ! Elle${discounts>1?'s':''} s'appliquera à votre prochaine commande si vous le souhaitez.</div>` : ''}
+    <div class="ref-box">
+      <b>🎁 Parrainez vos proches</b>
+      <div style="font-size:13px;color:#7A5619;margin-top:4px;">Vous gagnez 10 points à leur 1ère commande, ils gagnent 10 points à l'inscription.</div>
+      <div class="link-row">
+        <input type="text" readonly value="${refLink}" id="refLinkInput">
+        <button class="btn gold" onclick="copyRefLink()">Copier</button>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--ink-soft);">Comment gagner des points : +10 par commande complétée, +10 par filleul actif.</div>
+  `;
+}
+function copyRefLink(){
+  const input = document.getElementById('refLinkInput');
+  input.select();
+  try{ document.execCommand('copy'); showToast("Lien copié !"); }catch(e){ showToast("Copiez le lien manuellement"); }
+}
+function copyReceiveLink(){
+  const input = document.getElementById('receiveLinkInput');
+  input.select();
+  try{ document.execCommand('copy'); showToast("Lien copié !"); }catch(e){ showToast("Copiez le lien manuellement"); }
+}
+
+// ---- TABS ----
+function openDrawer(){
+  document.getElementById('drawerOverlay').classList.add('show');
+  document.getElementById('drawerPanel').classList.add('show');
+}
+// ---- MODE SOMBRE ----
+function setDarkMode(isDark){
+  try{ localStorage.setItem('baraka-gp-theme', isDark?'dark':'light'); }catch(e){}
+  document.documentElement.setAttribute('data-theme', isDark?'dark':'light');
+}
+function syncDarkModeToggle(){
+  const toggle=document.getElementById('darkModeToggle');
+  if(!toggle) return;
+  let pref=null;
+  try{ pref=localStorage.getItem('baraka-gp-theme'); }catch(e){}
+  const systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  toggle.checked = pref==='dark' || (pref!=='light' && systemDark);
+}
+function closeDrawer(){
+  document.getElementById('drawerOverlay').classList.remove('show');
+  document.getElementById('drawerPanel').classList.remove('show');
+}
+function switchTab(tab){
+  closeDrawer();
+  updateNotifBadge();
+  ['search','send','publish','mytrips','mydemandes','orders','points','messages'].forEach(t=>{
+    const el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
+    if(el) el.classList.toggle('active', t===tab);
+  });
+  ['Search','Send','Publish','Mytrips','Mydemandes','Orders','Points','Messages'].forEach(v=>{
+    document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
+  });
+  stopPolling();
+  if(tab==='search') renderResults();
+  if(tab==='send' && me){ document.getElementById('sName').value=me.name; document.getElementById('sPhone').value=me.phone; }
+  if(tab==='publish' && me){ document.getElementById('pName').value=me.name; document.getElementById('pPhone').value=me.phone; checkProfile(); }
+  if(tab==='mytrips'){ ensureIdentity(()=>{ renderMyTrips(); startPolling(); }); }
+  if(tab==='mydemandes'){ ensureIdentity(()=>{ renderMyDemandes(); startPolling(); }); }
+  if(tab==='orders'){ ensureIdentity(()=>{ renderOrders(); startPolling(); }); }
+  if(tab==='points'){ ensureIdentity(()=>{ renderPointsPanel(); }); }
+  if(tab==='messages'){
+    ensureIdentity(()=>{
+      const key=ensureThread(me.phone, me.name);
+      messages[key].unreadUser=false; saveMessages();
+      renderThread(); startPolling(); updateNotifBadge();
+    });
+  }
+}
+function startPolling(){
+  stopPolling();
+  pollTimer=setInterval(async ()=>{
+    await loadAll();
+    if(document.getElementById('viewMessages').style.display==='block') renderThread();
+    if(document.getElementById('viewOrders').style.display==='block') renderOrders();
+    if(document.getElementById('viewMytrips').style.display==='block') renderMyTrips();
+    if(document.getElementById('viewMydemandes').style.display==='block') renderMyDemandes();
+    updateNotifBadge();
+  }, 4000);
+}
+function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
+
+// ---- SUPPORT MESSAGING ----
+function ensureThread(phone,name){
+  const key=cleanPhone(phone);
+  if(!messages[key]) messages[key]={name:name||'Utilisateur',unreadUser:false,unreadAdmin:false,thread:[]};
+  else if(name) messages[key].name=name;
+  return key;
+}
+async function pushMessage(phone,from,text){
+  const key=ensureThread(phone);
+  messages[key].thread.push({from,text,ts:Date.now()});
+  if(from==='admin') messages[key].unreadUser=true;
+  if(from==='user') messages[key].unreadAdmin=true;
+  await saveMessages();
+}
+function renderThread(){
+  if(!me) return;
+  const key=cleanPhone(me.phone);
+  const box=document.getElementById('chatThread');
+  const th=messages[key]?messages[key].thread:[];
+  box.innerHTML = th.length===0
+    ? `<p style="color:var(--ink-soft);font-size:13px;text-align:center;padding:16px 0;">Aucun message. Écrivez-nous !</p>`
+    : th.map(m=>`<div class="bubble ${m.from==='user'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+async function sendUserMessage(){
+  const text=document.getElementById('chatInput').value.trim();
+  if(!text||!me) return;
+  await pushMessage(me.phone,'user',text);
+  document.getElementById('chatInput').value='';
+  renderThread();
+}
+
+// ---- PROFIL GP ----
+function checkProfile(){
+  const phone=cleanPhone(document.getElementById('pPhone').value);
+  const box=document.getElementById('profileStatusBox'), idSection=document.getElementById('docsSection');
+  if(!phone||phone.length<6){ box.innerHTML=''; idSection.style.display='block'; return; }
+  const profile=profiles[phone];
+  if(profile){
+    idSection.style.display='none';
+    box.innerHTML = profile.verified
+      ? `<div class="profile-status verified"><b>✅ Identité vérifiée</b>Ajoutez juste votre billet pour ce trajet.</div>`
+      : `<div class="profile-status pending"><b>⏳ En cours de vérification</b>Ajoutez votre billet, l'annonce sera visible dès validation.</div>`;
+  }else{
+    idSection.style.display='block';
+    box.innerHTML=`<div class="profile-status pending"><b>Nouveau voyageur</b>Pièce d'identité demandée une seule fois.</div>`;
+  }
+}
+
+// ---- SEARCH / RESULTS ----
+function gpRating(phone){
+  const key=cleanPhone(phone);
+  const p=profiles[key];
+  if(!p||!p.ratingCount) return null;
+  return (p.ratingSum/p.ratingCount);
+}
+function starsHtml(avg){
+  if(avg===null) return '';
+  const full=Math.round(avg);
+  return `<span class="stars">${'★'.repeat(full)}${'☆'.repeat(5-full)} (${avg.toFixed(1)})</span>`;
+}
+const COMMON_CITIES=['Paris','Nouakchott','Bamako','Dakar','Le Caire'];
+const CITY_COUNTRY={Nouakchott:'Mauritanie',Dakar:'Sénégal',Bamako:'Mali','Le Caire':'Égypte',Paris:'France'};
+function autoSetCountry(toInputId, countrySelectId){
+  const country=CITY_COUNTRY[document.getElementById(toInputId).value.trim()];
+  if(country) document.getElementById(countrySelectId).value=country;
+}
+function updateCityLists(){
+  const gpOnly=listings.filter(l=>l.type==='gp');
+  const fromCities=[...new Set([...COMMON_CITIES, ...gpOnly.map(l=>l.from).filter(Boolean)])];
+  const toCities=[...new Set([...COMMON_CITIES, ...gpOnly.map(l=>l.to).filter(Boolean)])];
+  document.getElementById('fromCities').innerHTML=fromCities.map(c=>`<option value="${c}">`).join('');
+  document.getElementById('toCities').innerHTML=toCities.map(c=>`<option value="${c}">`).join('');
+}
+function renderResults(){
+  document.getElementById('searchResultsSection').style.display='block';
+  updateCityLists();
+  const country=document.getElementById('searchCountry').value;
+  const from=document.getElementById('searchFrom').value.trim();
+  const to=document.getElementById('searchTo').value.trim();
+  displayResults(country, from, to);
+}
+function remainingKg(l){
+  const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
+  const used=orders.filter(o=>o.listingId===l.id && activeStatuses.includes(o.status)).reduce((sum,o)=>sum+(o.kg||0),0);
+  return Math.max(0, l.kg-used);
+}
+// Revérifie la capacité restante directement en base (pas le cache local, qui peut avoir
+// jusqu'à 4s de retard à cause du polling) juste avant de créer une commande, pour réduire
+// le risque que deux clients réservent en même temps plus de kg que ce qui est disponible.
+async function remainingKgLive(l){
+  try{
+    const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
+    const snap=await withTimeout(db.collection('orders').where('listingId','==',l.id).get(), 8000);
+    let used=0;
+    snap.forEach(doc=>{ const d=doc.data(); if(activeStatuses.includes(d.status)) used+=(d.kg||0); });
+    return Math.max(0, l.kg-used);
+  }catch(e){
+    return remainingKg(l);
+  }
+}
+function displayResults(country, from, to){
+  const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
+  let filtered=listings.filter(l=>{
+    if(l.type!=='gp') return false;
+    if(me && cleanPhone(l.phone)===cleanPhone(me.phone)) return false;
+    if(me && orders.some(o=>o.listingId===l.id && cleanPhone(o.clientPhone)===cleanPhone(me.phone) && activeStatuses.includes(o.status))) return false;
+    if(remainingKg(l)<=0) return false;
+    if(country && l.country!==country) return false;
+    if(from && !l.from.toLowerCase().includes(from.toLowerCase())) return false;
+    if(to && !l.to.toLowerCase().includes(to.toLowerCase())) return false;
+    return true;
+  });
+  filtered.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  document.getElementById('resultCount').textContent=filtered.length+(filtered.length>1?" résultats":" résultat");
+  const list=document.getElementById('resultsList');
+  if(filtered.length===0){
+    list.innerHTML=`
+      <div class="empty">
+        <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#1E6F5C"/></svg>
+        <b>Aucun voyageur pour l'instant</b>Soyez alerté(e) dès qu'un GP correspond, ou déposez votre demande dans "Envoyer un colis".
+      </div>
+      <div class="panel" style="margin-top:2px;">
+        <button class="btn gold" onclick="createAlert()">📢 Publier ma demande</button>
+      </div>`;
+    return;
+  }
+  list.innerHTML=filtered.map(l=>{
+    const profile=profiles[l.phone]||{};
+    const verified=!!profile.verified;
+    const avg=gpRating(l.phone);
+    const avatarHtml = profile.avatar && profile.avatar.type==='image'
+      ? `<img src="${profile.avatar.data}" class="avatar">`
+      : `<div class="avatar avatar-placeholder">${esc((profile.name||'?').charAt(0).toUpperCase())}</div>`;
+    return `
+    <div class="gp-card">
+      <div class="top">
+        <div style="display:flex;align-items:center;gap:10px;">
+          ${avatarHtml}
+          <div>
+            <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
+            <div style="font-size:12px;color:var(--ink-soft);">${esc(profile.name||'Voyageur')}</div>
+          </div>
+        </div>
+        <div class="price">${PRICE_PER_KG}€/kg</div>
+      </div>
+      <div class="meta">
+        <span>${flag(l.country)} <b>${l.country}</b></span>
+        <span>📅 <b>${fmtDate(l.date)}</b></span>
+        <span>🧳 <b>${remainingKg(l)} kg</b> dispo</span>
+      </div>
+      ${avg!==null ? `<div style="margin-top:6px;">${starsHtml(avg)}</div>` : ''}
+      ${verified ? `<div class="badge verified">✅ Voyageur vérifié</div>` : `<div class="badge pending">⏳ Vérification en cours</div>`}
+      <button class="btn gold sm" onclick='openOrderModal(${JSON.stringify(l).replace(/'/g,"&apos;")})'>Choisir ce voyageur</button>
+    </div>`;
+  }).join('');
+}
+
+async function createAlert(){
+  const name=me.name, phone=me.phone;
+  alerts.push({id:Date.now().toString(),name,phone,country:document.getElementById('searchCountry').value,from:document.getElementById('searchFrom').value.trim(),to:document.getElementById('searchTo').value.trim(),notified:false,createdAt:Date.now()});
+  await saveAlerts();
+  ensureThread(phone,name); await saveMessages();
+  showToast("Demande publiée ! On vous préviendra dès qu'un GP correspond 📢");
+}
+
+// ---- ORDER MODAL (commander) ----
+let orderPackageType='colis';
+function setPackageType(type){
+  orderPackageType=type;
+  document.getElementById('typeColisBtn').classList.toggle('active', type==='colis');
+  document.getElementById('typeValiseBtn').classList.toggle('active', type==='valise');
+}
+function openOrderModal(listing){
+  pendingListing=listing;
+  ensureIdentity(()=>{
+    document.getElementById('orderRouteInfo').textContent = `${listing.from} → ${listing.to} · ${fmtDate(listing.date)} · max ${remainingKg(listing)}kg dispo`;
+    document.getElementById('oKg').max=remainingKg(listing);
+    document.getElementById('oKg').value='';
+    document.getElementById('oDesc').value=''; document.getElementById('oValue').value='';
+    document.getElementById('oRecipient').value='';
+    document.getElementById('oLocation').value=''; document.getElementById('oTime').value='';
+    document.getElementById('oPhoto').value=''; document.getElementById('oWeightProof').value='';
+    setPackageType('colis');
+    ['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal','oLiability'].forEach(id=>document.getElementById(id).checked=false);
+    updateOrderPrice();
+    document.getElementById('orderOverlay').classList.add('show');
+  });
+}
+function closeOrderModal(){ document.getElementById('orderOverlay').classList.remove('show'); }
+function updateOrderPrice(){
+  const kg=parseFloat(document.getElementById('oKg').value)||0;
+  const total=kg*PRICE_PER_KG;
+  document.getElementById('oPriceTotal').textContent = total>0 ? total.toFixed(2)+'€' : '—';
+  const discounts = me ? availableDiscounts(me.phone) : 0;
+  const box=document.getElementById('orderDiscountBox');
+  if(discounts>0 && total>0){
+    box.innerHTML = `<label class="check-line" style="background:var(--green-pale);padding:10px 12px;border-radius:10px;"><input type="checkbox" id="useDiscount"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>`;
+  }else{ box.innerHTML=''; }
+}
+async function submitOrder(){
+  const l=pendingListing;
+  const kg=parseInt(document.getElementById('oKg').value);
+  const desc=document.getElementById('oDesc').value.trim();
+  const value=document.getElementById('oValue').value;
+  const recipientName=document.getElementById('oRecipient').value.trim();
+  const photoFile=document.getElementById('oPhoto').files[0];
+  const weightProofFile=document.getElementById('oWeightProof').files[0];
+  const location_=document.getElementById('oLocation').value.trim();
+  const time_=document.getElementById('oTime').value;
+  const rules=['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal'];
+
+  const maxKg=remainingKg(l);
+  if(!kg||kg<1||kg>maxKg){ showToast(maxKg<=0 ? "Ce trajet est complet, il n'y a plus de place disponible" : `Merci d'indiquer un poids valide (max ${maxKg}kg)`); return; }
+  if(!value){ showToast("Merci d'indiquer la valeur déclarée"); return; }
+  if(!recipientName){ showToast("Merci d'indiquer le nom du destinataire"); return; }
+  if(parseInt(value)>150){ showToast("Valeur déclarée trop élevée (max 150€)"); return; }
+  if(!photoFile){ showToast("Merci d'ajouter une photo du colis"); return; }
+  if(!weightProofFile){ showToast("Merci d'ajouter une photo du colis sur une balance"); return; }
+  if(!location_||!time_){ showToast("Merci d'indiquer un lieu et un horaire de remise"); return; }
+  if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Merci de cocher toutes les cases"); return; }
+  if(!document.getElementById('oLiability').checked){ showToast("Merci d'accepter l'attestation"); return; }
+
+  showToast("Envoi en cours...");
+  let photo, weightProof;
+  try{
+    photo=await compressImage(photoFile);
+    weightProof=await compressImage(weightProofFile);
+  }catch(e){ showToast("Impossible de lire les photos"); return; }
+
+  const freshMaxKg=await remainingKgLive(l);
+  if(kg>freshMaxKg){ showToast(freshMaxKg<=0 ? "Ce trajet vient d'être complété par une autre commande" : `Il ne reste plus que ${freshMaxKg}kg disponibles sur ce trajet`); return; }
+
+  let total=kg*PRICE_PER_KG;
+  const commission=kg*COMMISSION_PER_KG;
+  let discountUsed=false;
+  const useDiscountEl=document.getElementById('useDiscount');
+  if(useDiscountEl && useDiscountEl.checked){
+    total=Math.max(0,total-5);
+    discountUsed=true;
+    const key=ensurePoints(me.phone);
+    points[key].points -= 50;
+    await savePoints();
+    updatePointsHeader();
+  }
+
+  const order={
+    id:Date.now().toString(), listingId:l.id,
+    gpPhone:cleanPhone(l.phone), gpName:(profiles[l.phone]||{}).name||'Voyageur',
+    clientPhone:cleanPhone(me.phone), clientName:me.name,
+    from:l.from, to:l.to, country:l.country, tripDate:l.date,
+    packageType:orderPackageType,
+    kg, photo, weightProof, desc, value:parseInt(value), recipientName,
+    priceTotal:total, commission, priceNet:(kg*PRICE_PER_KG)-commission, discountUsed,
+    pickupLocation:location_, pickupTime:time_,
+    status:'pending', deliveryCode:null, rating:null, ratingComment:null,
+    createdAt:Date.now()
+  };
+  orders.push(order);
+  await saveOrders();
+  ensureThread(me.phone, me.name);
+  closeOrderModal();
+  showToast("Commande envoyée ! En attente de réponse du voyageur 🙏");
+  switchTab('orders');
+}
+
+// ---- ORDERS TAB ----
+function switchRole(role){
+  ordersRole=role;
+  document.getElementById('roleClient').classList.toggle('active', role==='client');
+  document.getElementById('roleGp').classList.toggle('active', role==='gp');
+  renderOrders();
+}
+function statusLabel(s){
+  return {pending:'⏳ En attente',accepted:'✅ Acceptée',paid:'💳 Payée',picked_up:'🧳 Prise en charge',delivered:'📦 Remise confirmée',completed:'🎉 Terminée',refused:'❌ Refusée',cancelled_gp:'❌ Annulée par le GP',cancelled_client:'❌ Annulée',expired:'⌛ Expirée'}[s]||s;
+}
+function progressSteps(order){
+  const steps=['pending','accepted','paid','picked_up','delivered','completed'];
+  const failedStates=['refused','cancelled_gp','cancelled_client','expired'];
+  if(failedStates.includes(order.status)){
+    return steps.map((s,i)=> i===0 ? 'done' : (i===1?'failed':''));
+  }
+  const idx=steps.indexOf(order.status);
+  return steps.map((s,i)=> i<=idx ? 'done' : '');
+}
+function hoursUntil(dateStr){
+  if(!dateStr) return null;
+  const target=new Date(dateStr+"T12:00:00").getTime();
+  return (target-Date.now())/3600000;
+}
+function renderOrders(){
+  const list=document.getElementById('ordersList');
+  const myPhone=cleanPhone(me.phone);
+  const cancelledStatuses=['refused','cancelled_gp','cancelled_client','expired'];
+  const mine = (ordersRole==='client'
+    ? orders.filter(o=>o.clientPhone===myPhone)
+    : orders.filter(o=>o.gpPhone===myPhone)
+  ).filter(o=>!cancelledStatuses.includes(o.status));
+  mine.sort((a,b)=>b.createdAt-a.createdAt);
+
+  if(mine.length===0){
+    list.innerHTML=`<div class="empty"><b>${ordersRole==='client'?"Aucun envoi pour l'instant":"Aucune commande reçue"}</b>${ordersRole==='client'?"Cherchez un GP pour commander.":"Vos annonces publiées apparaîtront ici dès qu'un client commande."}</div>`;
+    return;
+  }
+
+  list.innerHTML = mine.map(o=>{
+    const steps=progressSteps(o);
+    const isFailed=['refused','cancelled_gp','cancelled_client','expired'].includes(o.status);
+    const hUntilTrip=hoursUntil(o.tripDate);
+    let countdown='';
+    if(ordersRole==='client' && o.status==='accepted' && hUntilTrip!==null){
+      const hLeft=hUntilTrip-24;
+      if(hLeft>0) countdown=`<div class="countdown">⏳ ${Math.floor(hLeft)}h restantes pour valider et payer</div>`;
+      else countdown=`<div class="countdown">⌛ Délai de validation dépassé</div>`;
+    }
+    if(ordersRole==='gp' && ['accepted','paid','picked_up'].includes(o.status) && hUntilTrip!==null){
+      const hLeft=hUntilTrip-48;
+      if(hLeft>0) countdown=`<div class="countdown" style="background:var(--gold-soft);color:#8A611D;">⏳ Annulation possible encore ${Math.floor(hLeft)}h</div>`;
+    }
+    return `
+    <div class="order-card">
+      <div class="top">
+        <div class="route">${esc(o.from)} <span class="dots">✈</span> ${esc(o.to)}</div>
+        <span class="status-pill ${o.status}">${statusLabel(o.status)}</span>
+      </div>
+      <div class="meta">
+        <span>${o.packageType==='valise' ? '🧳' : '📦'} <b>${o.packageType==='valise' ? 'Valise entière' : 'Colis'}</b></span>
+        <span>${flag(o.country)} <b>${o.country}</b></span>
+        <span>📅 <b>${fmtDate(o.tripDate)}</b></span>
+        <span>⚖️ <b>${o.kg}kg</b></span>
+      </div>
+      <div class="progress">${steps.map(s=>`<span class="${s}"></span>`).join('')}</div>
+      <div class="progress-labels"><span>Envoyée</span><span>Acceptée</span><span>Payée</span><span>Prise en charge</span><span>Remise</span><span>Terminée</span></div>
+      ${countdown}
+      <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);">
+        ${o.pickupLocation ? `📍 ${esc(o.pickupLocation)} · 🕒 ${fmtDateTime(o.pickupTime)}<br>` : ''}
+        ${ordersRole==='client' ? `💰 Prix total : <b>${o.priceTotal.toFixed(2)}€</b>${o.discountUsed?' <span style="color:var(--green-dark);">(remise 5€ appliquée)</span>':''}` : `💰 Vous touchez : <b>${o.priceNet.toFixed(2)}€</b> (commission Baraka GP déjà déduite)`}
+      </div>
+      ${o.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(o.desc)}</div>` : ''}
+      ${o.recipientName ? `<div style="font-size:12.5px;margin-top:4px;color:var(--ink-soft);">🙋 À remettre à : <b>${esc(o.recipientName)}</b></div>` : ''}
+      ${renderOrderActions(o)}
+      ${!isFailed && o.status!=='pending' ? `
+        <div class="chat-thread" id="oc-${o.id}" style="margin-top:12px;"></div>
+        <div class="chat-input">
+          <textarea id="oci-${o.id}" placeholder="Écrire au ${ordersRole==='client'?'voyageur':'client'}..."></textarea>
+          <button class="btn" style="margin-top:0;" onclick="sendOrderMessage('${o.id}')">Envoyer</button>
+        </div>
+      ` : ''}
+      ${(ordersRole==='gp' && o.recipientName && !isFailed && o.status!=='pending') ? `
+        <button class="btn ghost sm" onclick="shareWithRecipient('${o.id}')">🔗 Partager le lien avec le destinataire</button>
+        <div class="hint" style="margin-top:10px;">💬 Discussion avec le destinataire</div>
+        <div class="chat-thread" id="rc-${o.id}" style="margin-top:6px;"></div>
+        <div class="chat-input">
+          <textarea id="rci-${o.id}" placeholder="Écrire au destinataire..."></textarea>
+          <button class="btn" style="margin-top:0;" onclick="sendRecipientMessage('${o.id}')">Envoyer</button>
+        </div>
+      ` : ''}
+    </div>`;
+  }).join('');
+
+  mine.forEach(o=>{
+    if(!['pending'].includes(o.status)) renderOrderChat(o.id);
+    const failed=['refused','cancelled_gp','cancelled_client','expired'].includes(o.status);
+    if(ordersRole==='gp' && o.recipientName && !failed && o.status!=='pending') renderRecipientChat(o.id);
+  });
+}
+
+function renderOrderActions(o){
+  if(ordersRole==='gp' && o.status==='pending'){
+    return `<div class="admin-actions" style="margin-top:12px;">
+      <button class="btn-approve" onclick="respondOrder('${o.id}','accepted')">Accepter</button>
+      <button class="btn-reject" onclick="respondOrder('${o.id}','refused')">Refuser</button>
+    </div>`;
+  }
+  if(ordersRole==='client' && o.status==='accepted'){
+    if(!o.pickupLocation || !o.pickupTime){
+      return `<div class="hint" style="margin-top:10px;">Le voyageur a accepté ! ${o.pickupLocation?'Il finalise l\'horaire de remise':'Il propose le lieu et l\'horaire de remise'}, vous serez prévenu(e).</div>`;
+    }
+    const hUntilTrip=hoursUntil(o.tripDate);
+    const expired = hUntilTrip!==null && (hUntilTrip-24)<=0;
+    const discounts = me ? availableDiscounts(me.phone) : 0;
+    const discountBox = (discounts>0 && !expired) ? `<label class="check-line" style="background:var(--green-pale);padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>` : '';
+    return `${discountBox}<button class="btn ${expired?'':'gold'} sm" ${expired?'disabled':''} onclick="payOrder('${o.id}')">${expired?'Délai dépassé':'💳 Payer maintenant (simulation)'}</button>`;
+  }
+  if(ordersRole==='gp' && o.status==='paid'){
+    const hUntilTrip=hoursUntil(o.tripDate);
+    const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
+    return `
+      <div class="hint" style="margin-top:10px;">Donnez ce code au client au moment où il vous remet le colis, pour confirmer votre identité.</div>
+      <div style="font-family:'Fraunces',serif;font-size:28px;letter-spacing:6px;color:var(--green-dark);text-align:center;background:var(--bg);border-radius:10px;padding:10px;margin-top:6px;">${o.pickupCode}</div>
+      ${canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
+    `;
+  }
+  if(ordersRole==='client' && o.status==='paid'){
+    return `
+      <div class="hint" style="margin-top:10px;">Demandez le code au voyageur au moment de la remise, pour confirmer que c'est bien lui.</div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" id="pickupInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
+        <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmPickup('${o.id}')">Valider</button>
+      </div>
+    `;
+  }
+  if(ordersRole==='gp' && o.status==='picked_up'){
+    const hUntilTrip=hoursUntil(o.tripDate);
+    const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
+    let html = `<button class="btn sm" onclick="markDelivered('${o.id}')">📦 Marquer comme remis</button>`;
+    if(canCancel) html += `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>`;
+    return html;
+  }
+  if(ordersRole==='gp' && o.status==='accepted' && (!o.pickupLocation || !o.pickupTime)){
+    return `
+      <div class="hint" style="margin-top:10px;">${o.pickupSuggested ? "L'app a suggéré un point de RDV à mi-chemin, vous pouvez l'ajuster. Ajoutez l'horaire pour continuer." : "Proposez un lieu et un horaire de remise au client."}</div>
+      <label>Lieu de remise proposé</label>
+      <input type="text" id="gpPickupLoc-${o.id}" placeholder="Ex. Gare du Nord, Paris" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
+      <label>Horaire de remise proposé</label>
+      <input type="datetime-local" id="gpPickupTime-${o.id}">
+      <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">Proposer au client</button>
+    `;
+  }
+  if(ordersRole==='gp' && ['accepted'].includes(o.status)){
+    const hUntilTrip=hoursUntil(o.tripDate);
+    const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
+    return canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : '';
+  }
+  if(ordersRole==='gp' && o.status==='delivered'){
+    return `<button class="btn ghost sm" onclick="showDeliveryCode('${o.id}')">📋 Revoir le lien/code de réception</button>`;
+  }
+  if(ordersRole==='client' && o.status==='delivered'){
+    return `<div class="hint" style="margin-top:10px;">Le destinataire confirme lui-même la réception via le lien envoyé par le voyageur. En cas de souci, vous pouvez aussi saisir ici le code qu'il vous communique.</div>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <input type="text" inputmode="numeric" pattern="[0-9]*" id="codeInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
+        <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmDelivery('${o.id}')">Valider</button>
+      </div>`;
+  }
+  if(ordersRole==='client' && o.status==='completed' && !o.rating){
+    return `<button class="btn ghost sm" onclick="openRating('${o.id}')">⭐ Noter ce voyageur</button>`;
+  }
+  if(o.status==='completed' && o.rating){
+    return `<div class="hint" style="margin-top:10px;">${starsHtml(o.rating)} ${o.ratingComment?'— "'+esc(o.ratingComment)+'"':''}</div>`;
+  }
+  return '';
+}
+
+async function respondOrder(orderId, status){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  o.status=status;
+  await saveOrders();
+  showToast(status==='accepted' ? "Commande acceptée !" : "Mise à jour effectuée");
+  renderOrders();
+}
+async function gpProposePickup(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const loc=document.getElementById('gpPickupLoc-'+orderId).value.trim();
+  const time=document.getElementById('gpPickupTime-'+orderId).value;
+  if(!loc||!time){ showToast("Merci de remplir le lieu et l'horaire"); return; }
+  o.pickupLocation=loc; o.pickupTime=time;
+  await saveOrders();
+  showToast("Lieu et horaire proposés au client !");
+  renderOrders();
+}
+async function payOrder(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const useDiscountEl=document.getElementById('useDiscount-'+orderId);
+  if(useDiscountEl && useDiscountEl.checked && !o.discountUsed){
+    o.priceTotal = Math.max(0, o.priceTotal-5);
+    o.discountUsed = true;
+    const key=ensurePoints(o.clientPhone);
+    points[key].points -= 50;
+    await savePoints();
+    updatePointsHeader();
+  }
+  o.status='paid';
+  o.pickupCode = String(Math.floor(1000+Math.random()*9000));
+  await saveOrders();
+  showToast("Paiement simulé confirmé 💳");
+  renderOrders();
+}
+async function confirmPickup(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  const input=document.getElementById('pickupInput-'+orderId);
+  if(!o||!input) return;
+  if(input.value.trim()!==o.pickupCode){ showToast("Code incorrect, redemandez-le au voyageur"); return; }
+  o.status='picked_up';
+  await saveOrders();
+  showToast("Prise en charge confirmée ! ✈️");
+  renderOrders();
+}
+async function markDelivered(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  if(!o.deliveryCode) o.deliveryCode = String(Math.floor(1000+Math.random()*9000));
+  o.status='delivered';
+  await saveOrders();
+  showDeliveryCode(orderId);
+  renderOrders();
+}
+function showDeliveryCode(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const receiveLink = location.origin + location.pathname + '?receive=' + orderId;
+  document.getElementById('codeModalTitle').textContent='À transmettre au destinataire';
+  document.getElementById('codeModalText').textContent = (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp). Il pourra vous écrire directement depuis ce lien, sans compte, et entrera le code à la remise du colis pour confirmer la réception.";
+  document.getElementById('codeModalContent').innerHTML = `
+    <div style="font-family:'Fraunces',serif;font-size:36px;letter-spacing:8px;color:var(--green-dark);text-align:center;margin:10px 0;">${o.deliveryCode}</div>
+    <label>Lien de confirmation</label>
+    <div class="link-row">
+      <input type="text" readonly value="${receiveLink}" id="receiveLinkInput">
+      <button class="btn gold" onclick="copyReceiveLink()">Copier</button>
+    </div>
+    <button class="btn" onclick="document.getElementById('codeOverlay').classList.remove('show')">Fermer</button>
+  `;
+  document.getElementById('codeOverlay').classList.add('show');
+}
+async function confirmDelivery(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  const input=document.getElementById('codeInput-'+orderId);
+  if(!o||!input) return;
+  if(input.value.trim()!==o.deliveryCode){ showToast("Code incorrect, vérifiez avec le voyageur"); return; }
+  let snap;
+  try{ snap=await withTimeout(db.collection('orders').doc(orderId).get(), 8000); }catch(e){ showToast("Connexion trop lente, réessayez"); return; }
+  if(snap.exists && snap.data().status==='completed'){
+    o.status='completed';
+    showToast("Déjà confirmé, merci ! 🎉");
+    renderOrders();
+    return;
+  }
+  o.status='completed';
+  await saveOrders();
+  await awardPoints(o.clientPhone, 10, "🎉 Commande terminée, +10 points !");
+  const gpKey=ensurePoints(o.gpPhone);
+  const clientPointsKey=cleanPhone(o.clientPhone);
+  if(points[clientPointsKey] && points[clientPointsKey].referredBy && !points[clientPointsKey].firstOrderCredited){
+    points[clientPointsKey].firstOrderCredited=true;
+    const referrerCode=points[clientPointsKey].referredBy;
+    const referrerKey=Object.keys(points).find(k=>points[k] && points[k].refCode===referrerCode);
+    if(referrerKey) points[referrerKey].points += 10;
+    await savePoints();
+  }
+  showToast("Livraison confirmée, merci ! 🎉");
+  renderOrders();
+}
+function openRating(orderId){
+  ratingOrderId=orderId; ratingStars=0;
+  document.querySelectorAll('#starsInput span').forEach(s=>s.classList.remove('on'));
+  document.getElementById('ratingComment').value='';
+  document.getElementById('ratingOverlay').classList.add('show');
+}
+function setStars(n){
+  ratingStars=n;
+  document.querySelectorAll('#starsInput span').forEach(s=>s.classList.toggle('on', parseInt(s.dataset.v)<=n));
+}
+async function submitRating(){
+  if(ratingStars===0){ showToast("Choisissez une note"); return; }
+  const o=orders.find(x=>x.id===ratingOrderId);
+  if(!o) return;
+  o.rating=ratingStars;
+  o.ratingComment=document.getElementById('ratingComment').value.trim();
+  await saveOrders();
+  const gpKey=cleanPhone(o.gpPhone);
+  if(profiles[gpKey]){
+    profiles[gpKey].ratingSum = (profiles[gpKey].ratingSum||0) + ratingStars;
+    profiles[gpKey].ratingCount = (profiles[gpKey].ratingCount||0) + 1;
+    await saveProfiles();
+  }
+  document.getElementById('ratingOverlay').classList.remove('show');
+  showToast("Merci pour votre avis !");
+  renderOrders();
+}
+
+// ---- ORDER CHAT ----
+function renderOrderChat(orderId){
+  const box=document.getElementById('oc-'+orderId);
+  if(!box) return;
+  const th=orderMsgs[orderId]||[];
+  box.innerHTML = th.length===0
+    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">Aucun message.</p>`
+    : th.map(m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+async function sendOrderMessage(orderId){
+  const input=document.getElementById('oci-'+orderId);
+  const text=input.value.trim();
+  if(!text) return;
+  if(!orderMsgs[orderId]) orderMsgs[orderId]=[];
+  orderMsgs[orderId].push({from:ordersRole, text, ts:Date.now()});
+  await saveOrderMsgs();
+  input.value='';
+  renderOrderChat(orderId);
+}
+// ---- CHAT AVEC LE DESTINATAIRE (voyageur ↔ destinataire sans compte) ----
+function renderRecipientChat(orderId){
+  const box=document.getElementById('rc-'+orderId);
+  if(!box) return;
+  const th=orderMsgs[orderId+'_recipient']||[];
+  box.innerHTML = th.length===0
+    ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">Aucun message.</p>`
+    : th.map(m=>`<div class="bubble ${m.from==='gp'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+async function sendRecipientMessage(orderId){
+  const input=document.getElementById('rci-'+orderId);
+  const text=input.value.trim();
+  if(!text) return;
+  const key=orderId+'_recipient';
+  if(!orderMsgs[key]) orderMsgs[key]=[];
+  orderMsgs[key].push({from:'gp', text, ts:Date.now()});
+  await saveOrderMsgs();
+  input.value='';
+  renderRecipientChat(orderId);
+}
+async function shareWithRecipient(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  if(!o.deliveryCode){ o.deliveryCode=String(Math.floor(1000+Math.random()*9000)); await saveOrders(); }
+  showDeliveryCode(orderId);
+}
+
+// ---- PUBLISH GP / COLIS ----
+async function publishListing(){
+  const name=document.getElementById('pName').value.trim();
+  const phoneRaw=document.getElementById('pPhone').value.trim();
+  const phone=cleanPhone(phoneRaw);
+  const from=document.getElementById('pFrom').value.trim();
+  const to=document.getElementById('pTo').value.trim();
+  const country=document.getElementById('pCountry').value;
+  const date=document.getElementById('pDate').value;
+  const kg=document.getElementById('pKg').value;
+  const ticketFile=document.getElementById('pTicket').files[0];
+
+  if(!name||!phone||!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
+  if(!ticketFile){ showToast("Merci d'ajouter votre billet"); return; }
+
+  const hasProfile=!!profiles[phone];
+  if(!hasProfile){
+    const idFile=document.getElementById('pId').files[0];
+    const avatarFile=document.getElementById('pAvatar').files[0];
+    if(!idFile){ showToast("Merci d'ajouter une pièce d'identité"); return; }
+    showToast("Envoi en cours...");
+    let idPhoto, avatar=null;
+    try{ idPhoto=await compressImage(idFile); }catch(e){ showToast("Fichier illisible"); return; }
+    if(avatarFile){
+      try{ avatar=await compressImage(avatarFile); }catch(e){}
+    }
+    profiles[phone]={name,phone:phoneRaw,idPhoto,avatar,verified:false,createdAt:Date.now(),ratingSum:0,ratingCount:0};
+    await saveProfiles();
+  }
+  const rules=['ruleCheck','ruleCheck2','ruleCheck3'];
+  if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Cochez les engagements"); return; }
+
+  showToast("Envoi en cours...");
+  let ticket;
+  try{ ticket=await compressImage(ticketFile); }catch(e){ showToast("Billet illisible"); return; }
+
+  listings.push({id:Date.now().toString(),type:'gp',phone,from,to,country,date,kg:parseInt(kg),price:PRICE_PER_KG,ticket});
+  await saveListings();
+  showToast(hasProfile?"Trajet publié !":"Trajet publié ! Identité en attente de vérification 🙏");
+
+  ['pName','pFrom','pTo','pDate','pKg','pTicket','pId'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pPhone').value=phoneRaw;
+  rules.forEach(id=>document.getElementById(id).checked=false);
+  ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('searchCountry').value='';
+  switchTab('search');
+}
+
+// ---- MY TRIPS (voir/modifier/supprimer ses propres trajets) ----
+function renderMyTrips(){
+  const tripsList=document.getElementById('myTripsList');
+  const mine=listings.filter(l=>l.type==='gp' && cleanPhone(l.phone)===cleanPhone(me.phone));
+  mine.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  tripsList.innerHTML = mine.length===0
+    ? `<div class="empty"><b>Aucun trajet publié</b>Publiez votre premier trajet dans "Je voyage".</div>`
+    : mine.map(l=>`
+    <div class="gp-card">
+      <div class="top">
+        <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
+        <div class="price">${PRICE_PER_KG}€/kg</div>
+      </div>
+      <div class="meta">
+        <span>${flag(l.country)} <b>${l.country}</b></span>
+        <span>📅 <b>${fmtDate(l.date)}</b></span>
+        <span>🧳 <b>${remainingKg(l)} kg</b> dispo (sur ${l.kg}kg)</span>
+      </div>
+      ${remainingKg(l)<=0 ? `<div class="badge verified" style="display:block;">✅ Complet, n'apparaît plus dans les recherches</div>` : ''}
+      <div class="admin-actions" style="margin-top:12px;">
+        <button class="btn-approve" onclick="openEditListing('${l.id}')">Modifier</button>
+        <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+
+  const availBox=document.getElementById('availableColisList');
+  const available=listings.filter(l=>l.type==='colis' && cleanPhone(l.phone)!==cleanPhone(me.phone));
+  available.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  availBox.innerHTML = available.length===0
+    ? `<div class="empty"><b>Aucune demande disponible</b>Revenez plus tard, ou publiez votre trajet pour être trouvé plus facilement.</div>`
+    : available.map(l=>`
+    <div class="gp-card">
+      <div class="top"><div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div></div>
+      <div class="meta">
+        <span>${flag(l.country)} <b>${l.country}</b></span>
+        <span>📅 <b>${fmtDate(l.date)}</b></span>
+        <span>📦 <b>${l.kg} kg</b></span>
+      </div>
+      ${l.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(l.desc)}</div>` : ''}
+      <button class="btn gold sm" onclick="acceptColisRequest('${l.id}')">Accepter cette demande</button>
+    </div>`).join('');
+}
+async function acceptColisRequest(reqId){
+  const req=listings.find(x=>x.id===reqId && x.type==='colis');
+  if(!req) return;
+  const kg=req.kg;
+  const total=kg*PRICE_PER_KG, commission=kg*COMMISSION_PER_KG;
+  showToast("Acceptation en cours...");
+  const gpGeo=await getGeoPosition();
+  let pickupLocation='', pickupSuggested=false;
+  if(gpGeo && req.clientLat!=null && req.clientLng!=null){
+    const suggestion=await suggestMeetingPoint(req.clientLat, req.clientLng, gpGeo.lat, gpGeo.lng);
+    if(suggestion){ pickupLocation=suggestion; pickupSuggested=true; }
+  }
+  const order={
+    id:Date.now().toString(), listingId:req.id,
+    gpPhone:cleanPhone(me.phone), gpName:me.name,
+    clientPhone:cleanPhone(req.phone), clientName:req.name,
+    from:req.from, to:req.to, country:req.country, tripDate:req.date,
+    kg, photo:req.photo, desc:req.desc, value:req.value, recipientName:req.recipientName||'',
+    priceTotal:total, commission, priceNet:total-commission, discountUsed:false,
+    pickupLocation, pickupSuggested, pickupTime:'',
+    clientLat:req.clientLat||null, clientLng:req.clientLng||null,
+    gpLat:gpGeo?gpGeo.lat:null, gpLng:gpGeo?gpGeo.lng:null,
+    status:'accepted', deliveryCode:null, rating:null, ratingComment:null,
+    packageType:'colis', createdAt:Date.now()
+  };
+  orders.push(order);
+  await saveOrders();
+  listings=listings.filter(x=>x.id!==reqId);
+  try{ await db.collection('listings').doc(reqId).delete(); }catch(e){}
+  ensureThread(req.phone, req.name);
+  showToast(pickupSuggested ? "Demande acceptée ! Point de RDV suggéré automatiquement." : "Demande acceptée ! Proposez un lieu et un horaire de remise.");
+  renderMyTrips();
+}
+function renderMyDemandes(){
+  const colisList=document.getElementById('myColisList');
+  const myColis=listings.filter(l=>l.type==='colis' && cleanPhone(l.phone)===cleanPhone(me.phone));
+  myColis.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  colisList.innerHTML = myColis.length===0
+    ? `<div class="empty"><b>Aucune demande de colis</b>Décrivez votre colis dans "Envoyer un colis" si aucun voyageur ne correspond encore.</div>`
+    : myColis.map(l=>`
+    <div class="gp-card">
+      <div class="top">
+        <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
+        ${l.verified ? `<div class="badge verified">✅ Vérifié</div>` : `<div class="badge pending">⏳ En attente</div>`}
+      </div>
+      <div class="meta">
+        <span>${flag(l.country)} <b>${l.country}</b></span>
+        <span>📅 <b>${fmtDate(l.date)}</b></span>
+        <span>📦 <b>${l.kg} kg</b></span>
+      </div>
+      ${l.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(l.desc)}</div>` : ''}
+      <div class="admin-actions" style="margin-top:12px;">
+        <button class="btn-approve" onclick="openEditListing('${l.id}')">Modifier</button>
+        <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+
+  const alertsList=document.getElementById('myAlertsList');
+  const myAlerts=alerts.filter(a=>cleanPhone(a.phone)===cleanPhone(me.phone));
+  myAlerts.sort((a,b)=>b.createdAt-a.createdAt);
+  alertsList.innerHTML = myAlerts.length===0
+    ? `<div class="empty"><b>Aucune alerte</b>Depuis la recherche, cliquez sur "Me prévenir" quand aucun voyageur ne correspond.</div>`
+    : myAlerts.map(a=>`
+    <div class="gp-card">
+      <div class="top">
+        <div class="route">${esc(a.from) || '(ville de départ non précisée)'} <span class="dots">✈</span> ${esc(a.to) || '(ville d\'arrivée non précisée)'}</div>
+        ${a.notified ? `<div class="badge verified">✅ Notifiée</div>` : `<div class="badge pending">🔔 En attente</div>`}
+      </div>
+      <div class="meta">${a.country ? `<span>${flag(a.country)} <b>${a.country}</b></span>` : ''}</div>
+      <div class="admin-actions" style="margin-top:12px;">
+        <button class="btn-reject" onclick="removeMyAlert('${a.id}')">Supprimer</button>
+      </div>
+    </div>`).join('');
+}
+async function removeMyAlert(id){
+  alerts=alerts.filter(x=>x.id!==id);
+  try{ await db.collection('alerts').doc(id).delete(); }catch(e){}
+  showToast("Alerte supprimée");
+  renderMyDemandes();
+}
+let editingListingId=null;
+function openEditListing(id){
+  const l=listings.find(x=>x.id===id);
+  if(!l) return;
+  editingListingId=id;
+  document.getElementById('elFrom').value=l.from;
+  document.getElementById('elTo').value=l.to;
+  document.getElementById('elCountry').value=l.country;
+  document.getElementById('elDate').value=l.date||'';
+  document.getElementById('elKg').value=l.kg;
+  document.getElementById('editListingOverlay').classList.add('show');
+}
+function closeEditListing(){
+  document.getElementById('editListingOverlay').classList.remove('show');
+  editingListingId=null;
+}
+async function saveListingEdit(){
+  const l=listings.find(x=>x.id===editingListingId);
+  if(!l) return;
+  const from=document.getElementById('elFrom').value.trim();
+  const to=document.getElementById('elTo').value.trim();
+  const kg=parseInt(document.getElementById('elKg').value);
+  const date=document.getElementById('elDate').value;
+  const country=document.getElementById('elCountry').value;
+  if(!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
+  l.from=from; l.to=to; l.kg=kg; l.date=date; l.country=country;
+  await saveListings();
+  showToast("Mis à jour");
+  closeEditListing();
+  renderMyTrips();
+  renderMyDemandes();
+}
+async function removeMyListing(id){
+  listings=listings.filter(x=>x.id!==id);
+  try{ await db.collection('listings').doc(id).delete(); }catch(e){}
+  showToast("Supprimé");
+  renderMyTrips();
+  renderMyDemandes();
+}
+
+async function publishColis(){
+  const name=document.getElementById('sName').value.trim();
+  const phone=document.getElementById('sPhone').value.trim();
+  const from=document.getElementById('sFrom').value.trim();
+  const to=document.getElementById('sTo').value.trim();
+  const country=document.getElementById('sCountry').value;
+  const date=document.getElementById('sDate').value;
+  const kg=document.getElementById('sKg').value;
+  const desc=document.getElementById('sDesc').value.trim();
+  const value=document.getElementById('sValue').value;
+  const recipientName=document.getElementById('sRecipient').value.trim();
+  const photoFile=document.getElementById('sPhoto').files[0];
+
+  if(!name||!phone||!from||!to||!kg||!value||!recipientName){ showToast("Merci de remplir tous les champs"); return; }
+  if(parseInt(value)>150){ showToast("Valeur trop élevée (max 150€)"); return; }
+  if(!photoFile){ showToast("Merci d'ajouter une photo"); return; }
+  const rules=['ruleCash','ruleDocs','ruleValuables','ruleIllegal'];
+  if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Cochez toutes les cases"); return; }
+
+  showToast("Envoi en cours...");
+  let photo;
+  try{ photo=await compressImage(photoFile); }catch(e){ showToast("Photo illisible"); return; }
+  const geo=await getGeoPosition();
+
+  listings.push({id:Date.now().toString(),type:'colis',name,phone,from,to,country,date,kg:parseInt(kg),value:parseInt(value),desc,recipientName,verified:false,photo,clientLat:geo?geo.lat:null,clientLng:geo?geo.lng:null});
+  await saveListings();
+  ensureThread(phone,name); await saveMessages();
+  showToast("Demande envoyée ! 🙏");
+
+  ['sName','sPhone','sFrom','sTo','sDate','sKg','sDesc','sPhoto','sValue','sRecipient'].forEach(id=>document.getElementById(id).value='');
+  rules.forEach(id=>document.getElementById(id).checked=false);
+  ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('searchCountry').value='';
+  switchTab('search');
+}
+
+// ---- RECEIVE MODE (destinataire, sans compte) ----
+async function grantOrderCompletionRewards(clientPhone){
+  const key=cleanPhone(clientPhone);
+  const ref=db.collection('points').doc(key);
+  const snap=await withTimeout(ref.get(), 8000);
+  const data=snap.exists ? snap.data() : { points:0, referredBy:null, firstOrderCredited:false, refCode:genRefCode() };
+  data.points=(data.points||0)+10;
+  let referrerDoc=null;
+  if(data.referredBy && !data.firstOrderCredited){
+    data.firstOrderCredited=true;
+    try{
+      const q=await withTimeout(db.collection('points').where('refCode','==',data.referredBy).limit(1).get(), 8000);
+      if(!q.empty) referrerDoc=q.docs[0];
+    }catch(e){}
+  }
+  await withTimeout(ref.set(data), 8000);
+  if(referrerDoc){
+    const rData=referrerDoc.data();
+    rData.points=(rData.points||0)+10;
+    try{ await withTimeout(db.collection('points').doc(referrerDoc.id).set(rData), 8000); }catch(e){}
+  }
+}
+async function initReceiveMode(orderId){
+  receiveMode=true;
+  document.getElementById('receiveGate').classList.add('show');
+  const content=document.getElementById('receiveContent');
+  content.innerHTML=`<div class="sub" style="text-align:center;">Chargement…</div>`;
+  try{ if(!auth.currentUser){ await withTimeout(auth.signInAnonymously(), 10000); } }
+  catch(e){ content.innerHTML=`<div class="sub" style="text-align:center;">Connexion impossible. Vérifiez votre connexion internet et réessayez.</div>`; return; }
+  let snap;
+  try{ snap=await withTimeout(db.collection('orders').doc(orderId).get(), 10000); }
+  catch(e){ content.innerHTML=`<div class="sub" style="text-align:center;">Connexion impossible. Vérifiez votre connexion internet et réessayez.</div>`; return; }
+  if(!snap.exists){ content.innerHTML=`<div class="sub" style="text-align:center;">Lien invalide ou commande introuvable.</div>`; return; }
+  renderReceiveContent(orderId, snap.data());
+}
+function renderReceiveContent(orderId, order){
+  const content=document.getElementById('receiveContent');
+  let statusHtml;
+  if(order.status==='completed'){
+    statusHtml=`<div class="sub" style="text-align:center;">✅ Réception déjà confirmée. Merci !</div>`;
+  }else if(order.status!=='delivered'){
+    statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'a pas encore remis ce colis. Revenez sur ce lien une fois le colis en main. Vous pouvez déjà lui écrire ci-dessous.</div>`;
+  }else{
+    statusHtml=`
+      <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${esc(order.recipientName)},<br>`:''}confirmez que vous avez bien reçu le colis (${esc(order.from)} → ${esc(order.to)}) en entrant le code à 4 chiffres donné par le voyageur.</div>
+      <label>Code à 4 chiffres</label>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" id="receiveCodeInput" placeholder="Ex. 4821" maxlength="4">
+      <button class="btn gold" onclick="confirmReceiveDelivery('${orderId}')">Confirmer la réception</button>
+    `;
+  }
+  content.innerHTML = statusHtml + `
+    <div class="hint" style="margin-top:16px;">💬 Message au voyageur</div>
+    <div class="chat-thread" id="receiveChatThread" style="margin-top:6px;"></div>
+    <div class="chat-input">
+      <textarea id="receiveChatInput" placeholder="Écrire au voyageur..."></textarea>
+      <button class="btn" style="margin-top:0;" onclick="sendReceiveMessage('${orderId}')">Envoyer</button>
+    </div>
+  `;
+  loadReceiveChat(orderId);
+  if(!receiveChatPolling){ receiveChatPolling=setInterval(()=>loadReceiveChat(orderId), 6000); }
+}
+async function confirmReceiveDelivery(orderId){
+  const input=document.getElementById('receiveCodeInput');
+  if(!input) return;
+  const code=input.value.trim();
+  if(code.length!==4){ showToast("Entrez le code à 4 chiffres"); return; }
+  let snap;
+  try{ snap=await withTimeout(db.collection('orders').doc(orderId).get(), 10000); }
+  catch(e){ showToast("Connexion trop lente, réessayez"); return; }
+  if(!snap.exists){ showToast("Commande introuvable"); return; }
+  const order=snap.data();
+  if(order.status==='completed'){ renderReceiveContent(orderId, order); return; }
+  if(code!==order.deliveryCode){ showToast("Code incorrect, vérifiez avec le voyageur"); return; }
+  try{
+    await withTimeout(db.collection('orders').doc(orderId).update({status:'completed'}), 8000);
+    await grantOrderCompletionRewards(order.clientPhone);
+  }catch(e){ showToast("Erreur, réessayez"); return; }
+  showToast("Merci, réception confirmée ! 🎉");
+  renderReceiveContent(orderId, {...order, status:'completed'});
+}
+async function loadReceiveChat(orderId){
+  const el=document.getElementById('receiveChatThread');
+  if(!el) return;
+  try{
+    const snap=await withTimeout(db.collection('orderMsgs').doc(orderId+'_recipient').get(), 8000);
+    const thread=(snap.exists && snap.data().thread) || [];
+    el.innerHTML = thread.length===0
+      ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:6px 0;">Aucun message.</p>`
+      : thread.map(m=>`<div class="bubble ${m.from==='recipient'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+    el.scrollTop = el.scrollHeight;
+  }catch(e){}
+}
+async function sendReceiveMessage(orderId){
+  const input=document.getElementById('receiveChatInput');
+  if(!input) return;
+  const text=input.value.trim();
+  if(!text) return;
+  input.value='';
+  try{
+    const ref=db.collection('orderMsgs').doc(orderId+'_recipient');
+    const snap=await withTimeout(ref.get(), 8000);
+    const thread=(snap.exists && snap.data().thread) || [];
+    thread.push({from:'recipient', text, ts:Date.now()});
+    await withTimeout(ref.set({thread}), 8000);
+    loadReceiveChat(orderId);
+  }catch(e){ showToast("Erreur d'envoi, réessayez"); }
+}
+
+// ---- INIT ----
+(function(){
+  syncDarkModeToggle();
+  const params=new URLSearchParams(location.search);
+  pendingRef = params.get('ref');
+  const receiveOrderId = params.get('receive');
+  if(receiveOrderId){ initReceiveMode(receiveOrderId); }
+})();
+</script>
+
+</body>
+</html>
