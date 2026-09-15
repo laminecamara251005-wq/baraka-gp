@@ -1028,12 +1028,18 @@ function renderResults(){
   const to=document.getElementById('searchTo').value.trim();
   displayResults(country, from, to);
 }
+function remainingKg(l){
+  const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
+  const used=orders.filter(o=>o.listingId===l.id && activeStatuses.includes(o.status)).reduce((sum,o)=>sum+(o.kg||0),0);
+  return Math.max(0, l.kg-used);
+}
 function displayResults(country, from, to){
   const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
   let filtered=listings.filter(l=>{
     if(l.type!=='gp') return false;
     if(me && cleanPhone(l.phone)===cleanPhone(me.phone)) return false;
     if(me && orders.some(o=>o.listingId===l.id && cleanPhone(o.clientPhone)===cleanPhone(me.phone) && activeStatuses.includes(o.status))) return false;
+    if(remainingKg(l)<=0) return false;
     if(country && l.country!==country) return false;
     if(from && !l.from.toLowerCase().includes(from.toLowerCase())) return false;
     if(to && !l.to.toLowerCase().includes(to.toLowerCase())) return false;
@@ -1075,7 +1081,7 @@ function displayResults(country, from, to){
       <div class="meta">
         <span>${flag(l.country)} <b>${l.country}</b></span>
         <span>📅 <b>${fmtDate(l.date)}</b></span>
-        <span>🧳 <b>${l.kg} kg</b> dispo</span>
+        <span>🧳 <b>${remainingKg(l)} kg</b> dispo</span>
       </div>
       ${avg!==null ? `<div style="margin-top:6px;">${starsHtml(avg)}</div>` : ''}
       ${verified ? `<div class="badge verified">✅ Voyageur vérifié</div>` : `<div class="badge pending">⏳ Vérification en cours</div>`}
@@ -1102,8 +1108,8 @@ function setPackageType(type){
 function openOrderModal(listing){
   pendingListing=listing;
   ensureIdentity(()=>{
-    document.getElementById('orderRouteInfo').textContent = `${listing.from} → ${listing.to} · ${fmtDate(listing.date)} · max ${listing.kg}kg dispo`;
-    document.getElementById('oKg').max=listing.kg;
+    document.getElementById('orderRouteInfo').textContent = `${listing.from} → ${listing.to} · ${fmtDate(listing.date)} · max ${remainingKg(listing)}kg dispo`;
+    document.getElementById('oKg').max=remainingKg(listing);
     document.getElementById('oKg').value='';
     document.getElementById('oDesc').value=''; document.getElementById('oValue').value='';
     document.getElementById('oRecipient').value='';
@@ -1138,7 +1144,8 @@ async function submitOrder(){
   const time_=document.getElementById('oTime').value;
   const rules=['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal'];
 
-  if(!kg||kg<1||kg>l.kg){ showToast(`Merci d'indiquer un poids valide (max ${l.kg}kg)`); return; }
+  const maxKg=remainingKg(l);
+  if(!kg||kg<1||kg>maxKg){ showToast(maxKg<=0 ? "Ce trajet est complet, il n'y a plus de place disponible" : `Merci d'indiquer un poids valide (max ${maxKg}kg)`); return; }
   if(!value){ showToast("Merci d'indiquer la valeur déclarée"); return; }
   if(!recipientName){ showToast("Merci d'indiquer le nom du destinataire"); return; }
   if(parseInt(value)>150){ showToast("Valeur déclarée trop élevée (max 150€)"); return; }
@@ -1594,8 +1601,9 @@ function renderMyTrips(){
       <div class="meta">
         <span>${flag(l.country)} <b>${l.country}</b></span>
         <span>📅 <b>${fmtDate(l.date)}</b></span>
-        <span>🧳 <b>${l.kg} kg</b> dispo</span>
+        <span>🧳 <b>${remainingKg(l)} kg</b> dispo (sur ${l.kg}kg)</span>
       </div>
+      ${remainingKg(l)<=0 ? `<div class="badge verified" style="display:block;">✅ Complet, n'apparaît plus dans les recherches</div>` : ''}
       <div class="admin-actions" style="margin-top:12px;">
         <button class="btn-approve" onclick="openEditListing('${l.id}')">Modifier</button>
         <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
