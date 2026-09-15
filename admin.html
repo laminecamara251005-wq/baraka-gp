@@ -125,6 +125,8 @@ let adminSub='profiles', adminOpenThreadPhone=null;
 let pollTimer=null;
 
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escJs(s){ return esc(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")); }
 function withTimeout(promise, ms){
   return Promise.race([
     promise,
@@ -273,9 +275,9 @@ function renderAdminAlerts(){
   list.innerHTML=alerts.slice().reverse().map(a=>`
     <div class="admin-card">
       <span class="type-pill ${a.notified?'gp':'colis'}">${a.notified?'✅ Déjà notifié':'🔔 En attente'}</span><br>
-      <b>${a.name}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${a.phone}</span>
+      <b>${esc(a.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(a.phone)}</span>
       <div class="name-check">Trajet souhaité</div>
-      <p style="font-size:13.5px;margin:0;">${a.from || '(ville de départ non précisée)'} → ${a.to || '(ville d\'arrivée non précisée)'}${a.country ? ' · ' + a.country : ''}</p>
+      <p style="font-size:13.5px;margin:0;">${esc(a.from) || '(ville de départ non précisée)'} → ${esc(a.to) || '(ville d\'arrivée non précisée)'}${a.country ? ' · ' + esc(a.country) : ''}</p>
       <div class="name-check">Demande créée le ${fmtTime(a.createdAt)}</div>
       <div class="admin-actions">
         <button class="btn-reject" onclick="removeAlert('${a.id}')">Supprimer</button>
@@ -294,10 +296,10 @@ function renderAdminProfiles(){
   list.innerHTML=entries.slice().reverse().map(([phone,p])=>`
     <div class="admin-card">
       <span class="type-pill profile">👤 IDENTITÉ</span><br>
-      <b>${p.name}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${p.phone}</span>
+      <b>${esc(p.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(p.phone)}</span>
       ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
       <div class="name-check">Pièce d'identité</div>
-      ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${p.idPhoto?p.idPhoto.name:'non fourni'}</p>`}
+      ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(p.idPhoto?p.idPhoto.name:'non fourni')}</p>`}
       <div class="admin-actions">
         <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
         <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer</button>
@@ -311,7 +313,7 @@ function renderAdminOrders(){
     <div class="admin-card">
       <span class="type-pill gp">${statusLabel(o.status)}</span>
       <span class="type-pill colis">${o.packageType==='valise' ? '🧳 Valise entière' : '📦 Colis'}</span><br>
-      <b>${o.clientName}</b> → <b>${o.gpName}</b> · ${o.from} → ${o.to}<br>
+      <b>${esc(o.clientName)}</b> → <b>${esc(o.gpName)}</b> · ${esc(o.from)} → ${esc(o.to)}<br>
       <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
       ${o.weightProof&&o.weightProof.type==='image'?`<div class="name-check">Photo sur balance</div><img src="${o.weightProof.data}">`:''}
       <div class="admin-actions">
@@ -341,13 +343,13 @@ function renderAdminListings(){
     <div class="admin-card">
       <span class="type-pill ${isGp?'gp':'colis'}">${isGp?'✈️ VOYAGEUR':'📦 COLIS'}</span>
       ${habitCount>1?`<span class="type-pill profile">🔁 Habitué (${habitCount}x)</span>`:''}<br>
-      <b>${isGp?(profile.name||'?'):l.name}</b> — ${l.from} → ${l.to} (${l.country})<br>
-      <span style="color:var(--ink-soft);font-size:12.5px;">📱 ${isGp?profile.phone:l.phone} · ${fmtDate(l.date)} · ${l.kg}kg${!isGp&&l.value?` · valeur ${l.value}€`:''}</span>
+      <b>${esc(isGp?(profile.name||'?'):l.name)}</b> — ${esc(l.from)} → ${esc(l.to)} (${esc(l.country)})<br>
+      <span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(isGp?profile.phone:l.phone)} · ${fmtDate(l.date)} · ${l.kg}kg${!isGp&&l.value?` · valeur ${l.value}€`:''}</span>
       ${isGp?`<div style="margin-top:6px;font-size:12px;">${profile.verified?'✅ Identité vérifiée':'⏳ Non vérifiée'}</div>`:''}
-      ${isGp&&l.ticket?`<div class="name-check">Billet</div>${l.ticket.type==='image'?`<img src="${l.ticket.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${l.ticket.name}</p>`}`:''}
-      ${!isGp&&l.desc?`<div style="font-size:12.5px;margin-top:6px;">📝 ${l.desc}</div>`:''}
+      ${isGp&&l.ticket?`<div class="name-check">Billet</div>${l.ticket.type==='image'?`<img src="${l.ticket.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(l.ticket.name)}</p>`}`:''}
+      ${!isGp&&l.desc?`<div style="font-size:12.5px;margin-top:6px;">📝 ${esc(l.desc)}</div>`:''}
       ${!isGp&&l.photo?(l.photo.type==='image'?`<img src="${l.photo.data}">`:''):''}
-      ${isGp&&matches.length>0?`<div class="name-check">🔔 ${matches.length} à prévenir</div>${matches.map(a=>`<div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px;"><span>${a.name}</span><button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11.5px;" onclick="notifyAlert('${a.id}','${l.from}','${l.to}','${fmtDate(l.date)}')">Notifier</button></div>`).join('')}`:''}
+      ${isGp&&matches.length>0?`<div class="name-check">🔔 ${matches.length} à prévenir</div>${matches.map(a=>`<div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px;"><span>${esc(a.name)}</span><button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11.5px;" onclick="notifyAlert('${a.id}','${escJs(l.from)}','${escJs(l.to)}','${fmtDate(l.date)}')">Notifier</button></div>`).join('')}`:''}
       <div class="admin-actions">
         ${!isGp?`<button class="btn-approve" onclick="setColisVerified('${l.id}',true)">${l.verified?'✅ Vérifié':'Approuver'}</button>`:''}
         <button class="btn-reject" onclick="removeListing('${l.id}')">Supprimer</button>
@@ -369,8 +371,8 @@ function renderAdminMessages(){
     if(!th){ adminOpenThreadPhone=null; renderAdminMessages(); return; }
     list.innerHTML=`
       <button class="btn ghost sm" onclick="adminOpenThreadPhone=null;renderAdminMessages();">← Retour</button>
-      <div style="font-weight:700;margin:10px 0;">${th.name} · ${adminOpenThreadPhone}</div>
-      <div class="chat-thread">${th.thread.map(m=>`<div class="bubble ${m.from==='admin'?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('')||'<p style="color:var(--ink-soft);font-size:12.5px;">Aucun message.</p>'}</div>
+      <div style="font-weight:700;margin:10px 0;">${esc(th.name)} · ${esc(adminOpenThreadPhone)}</div>
+      <div class="chat-thread">${th.thread.map(m=>`<div class="bubble ${m.from==='admin'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('')||'<p style="color:var(--ink-soft);font-size:12.5px;">Aucun message.</p>'}</div>
       <div class="chat-input"><textarea id="adminChatInput" placeholder="Répondre..."></textarea><button class="btn" style="margin-top:0;" onclick="sendAdminMessage()">Envoyer</button></div>`;
     return;
   }
@@ -382,7 +384,7 @@ function renderAdminMessages(){
   list.innerHTML=entries.map(([phone,th])=>{
     const last=th.thread[th.thread.length-1];
     return `<div class="thread-row" onclick="adminOpenThreadPhone='${phone}';renderAdminMessages();">
-      <div><b>${th.name}</b><br><span style="color:var(--ink-soft);font-size:12px;">${last?last.text.slice(0,38)+(last.text.length>38?'…':''):'Pas de message'}</span></div>
+      <div><b>${esc(th.name)}</b><br><span style="color:var(--ink-soft);font-size:12px;">${last?esc(last.text.slice(0,38)+(last.text.length>38?'…':'')):'Pas de message'}</span></div>
       ${th.unreadAdmin?`<span class="unread">Nouveau</span>`:''}
     </div>`;
   }).join('');

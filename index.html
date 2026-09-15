@@ -569,6 +569,7 @@ let currentOrderChatId=null, ordersRole='client';
 let pollTimer=null, pendingRef=null, receiveMode=false, receiveChatPolling=null;
 
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function withTimeout(promise, ms){
   return Promise.race([
     promise,
@@ -742,7 +743,7 @@ function updateUserHeader(){
   document.getElementById('drawerNameLabel').textContent=me.name||'Mon compte';
   document.getElementById('drawerAvatarBox').innerHTML = (me.avatar && me.avatar.type==='image')
     ? `<img src="${me.avatar.data}" class="avatar">`
-    : `<div class="avatar avatar-placeholder">${(me.name||'?').charAt(0).toUpperCase()}</div>`;
+    : `<div class="avatar avatar-placeholder">${esc((me.name||'?').charAt(0).toUpperCase())}</div>`;
 }
 async function changeMyAvatar(){
   const file=document.getElementById('changeAvatarInput').files[0];
@@ -1015,7 +1016,7 @@ function renderThread(){
   const th=messages[key]?messages[key].thread:[];
   box.innerHTML = th.length===0
     ? `<p style="color:var(--ink-soft);font-size:13px;text-align:center;padding:16px 0;">Aucun message. Écrivez-nous !</p>`
-    : th.map(m=>`<div class="bubble ${m.from==='user'?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+    : th.map(m=>`<div class="bubble ${m.from==='user'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
   box.scrollTop=box.scrollHeight;
 }
 async function sendUserMessage(){
@@ -1081,6 +1082,20 @@ function remainingKg(l){
   const used=orders.filter(o=>o.listingId===l.id && activeStatuses.includes(o.status)).reduce((sum,o)=>sum+(o.kg||0),0);
   return Math.max(0, l.kg-used);
 }
+// Revérifie la capacité restante directement en base (pas le cache local, qui peut avoir
+// jusqu'à 4s de retard à cause du polling) juste avant de créer une commande, pour réduire
+// le risque que deux clients réservent en même temps plus de kg que ce qui est disponible.
+async function remainingKgLive(l){
+  try{
+    const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
+    const snap=await withTimeout(db.collection('orders').where('listingId','==',l.id).get(), 8000);
+    let used=0;
+    snap.forEach(doc=>{ const d=doc.data(); if(activeStatuses.includes(d.status)) used+=(d.kg||0); });
+    return Math.max(0, l.kg-used);
+  }catch(e){
+    return remainingKg(l);
+  }
+}
 function displayResults(country, from, to){
   const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
   let filtered=listings.filter(l=>{
@@ -1113,15 +1128,15 @@ function displayResults(country, from, to){
     const avg=gpRating(l.phone);
     const avatarHtml = profile.avatar && profile.avatar.type==='image'
       ? `<img src="${profile.avatar.data}" class="avatar">`
-      : `<div class="avatar avatar-placeholder">${(profile.name||'?').charAt(0).toUpperCase()}</div>`;
+      : `<div class="avatar avatar-placeholder">${esc((profile.name||'?').charAt(0).toUpperCase())}</div>`;
     return `
     <div class="gp-card">
       <div class="top">
         <div style="display:flex;align-items:center;gap:10px;">
           ${avatarHtml}
           <div>
-            <div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div>
-            <div style="font-size:12px;color:var(--ink-soft);">${profile.name||'Voyageur'}</div>
+            <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
+            <div style="font-size:12px;color:var(--ink-soft);">${esc(profile.name||'Voyageur')}</div>
           </div>
         </div>
         <div class="price">${PRICE_PER_KG}€/kg</div>
@@ -1209,6 +1224,9 @@ async function submitOrder(){
     photo=await compressImage(photoFile);
     weightProof=await compressImage(weightProofFile);
   }catch(e){ showToast("Impossible de lire les photos"); return; }
+
+  const freshMaxKg=await remainingKgLive(l);
+  if(kg>freshMaxKg){ showToast(freshMaxKg<=0 ? "Ce trajet vient d'être complété par une autre commande" : `Il ne reste plus que ${freshMaxKg}kg disponibles sur ce trajet`); return; }
 
   let total=kg*PRICE_PER_KG;
   const commission=kg*COMMISSION_PER_KG;
@@ -1299,7 +1317,7 @@ function renderOrders(){
     return `
     <div class="order-card">
       <div class="top">
-        <div class="route">${o.from} <span class="dots">✈</span> ${o.to}</div>
+        <div class="route">${esc(o.from)} <span class="dots">✈</span> ${esc(o.to)}</div>
         <span class="status-pill ${o.status}">${statusLabel(o.status)}</span>
       </div>
       <div class="meta">
@@ -1312,11 +1330,11 @@ function renderOrders(){
       <div class="progress-labels"><span>Envoyée</span><span>Acceptée</span><span>Payée</span><span>Prise en charge</span><span>Remise</span><span>Terminée</span></div>
       ${countdown}
       <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);">
-        ${o.pickupLocation ? `📍 ${o.pickupLocation} · 🕒 ${fmtDateTime(o.pickupTime)}<br>` : ''}
+        ${o.pickupLocation ? `📍 ${esc(o.pickupLocation)} · 🕒 ${fmtDateTime(o.pickupTime)}<br>` : ''}
         ${ordersRole==='client' ? `💰 Prix total : <b>${o.priceTotal.toFixed(2)}€</b>${o.discountUsed?' <span style="color:var(--green-dark);">(remise 5€ appliquée)</span>':''}` : `💰 Vous touchez : <b>${o.priceNet.toFixed(2)}€</b> (commission Baraka GP déjà déduite)`}
       </div>
-      ${o.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${o.desc}</div>` : ''}
-      ${o.recipientName ? `<div style="font-size:12.5px;margin-top:4px;color:var(--ink-soft);">🙋 À remettre à : <b>${o.recipientName}</b></div>` : ''}
+      ${o.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(o.desc)}</div>` : ''}
+      ${o.recipientName ? `<div style="font-size:12.5px;margin-top:4px;color:var(--ink-soft);">🙋 À remettre à : <b>${esc(o.recipientName)}</b></div>` : ''}
       ${renderOrderActions(o)}
       ${!isFailed && o.status!=='pending' ? `
         <div class="chat-thread" id="oc-${o.id}" style="margin-top:12px;"></div>
@@ -1415,7 +1433,7 @@ function renderOrderActions(o){
     return `<button class="btn ghost sm" onclick="openRating('${o.id}')">⭐ Noter ce voyageur</button>`;
   }
   if(o.status==='completed' && o.rating){
-    return `<div class="hint" style="margin-top:10px;">${starsHtml(o.rating)} ${o.ratingComment?'— "'+o.ratingComment+'"':''}</div>`;
+    return `<div class="hint" style="margin-top:10px;">${starsHtml(o.rating)} ${o.ratingComment?'— "'+esc(o.ratingComment)+'"':''}</div>`;
   }
   return '';
 }
@@ -1498,6 +1516,14 @@ async function confirmDelivery(orderId){
   const input=document.getElementById('codeInput-'+orderId);
   if(!o||!input) return;
   if(input.value.trim()!==o.deliveryCode){ showToast("Code incorrect, vérifiez avec le voyageur"); return; }
+  let snap;
+  try{ snap=await withTimeout(db.collection('orders').doc(orderId).get(), 8000); }catch(e){ showToast("Connexion trop lente, réessayez"); return; }
+  if(snap.exists && snap.data().status==='completed'){
+    o.status='completed';
+    showToast("Déjà confirmé, merci ! 🎉");
+    renderOrders();
+    return;
+  }
   o.status='completed';
   await saveOrders();
   await awardPoints(o.clientPhone, 10, "🎉 Commande terminée, +10 points !");
@@ -1548,7 +1574,7 @@ function renderOrderChat(orderId){
   const th=orderMsgs[orderId]||[];
   box.innerHTML = th.length===0
     ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">Aucun message.</p>`
-    : th.map(m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+    : th.map(m=>`<div class="bubble ${m.from===ordersRole?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
   box.scrollTop=box.scrollHeight;
 }
 async function sendOrderMessage(orderId){
@@ -1568,7 +1594,7 @@ function renderRecipientChat(orderId){
   const th=orderMsgs[orderId+'_recipient']||[];
   box.innerHTML = th.length===0
     ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0;">Aucun message.</p>`
-    : th.map(m=>`<div class="bubble ${m.from==='gp'?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+    : th.map(m=>`<div class="bubble ${m.from==='gp'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
   box.scrollTop=box.scrollHeight;
 }
 async function sendRecipientMessage(orderId){
@@ -1647,7 +1673,7 @@ function renderMyTrips(){
     : mine.map(l=>`
     <div class="gp-card">
       <div class="top">
-        <div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div>
+        <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
         <div class="price">${PRICE_PER_KG}€/kg</div>
       </div>
       <div class="meta">
@@ -1669,13 +1695,13 @@ function renderMyTrips(){
     ? `<div class="empty"><b>Aucune demande disponible</b>Revenez plus tard, ou publiez votre trajet pour être trouvé plus facilement.</div>`
     : available.map(l=>`
     <div class="gp-card">
-      <div class="top"><div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div></div>
+      <div class="top"><div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div></div>
       <div class="meta">
         <span>${flag(l.country)} <b>${l.country}</b></span>
         <span>📅 <b>${fmtDate(l.date)}</b></span>
         <span>📦 <b>${l.kg} kg</b></span>
       </div>
-      ${l.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${l.desc}</div>` : ''}
+      ${l.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(l.desc)}</div>` : ''}
       <button class="btn gold sm" onclick="acceptColisRequest('${l.id}')">Accepter cette demande</button>
     </div>`).join('');
 }
@@ -1721,7 +1747,7 @@ function renderMyDemandes(){
     : myColis.map(l=>`
     <div class="gp-card">
       <div class="top">
-        <div class="route">${l.from} <span class="dots">✈</span> ${l.to}</div>
+        <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
         ${l.verified ? `<div class="badge verified">✅ Vérifié</div>` : `<div class="badge pending">⏳ En attente</div>`}
       </div>
       <div class="meta">
@@ -1729,7 +1755,7 @@ function renderMyDemandes(){
         <span>📅 <b>${fmtDate(l.date)}</b></span>
         <span>📦 <b>${l.kg} kg</b></span>
       </div>
-      ${l.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${l.desc}</div>` : ''}
+      ${l.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(l.desc)}</div>` : ''}
       <div class="admin-actions" style="margin-top:12px;">
         <button class="btn-approve" onclick="openEditListing('${l.id}')">Modifier</button>
         <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
@@ -1744,7 +1770,7 @@ function renderMyDemandes(){
     : myAlerts.map(a=>`
     <div class="gp-card">
       <div class="top">
-        <div class="route">${a.from || '(ville de départ non précisée)'} <span class="dots">✈</span> ${a.to || '(ville d\'arrivée non précisée)'}</div>
+        <div class="route">${esc(a.from) || '(ville de départ non précisée)'} <span class="dots">✈</span> ${esc(a.to) || '(ville d\'arrivée non précisée)'}</div>
         ${a.notified ? `<div class="badge verified">✅ Notifiée</div>` : `<div class="badge pending">🔔 En attente</div>`}
       </div>
       <div class="meta">${a.country ? `<span>${flag(a.country)} <b>${a.country}</b></span>` : ''}</div>
@@ -1879,7 +1905,7 @@ function renderReceiveContent(orderId, order){
     statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'a pas encore remis ce colis. Revenez sur ce lien une fois le colis en main. Vous pouvez déjà lui écrire ci-dessous.</div>`;
   }else{
     statusHtml=`
-      <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${order.recipientName},<br>`:''}confirmez que vous avez bien reçu le colis (${order.from} → ${order.to}) en entrant le code à 4 chiffres donné par le voyageur.</div>
+      <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${esc(order.recipientName)},<br>`:''}confirmez que vous avez bien reçu le colis (${esc(order.from)} → ${esc(order.to)}) en entrant le code à 4 chiffres donné par le voyageur.</div>
       <label>Code à 4 chiffres</label>
       <input type="text" inputmode="numeric" pattern="[0-9]*" id="receiveCodeInput" placeholder="Ex. 4821" maxlength="4">
       <button class="btn gold" onclick="confirmReceiveDelivery('${orderId}')">Confirmer la réception</button>
@@ -1923,7 +1949,7 @@ async function loadReceiveChat(orderId){
     const thread=(snap.exists && snap.data().thread) || [];
     el.innerHTML = thread.length===0
       ? `<p style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:6px 0;">Aucun message.</p>`
-      : thread.map(m=>`<div class="bubble ${m.from==='recipient'?'mine':'theirs'}">${m.text}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
+      : thread.map(m=>`<div class="bubble ${m.from==='recipient'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('');
     el.scrollTop = el.scrollHeight;
   }catch(e){}
 }

@@ -71,3 +71,16 @@ Le lien de confirmation de réception (`?receive=...`) est protégé par le code
 intercepte le lien ET le code pourrait valider une réception à la place du
 vrai destinataire. C'est le même niveau de sécurité que le code de remise
 utilisé plus tôt dans le parcours, pas un vrai contrôle d'identité.
+
+La collection `points` (solde de fidélité de chacun) est, comme le reste,
+seulement protégée par « il faut être connecté » — n'importe quel compte
+signé (y compris une session anonyme, utilisée pour la confirmation de
+réception) peut en théorie écrire directement n'importe quelle valeur sur le
+solde de n'importe qui via la console Firebase ou l'API, sans passer par
+l'app. Ce n'est pas un oubli isolé : le parrainage et le crédit de points à la
+livraison ont volontairement besoin d'écrire depuis le navigateur d'une
+personne sur le compte d'une autre (le parrain, le client), donc une règle
+"chacun ne modifie que son propre solde" casserait ces fonctionnalités. Une
+vraie protection demanderait qu'un serveur de confiance (Cloud Functions,
+formule Blaze) valide et applique lui-même les crédits de points, plutôt que
+de laisser chaque navigateur écrire directement dans la base.
