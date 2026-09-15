@@ -1270,9 +1270,11 @@ function hoursUntil(dateStr){
 function renderOrders(){
   const list=document.getElementById('ordersList');
   const myPhone=cleanPhone(me.phone);
-  const mine = ordersRole==='client'
+  const cancelledStatuses=['refused','cancelled_gp','cancelled_client','expired'];
+  const mine = (ordersRole==='client'
     ? orders.filter(o=>o.clientPhone===myPhone)
-    : orders.filter(o=>o.gpPhone===myPhone);
+    : orders.filter(o=>o.gpPhone===myPhone)
+  ).filter(o=>!cancelledStatuses.includes(o.status));
   mine.sort((a,b)=>b.createdAt-a.createdAt);
 
   if(mine.length===0){

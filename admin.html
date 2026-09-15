@@ -299,13 +299,19 @@ function renderAdminOrders(){
       <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
       ${o.weightProof&&o.weightProof.type==='image'?`<div class="name-check">Photo sur balance</div><img src="${o.weightProof.data}">`:''}
       <div class="admin-actions">
-        <button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>
+        ${['refused','cancelled_gp','cancelled_client','expired'].includes(o.status) ? '' : `<button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>`}
+        <button class="btn-reject" onclick="removeOrder('${o.id}')">Supprimer</button>
       </div>
     </div>`).join('');
 }
 async function adminCancelOrder(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(o){ o.status='cancelled_client'; await saveOrders(); renderAdminOrders(); showToast("Commande annulée"); }
+}
+async function removeOrder(orderId){
+  orders=orders.filter(x=>x.id!==orderId);
+  try{ await db.collection('orders').doc(orderId).delete(); }catch(e){}
+  renderAdminOrders(); showToast("Commande supprimée");
 }
 function renderAdminListings(){
   const list=document.getElementById('adminList');
