@@ -1630,6 +1630,8 @@ async function publishListing(){
   ['pName','pFrom','pTo','pDate','pKg','pTicket','pId'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pPhone').value=phoneRaw;
   rules.forEach(id=>document.getElementById(id).checked=false);
+  ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('searchCountry').value='';
   switchTab('search');
 }
 
@@ -1826,6 +1828,8 @@ async function publishColis(){
 
   ['sName','sPhone','sFrom','sTo','sDate','sKg','sDesc','sPhoto','sValue','sRecipient'].forEach(id=>document.getElementById(id).value='');
   rules.forEach(id=>document.getElementById(id).checked=false);
+  ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('searchCountry').value='';
   switchTab('search');
 }
 
