@@ -213,6 +213,22 @@ async function adminSignOut(){
   try{ await auth.signOut(); }catch(e){}
 }
 auth.onAuthStateChanged(async (user)=>{
+  if(user){
+    let isAdmin=false;
+    try{
+      const snap=await withTimeout(db.collection('admins').doc(user.uid).get(), 8000);
+      isAdmin=snap.exists;
+    }catch(e){}
+    if(!isAdmin){
+      stopPolling();
+      document.getElementById('loginView').style.display='block';
+      document.getElementById('panelView').style.display='none';
+      document.getElementById('signOutBtn').style.display='inline-block';
+      showToast("Ce compte n'est pas reconnu comme admin (UID absent de la collection « admins »).");
+      try{ await auth.signOut(); }catch(e){}
+      return;
+    }
+  }
   document.getElementById('loginView').style.display = user ? 'none' : 'block';
   document.getElementById('panelView').style.display = user ? 'block' : 'none';
   document.getElementById('signOutBtn').style.display = user ? 'inline-block' : 'none';
