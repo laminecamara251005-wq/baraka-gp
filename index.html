@@ -447,10 +447,7 @@
     <input type="text" id="oRecipient" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
 
     <div class="order-section-title">📍 Remise du colis</div>
-    <label>Lieu proposé</label>
-    <input type="text" id="oLocation" placeholder="Ex. Gare du Nord, Paris">
-    <label>Horaire proposé</label>
-    <input type="datetime-local" id="oTime">
+    <div class="hint">Le lieu de RDV sera suggéré automatiquement à l'acceptation du voyageur (selon vos positions), ou proposé par lui si ce n'est pas possible.</div>
 
     <div class="order-section-title">✅ Vérifications</div>
     <div class="rules-box">
@@ -1177,7 +1174,6 @@ function openOrderModal(listing){
     document.getElementById('oKg').value='';
     document.getElementById('oDesc').value=''; document.getElementById('oValue').value='';
     document.getElementById('oRecipient').value='';
-    document.getElementById('oLocation').value=''; document.getElementById('oTime').value='';
     document.getElementById('oPhoto').value=''; document.getElementById('oWeightProof').value='';
     setPackageType('colis');
     ['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal','oLiability'].forEach(id=>document.getElementById(id).checked=false);
@@ -1204,8 +1200,6 @@ async function submitOrder(){
   const recipientName=document.getElementById('oRecipient').value.trim();
   const photoFile=document.getElementById('oPhoto').files[0];
   const weightProofFile=document.getElementById('oWeightProof').files[0];
-  const location_=document.getElementById('oLocation').value.trim();
-  const time_=document.getElementById('oTime').value;
   const rules=['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal'];
 
   const maxKg=remainingKg(l);
@@ -1215,7 +1209,6 @@ async function submitOrder(){
   if(parseInt(value)>150){ showToast("Valeur déclarée trop élevée (max 150€)"); return; }
   if(!photoFile){ showToast("Merci d'ajouter une photo du colis"); return; }
   if(!weightProofFile){ showToast("Merci d'ajouter une photo du colis sur une balance"); return; }
-  if(!location_||!time_){ showToast("Merci d'indiquer un lieu et un horaire de remise"); return; }
   if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Merci de cocher toutes les cases"); return; }
   if(!document.getElementById('oLiability').checked){ showToast("Merci d'accepter l'attestation"); return; }
 
@@ -1228,6 +1221,8 @@ async function submitOrder(){
 
   const freshMaxKg=await remainingKgLive(l);
   if(kg>freshMaxKg){ showToast(freshMaxKg<=0 ? "Ce trajet vient d'être complété par une autre commande" : `Il ne reste plus que ${freshMaxKg}kg disponibles sur ce trajet`); return; }
+
+  const geo=await getGeoPosition();
 
   let total=kg*PRICE_PER_KG;
   const commission=kg*COMMISSION_PER_KG;
@@ -1250,7 +1245,8 @@ async function submitOrder(){
     packageType:orderPackageType,
     kg, photo, weightProof, desc, value:parseInt(value), recipientName,
     priceTotal:total, commission, priceNet:(kg*PRICE_PER_KG)-commission, discountUsed,
-    pickupLocation:location_, pickupTime:time_,
+    pickupLocation:'', pickupSuggested:false, pickupTime:'',
+    clientLat:geo?geo.lat:null, clientLng:geo?geo.lng:null, gpLat:null, gpLng:null,
     status:'pending', deliveryCode:null, rating:null, ratingComment:null,
     createdAt:Date.now()
   };
@@ -1443,8 +1439,19 @@ async function respondOrder(orderId, status){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
   o.status=status;
+  if(status==='accepted' && !o.pickupLocation){
+    showToast("Acceptation en cours...");
+    const gpGeo=await getGeoPosition();
+    if(gpGeo){
+      o.gpLat=gpGeo.lat; o.gpLng=gpGeo.lng;
+      if(o.clientLat!=null && o.clientLng!=null){
+        const suggestion=await suggestMeetingPoint(o.clientLat, o.clientLng, gpGeo.lat, gpGeo.lng);
+        if(suggestion){ o.pickupLocation=suggestion; o.pickupSuggested=true; }
+      }
+    }
+  }
   await saveOrders();
-  showToast(status==='accepted' ? "Commande acceptée !" : "Mise à jour effectuée");
+  showToast(status==='accepted' ? (o.pickupSuggested ? "Commande acceptée ! Point de RDV suggéré automatiquement." : "Commande acceptée !") : "Mise à jour effectuée");
   renderOrders();
 }
 async function gpProposePickup(orderId){
