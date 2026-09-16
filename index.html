@@ -706,6 +706,7 @@ async function completeLogin(uid, acc){
   updateUserHeader();
   updateNotifBadge();
   renderResults();
+  startPolling();
 }
 function setBadge(id, count){
   const el=document.getElementById(id);
