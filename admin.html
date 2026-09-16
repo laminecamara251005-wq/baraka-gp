@@ -170,11 +170,12 @@ async function loadAll(){
   try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
   try{ orders=await fetchCollectionArray('orders'); }catch(e){ orders=[]; }
 }
-async function saveListings(){ try{ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }catch(e){} }
-async function saveProfiles(){ try{ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }catch(e){} }
-async function saveAlerts(){ try{ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }catch(e){} }
-async function saveMessages(){ try{ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }catch(e){} }
-async function saveOrders(){ try{ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }catch(e){} }
+async function saveListings(){ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }
+async function saveProfiles(){ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }
+async function saveAlerts(){ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }
+async function saveMessages(){ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }
+async function saveOrders(){ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }
+function adminWriteError(e){ showToast("Échec : "+((e&&e.code==='permission-denied')?"droits admin manquants (vérifiez la collection « admins »)":"connexion instable, réessayez")); }
 
 function ensureThread(phone,name){
   const key=cleanPhone(phone);
@@ -285,9 +286,11 @@ function renderAdminAlerts(){
     </div>`).join('');
 }
 async function removeAlert(id){
-  alerts=alerts.filter(x=>x.id!==id);
-  try{ await db.collection('alerts').doc(id).delete(); }catch(e){}
-  renderAdminAlerts(); showToast("Supprimé");
+  try{
+    await db.collection('alerts').doc(id).delete();
+    alerts=alerts.filter(x=>x.id!==id);
+    renderAdminAlerts(); showToast("Supprimé");
+  }catch(e){ adminWriteError(e); }
 }
 function renderAdminProfiles(){
   const list=document.getElementById('adminList');
@@ -324,12 +327,18 @@ function renderAdminOrders(){
 }
 async function adminCancelOrder(orderId){
   const o=orders.find(x=>x.id===orderId);
-  if(o){ o.status='cancelled_client'; await saveOrders(); renderAdminOrders(); showToast("Commande annulée"); }
+  if(!o) return;
+  const prevStatus=o.status;
+  o.status='cancelled_client';
+  try{ await saveOrders(); renderAdminOrders(); showToast("Commande annulée"); }
+  catch(e){ o.status=prevStatus; adminWriteError(e); }
 }
 async function removeOrder(orderId){
-  orders=orders.filter(x=>x.id!==orderId);
-  try{ await db.collection('orders').doc(orderId).delete(); }catch(e){}
-  renderAdminOrders(); showToast("Commande supprimée");
+  try{
+    await db.collection('orders').doc(orderId).delete();
+    orders=orders.filter(x=>x.id!==orderId);
+    renderAdminOrders(); showToast("Commande supprimée");
+  }catch(e){ adminWriteError(e); }
 }
 function renderAdminListings(){
   const list=document.getElementById('adminList');
@@ -360,9 +369,11 @@ function renderAdminListings(){
 async function notifyAlert(alertId,from,to,date){
   const a=alerts.find(x=>x.id===alertId);
   if(!a) return;
-  await pushMessage(a.phone,'admin',`Bonjour ${a.name}, un voyageur part de ${from} vers ${to} le ${date} ! Répondez ici pour être mis en relation.`);
-  a.notified=true; await saveAlerts();
-  showToast("Message envoyé"); renderAdminListings();
+  try{
+    await pushMessage(a.phone,'admin',`Bonjour ${a.name}, un voyageur part de ${from} vers ${to} le ${date} ! Répondez ici pour être mis en relation.`);
+    a.notified=true; await saveAlerts();
+    showToast("Message envoyé"); renderAdminListings();
+  }catch(e){ adminWriteError(e); }
 }
 function renderAdminMessages(){
   const list=document.getElementById('adminList');
@@ -392,21 +403,40 @@ function renderAdminMessages(){
 async function sendAdminMessage(){
   const text=document.getElementById('adminChatInput').value.trim();
   if(!text||!adminOpenThreadPhone) return;
-  await pushMessage(adminOpenThreadPhone,'admin',text);
-  messages[adminOpenThreadPhone].unreadAdmin=false;
-  await saveMessages(); renderAdminMessages();
+  try{
+    await pushMessage(adminOpenThreadPhone,'admin',text);
+    messages[adminOpenThreadPhone].unreadAdmin=false;
+    await saveMessages(); renderAdminMessages();
+  }catch(e){ adminWriteError(e); }
 }
-async function setProfileVerified(phone,val){ if(profiles[phone]){ profiles[phone].verified=val; await saveProfiles(); renderAdminProfiles(); showToast("Mis à jour"); } }
+async function setProfileVerified(phone,val){
+  if(!profiles[phone]) return;
+  const prev=profiles[phone].verified;
+  profiles[phone].verified=val;
+  try{ await saveProfiles(); renderAdminProfiles(); showToast("Mis à jour"); }
+  catch(e){ profiles[phone].verified=prev; adminWriteError(e); }
+}
 async function removeProfile(phone){
-  delete profiles[phone];
-  try{ await db.collection('profiles').doc(phone).delete(); }catch(e){}
-  renderAdminProfiles(); showToast("Supprimé");
+  try{
+    await db.collection('profiles').doc(phone).delete();
+    delete profiles[phone];
+    renderAdminProfiles(); showToast("Supprimé");
+  }catch(e){ adminWriteError(e); }
 }
-async function setColisVerified(id,val){ const l=listings.find(x=>x.id===id); if(l){ l.verified=val; await saveListings(); renderAdminListings(); showToast("Mis à jour"); } }
+async function setColisVerified(id,val){
+  const l=listings.find(x=>x.id===id);
+  if(!l) return;
+  const prev=l.verified;
+  l.verified=val;
+  try{ await saveListings(); renderAdminListings(); showToast("Mis à jour"); }
+  catch(e){ l.verified=prev; adminWriteError(e); }
+}
 async function removeListing(id){
-  listings=listings.filter(x=>x.id!==id);
-  try{ await db.collection('listings').doc(id).delete(); }catch(e){}
-  renderAdminListings(); showToast("Supprimé");
+  try{
+    await db.collection('listings').doc(id).delete();
+    listings=listings.filter(x=>x.id!==id);
+    renderAdminListings(); showToast("Supprimé");
+  }catch(e){ adminWriteError(e); }
 }
 </script>
 
