@@ -967,7 +967,7 @@ function switchTab(tab){
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
   stopPolling();
-  if(tab==='search') renderResults();
+  if(tab==='search'){ renderResults(); startPolling(); }
   if(tab==='send' && me){ document.getElementById('sName').value=me.name; document.getElementById('sPhone').value=me.phone; }
   if(tab==='publish' && me){ document.getElementById('pName').value=me.name; document.getElementById('pPhone').value=me.phone; checkProfile(); }
   if(tab==='mytrips'){ ensureIdentity(()=>{ renderMyTrips(); startPolling(); }); }
@@ -986,6 +986,7 @@ function startPolling(){
   stopPolling();
   pollTimer=setInterval(async ()=>{
     await loadAll();
+    if(document.getElementById('viewSearch').style.display==='block') renderResults();
     if(document.getElementById('viewMessages').style.display==='block') renderThread();
     if(document.getElementById('viewOrders').style.display==='block') renderOrders();
     if(document.getElementById('viewMytrips').style.display==='block') renderMyTrips();
