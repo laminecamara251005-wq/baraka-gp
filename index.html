@@ -1496,7 +1496,7 @@ async function confirmPickup(orderId){
 async function markDelivered(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
-  if(!o.deliveryCode) o.deliveryCode = String(Math.floor(1000+Math.random()*9000));
+  o.deliveryCode = String(Math.floor(1000+Math.random()*9000));
   o.status='delivered';
   await saveOrders();
   showDeliveryCode(orderId);
@@ -1506,10 +1506,12 @@ function showDeliveryCode(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
   const receiveLink = location.origin + location.pathname + '?receive=' + orderId;
-  document.getElementById('codeModalTitle').textContent='À transmettre au destinataire';
-  document.getElementById('codeModalText').textContent = (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp). Il pourra vous écrire directement depuis ce lien, sans compte, et entrera le code à la remise du colis pour confirmer la réception.";
+  document.getElementById('codeModalTitle').textContent = o.deliveryCode ? 'À transmettre au destinataire' : 'Lien pour le destinataire';
+  document.getElementById('codeModalText').textContent = o.deliveryCode
+    ? (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp) et ce code, à donner à la remise du colis. Il confirmera lui-même la réception, sans avoir besoin de compte."
+    : (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp) pour qu'il puisse déjà vous écrire, sans compte. Le code de réception ne sera généré que quand vous marquerez le colis comme remis.";
   document.getElementById('codeModalContent').innerHTML = `
-    <div style="font-family:'Fraunces',serif;font-size:36px;letter-spacing:8px;color:var(--green-dark);text-align:center;margin:10px 0;">${o.deliveryCode}</div>
+    ${o.deliveryCode ? `<div style="font-family:'Fraunces',serif;font-size:36px;letter-spacing:8px;color:var(--green-dark);text-align:center;margin:10px 0;">${o.deliveryCode}</div>` : ''}
     <label>Lien de confirmation</label>
     <div class="link-row">
       <input type="text" readonly value="${receiveLink}" id="receiveLinkInput">
@@ -1616,10 +1618,7 @@ async function sendRecipientMessage(orderId){
   input.value='';
   renderRecipientChat(orderId);
 }
-async function shareWithRecipient(orderId){
-  const o=orders.find(x=>x.id===orderId);
-  if(!o) return;
-  if(!o.deliveryCode){ o.deliveryCode=String(Math.floor(1000+Math.random()*9000)); await saveOrders(); }
+function shareWithRecipient(orderId){
   showDeliveryCode(orderId);
 }
 
