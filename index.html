@@ -1112,11 +1112,7 @@ function displayResults(country, from, to){
   const list=document.getElementById('resultsList');
   if(filtered.length===0){
     list.innerHTML=`
-      <div class="empty">
-        <svg class="star" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><path d="M20 4 L24 16 L36 20 L24 24 L20 36 L16 24 L4 20 L16 16 Z" fill="#1E6F5C"/></svg>
-        <b>Aucun voyageur pour l'instant</b>Soyez alerté(e) dès qu'un GP correspond, ou déposez votre demande dans "Envoyer un colis".
-      </div>
-      <div class="panel" style="margin-top:2px;">
+      <div class="panel">
         <button class="btn gold" onclick="createAlert()">📢 Publier ma demande</button>
       </div>`;
     return;
