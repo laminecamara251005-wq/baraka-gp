@@ -1457,19 +1457,25 @@ async function respondOrder(orderId, status){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
   o.status=status;
+  let noSuggestionReason=null;
   if(status==='accepted' && !o.pickupLocation){
     showToast("Acceptation en cours...");
     const gpGeo=await getGeoPosition();
-    if(gpGeo){
+    if(!gpGeo){
+      noSuggestionReason="Votre position n'a pas pu être utilisée (accès refusé ou indisponible) — activez la localisation pour ce site si vous voulez que l'app propose un lieu automatiquement.";
+    }else{
       o.gpLat=gpGeo.lat; o.gpLng=gpGeo.lng;
-      if(o.clientLat!=null && o.clientLng!=null){
+      if(o.clientLat==null || o.clientLng==null){
+        noSuggestionReason="Le client n'a pas partagé sa position, donc l'app n'a pas pu suggérer de lieu.";
+      }else{
         const suggestion=await suggestMeetingPoint(o.clientLat, o.clientLng, gpGeo.lat, gpGeo.lng);
         if(suggestion){ o.pickupLocation=suggestion; o.pickupSuggested=true; }
+        else{ noSuggestionReason="Le service de cartographie n'a pas répondu — proposez un lieu vous-même."; }
       }
     }
   }
   await saveOrders();
-  showToast(status==='accepted' ? (o.pickupSuggested ? "Commande acceptée ! Point de RDV suggéré automatiquement." : "Commande acceptée !") : "Mise à jour effectuée");
+  showToast(status==='accepted' ? (o.pickupSuggested ? "Commande acceptée ! Point de RDV suggéré automatiquement." : "Commande acceptée !"+(noSuggestionReason?" "+noSuggestionReason:"")) : "Mise à jour effectuée");
   renderOrders();
 }
 async function gpProposePickup(orderId){
@@ -1748,10 +1754,15 @@ async function acceptColisRequest(reqId){
   const total=kg*PRICE_PER_KG, commission=kg*COMMISSION_PER_KG;
   showToast("Acceptation en cours...");
   const gpGeo=await getGeoPosition();
-  let pickupLocation='', pickupSuggested=false;
-  if(gpGeo && req.clientLat!=null && req.clientLng!=null){
+  let pickupLocation='', pickupSuggested=false, noSuggestionReason=null;
+  if(!gpGeo){
+    noSuggestionReason="Votre position n'a pas pu être utilisée (accès refusé ou indisponible) — activez la localisation pour ce site si vous voulez que l'app propose un lieu automatiquement.";
+  }else if(req.clientLat==null || req.clientLng==null){
+    noSuggestionReason="Le client n'a pas partagé sa position, donc l'app n'a pas pu suggérer de lieu.";
+  }else{
     const suggestion=await suggestMeetingPoint(req.clientLat, req.clientLng, gpGeo.lat, gpGeo.lng);
     if(suggestion){ pickupLocation=suggestion; pickupSuggested=true; }
+    else{ noSuggestionReason="Le service de cartographie n'a pas répondu — proposez un lieu vous-même."; }
   }
   const order={
     id:Date.now().toString(), listingId:req.id,
@@ -1771,7 +1782,7 @@ async function acceptColisRequest(reqId){
   listings=listings.filter(x=>x.id!==reqId);
   try{ await db.collection('listings').doc(reqId).delete(); }catch(e){}
   ensureThread(req.phone, req.name);
-  showToast(pickupSuggested ? "Demande acceptée ! Point de RDV suggéré automatiquement." : "Demande acceptée ! Proposez un lieu et un horaire de remise.");
+  showToast(pickupSuggested ? "Demande acceptée ! Point de RDV suggéré automatiquement." : "Demande acceptée !"+(noSuggestionReason?" "+noSuggestionReason:" Proposez un lieu et un horaire de remise."));
   renderMyTrips();
 }
 function renderMyDemandes(){
