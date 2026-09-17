@@ -981,10 +981,20 @@ function switchTab(tab){
     });
   }
 }
+function isTypingInChat(){
+  const el=document.activeElement;
+  if(!el || el.tagName!=='TEXTAREA') return false;
+  const id=el.id||'';
+  return id==='chatInput' || id.startsWith('oci-') || id.startsWith('rci-');
+}
 function startPolling(){
   stopPolling();
   pollTimer=setInterval(async ()=>{
     await loadAll();
+    // Ne pas reconstruire l'écran pendant qu'on tape un message : ça coupe le
+    // clavier et efface le texte en cours (les champs de chat sont recréés à
+    // chaque rendu de la liste des commandes).
+    if(isTypingInChat()){ updateNotifBadge(); return; }
     if(document.getElementById('viewSearch').style.display==='block') renderResults();
     if(document.getElementById('viewMessages').style.display==='block') renderThread();
     if(document.getElementById('viewOrders').style.display==='block') renderOrders();
