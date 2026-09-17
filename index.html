@@ -1827,10 +1827,14 @@ function renderMyDemandes(){
     </div>`).join('');
 }
 async function removeMyAlert(id){
-  alerts=alerts.filter(x=>x.id!==id);
-  try{ await db.collection('alerts').doc(id).delete(); }catch(e){}
-  showToast("Alerte supprimée");
-  renderMyDemandes();
+  try{
+    await withTimeout(db.collection('alerts').doc(id).delete(), 8000);
+    alerts=alerts.filter(x=>x.id!==id);
+    showToast("Alerte supprimée");
+    renderMyDemandes();
+  }catch(e){
+    showToast("Échec de la suppression : "+((e&&e.code==='permission-denied')?"règles Firestore à vérifier":"connexion instable, réessayez"));
+  }
 }
 let editingListingId=null;
 function openEditListing(id){
@@ -1865,11 +1869,15 @@ async function saveListingEdit(){
   renderMyDemandes();
 }
 async function removeMyListing(id){
-  listings=listings.filter(x=>x.id!==id);
-  try{ await db.collection('listings').doc(id).delete(); }catch(e){}
-  showToast("Supprimé");
-  renderMyTrips();
-  renderMyDemandes();
+  try{
+    await withTimeout(db.collection('listings').doc(id).delete(), 8000);
+    listings=listings.filter(x=>x.id!==id);
+    showToast("Supprimé");
+    renderMyTrips();
+    renderMyDemandes();
+  }catch(e){
+    showToast("Échec de la suppression : "+((e&&e.code==='permission-denied')?"règles Firestore à vérifier":"connexion instable, réessayez"));
+  }
 }
 
 async function publishColis(){
