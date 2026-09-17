@@ -192,12 +192,21 @@ async function pushMessage(phone,from,text){
 }
 
 // ---- AUTH ----
+function adminAuthErrorMessage(e){
+  if(e && e.message==='timeout') return "Connexion trop lente, réessayez";
+  const code=(e && e.code)||'';
+  if(code.includes('too-many-requests')) return "Trop de tentatives, patientez quelques minutes avant de réessayer";
+  if(code.includes('network-request-failed')) return "Pas de connexion internet, vérifiez votre réseau";
+  if(code.includes('user-disabled')) return "Ce compte a été désactivé";
+  if(code.includes('user-not-found')||code.includes('wrong-password')||code.includes('invalid-credential')||code.includes('invalid-email')) return "Email ou mot de passe incorrect";
+  return "Une erreur est survenue, réessayez";
+}
 async function adminSignIn(){
   const email=document.getElementById('adminEmail').value.trim();
   const password=document.getElementById('adminPassword').value;
   if(!email||!password){ showToast("Merci de remplir l'email et le mot de passe"); return; }
   try{ await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000); }
-  catch(e){ showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : "Identifiants incorrects"); }
+  catch(e){ showToast(adminAuthErrorMessage(e)); }
 }
 async function adminForgotPassword(){
   const email=document.getElementById('adminEmail').value.trim();
