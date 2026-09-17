@@ -981,12 +981,23 @@ function switchTab(tab){
     });
   }
 }
-function isTypingInChat(){
-  const el=document.activeElement;
-  if(!el || el.tagName!=='TEXTAREA') return false;
-  const id=el.id||'';
-  return id==='chatInput' || id.startsWith('oci-') || id.startsWith('rci-');
+// Repéré via des évènements de focus plutôt que document.activeElement au
+// moment du sondage : un champ de chat tout juste apparu (ex. juste après
+// l'acceptation d'une commande) peut ne pas encore être "actif" au sens
+// strict au moment précis où le minuteur de rafraîchissement se déclenche,
+// ce qui laissait passer une reconstruction destructrice et coupait le
+// clavier juste après l'avoir ouvert.
+let chatFocused=false;
+function isChatFieldId(id){
+  return id==='chatInput' || id==='adminChatInput' || id==='receiveChatInput' || id.startsWith('oci-') || id.startsWith('rci-');
 }
+document.addEventListener('focusin', e=>{
+  if(e.target && e.target.tagName==='TEXTAREA' && isChatFieldId(e.target.id||'')) chatFocused=true;
+});
+document.addEventListener('focusout', e=>{
+  if(e.target && e.target.tagName==='TEXTAREA' && isChatFieldId(e.target.id||'')) chatFocused=false;
+});
+function isTypingInChat(){ return chatFocused; }
 function startPolling(){
   stopPolling();
   pollTimer=setInterval(async ()=>{
