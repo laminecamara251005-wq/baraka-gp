@@ -1134,8 +1134,11 @@ function displayResults(country, from, to){
   const list=document.getElementById('resultsList');
   if(filtered.length===0){
     list.innerHTML=`
-      <div class="panel">
-        <button class="btn gold" onclick="createAlert()">📢 Publier ma demande</button>
+      <div style="min-height:36vh;display:flex;align-items:center;justify-content:center;">
+        <div class="panel" style="width:100%;text-align:center;">
+          <div class="sub" style="margin-bottom:14px;">Aucun trajet ne correspond pour l'instant.</div>
+          <button class="btn gold" onclick="createAlert()">📢 Publier ma demande</button>
+        </div>
       </div>`;
     return;
   }
