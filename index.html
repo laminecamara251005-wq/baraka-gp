@@ -982,20 +982,28 @@ function switchTab(tab){
   }
 }
 // Repéré via des évènements de focus plutôt que document.activeElement au
-// moment du sondage : un champ de chat tout juste apparu (ex. juste après
+// moment du sondage : un champ tout juste apparu (ex. juste après
 // l'acceptation d'une commande) peut ne pas encore être "actif" au sens
 // strict au moment précis où le minuteur de rafraîchissement se déclenche,
 // ce qui laissait passer une reconstruction destructrice et coupait le
-// clavier juste après l'avoir ouvert.
+// clavier juste après l'avoir ouvert. Couvre tout champ texte à l'intérieur
+// de #ordersList (chat, lieu/horaire proposés, codes...) puisque c'est tout
+// ce conteneur qui est reconstruit à chaque rendu de la liste des
+// commandes — pas seulement les champs de discussion.
 let chatFocused=false;
-function isChatFieldId(id){
-  return id==='chatInput' || id==='adminChatInput' || id==='receiveChatInput' || id.startsWith('oci-') || id.startsWith('rci-');
+function isProtectedField(el){
+  if(!el) return false;
+  if(el.tagName!=='INPUT' && el.tagName!=='TEXTAREA') return false;
+  const id=el.id||'';
+  if(id==='chatInput' || id==='adminChatInput' || id==='receiveChatInput') return true;
+  const ordersList=document.getElementById('ordersList');
+  return !!(ordersList && ordersList.contains(el));
 }
 document.addEventListener('focusin', e=>{
-  if(e.target && e.target.tagName==='TEXTAREA' && isChatFieldId(e.target.id||'')) chatFocused=true;
+  if(isProtectedField(e.target)) chatFocused=true;
 });
 document.addEventListener('focusout', e=>{
-  if(e.target && e.target.tagName==='TEXTAREA' && isChatFieldId(e.target.id||'')) chatFocused=false;
+  if(isProtectedField(e.target)) chatFocused=false;
 });
 function isTypingInChat(){ return chatFocused; }
 function startPolling(){
