@@ -505,7 +505,7 @@ function renderAdminListings(){
       <span class="type-pill ${isGp?'gp':'colis'}">${isGp?'✈️ VOYAGEUR':'📦 COLIS'}</span>
       ${habitCount>1?`<span class="type-pill profile">🔁 Habitué (${habitCount}x)</span>`:''}<br>
       <b>${esc(isGp?(profile.name||'?'):l.name)}</b> — ${esc(l.from)} → ${esc(l.to)} (${esc(l.country)})<br>
-      <span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(isGp?profile.phone:l.phone)} · ${fmtDate(l.date)} · ${l.kg}kg${!isGp&&l.value?` · valeur ${l.value}€`:''}</span>
+      <span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(isGp?profile.phone:l.phone)} · ${fmtDate(l.date)} · ${l.kg}kg</span>
       ${isGp?`<div style="margin-top:6px;font-size:12px;">${profile.verified?'✅ Identité vérifiée':'⏳ Non vérifiée'}</div>`:''}
       ${isGp&&l.ticket?`<div class="name-check">Billet</div>${l.ticket.type==='image'?`<img src="${l.ticket.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(l.ticket.name)}</p>`}`:''}
       ${!isGp&&l.desc?`<div style="font-size:12.5px;margin-top:6px;">📝 ${esc(l.desc)}</div>`:''}

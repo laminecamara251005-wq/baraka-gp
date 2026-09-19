@@ -339,8 +339,6 @@
       <label>Poids approximatif</label><input type="number" id="sKg" placeholder="Ex. 5" min="1">
       <label>Description du contenu</label><textarea id="sDesc" placeholder="Ex. Vêtements et quelques cadeaux"></textarea>
       <label>Photo du colis</label><input type="file" id="sPhoto" accept="image/*">
-      <label>Valeur déclarée</label><input type="number" id="sValue" placeholder="Ex. 60" min="1">
-      <div class="hint">Plafond 150€.</div>
       <div class="rules-box">
         <div class="rules-title">⚠️ Objets strictement interdits</div>
         <label class="check-line"><input type="checkbox" id="ruleCash"> Espèces</label>
@@ -453,9 +451,6 @@
     <label>Photo du colis sur une balance</label>
     <input type="file" id="oWeightProof" accept="image/*">
     <div class="hint">Permet de vérifier que le poids déclaré est correct.</div>
-    <label>Valeur déclarée</label>
-    <input type="number" id="oValue" placeholder="Ex. 60" oninput="updateOrderPrice()">
-    <div class="hint">Plafond 150€.</div>
     <label>Nom du destinataire</label>
     <input type="text" id="oRecipient" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
     <div class="hint">Conseil : écrivez vos deux prénoms sur le colis, avec votre identifiant Baraka GP (visible dans « Mes points ») plutôt que votre numéro.</div>
@@ -1346,7 +1341,6 @@ async function submitOrder(){
   const l=pendingListing;
   const kg=parseInt(document.getElementById('oKg').value);
   const desc=document.getElementById('oDesc').value.trim();
-  const value=document.getElementById('oValue').value;
   const recipientName=document.getElementById('oRecipient').value.trim();
   const photoFile=document.getElementById('oPhoto').files[0];
   const weightProofFile=document.getElementById('oWeightProof').files[0];
@@ -1354,9 +1348,7 @@ async function submitOrder(){
 
   const maxKg=remainingKg(l);
   if(!kg||kg<1||kg>maxKg){ showToast(maxKg<=0 ? "Ce trajet est complet, il n'y a plus de place disponible" : `Merci d'indiquer un poids valide (max ${maxKg}kg)`); return; }
-  if(!value){ showToast("Merci d'indiquer la valeur déclarée"); return; }
   if(!recipientName){ showToast("Merci d'indiquer le nom du destinataire"); return; }
-  if(parseInt(value)>150){ showToast("Valeur déclarée trop élevée (max 150€)"); return; }
   if(!photoFile){ showToast("Merci d'ajouter une photo du colis"); return; }
   if(!weightProofFile){ showToast("Merci d'ajouter une photo du colis sur une balance"); return; }
   if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Merci de cocher toutes les cases"); return; }
@@ -1393,7 +1385,7 @@ async function submitOrder(){
     clientPhone:cleanPhone(me.phone), clientName:me.name,
     from:l.from, to:l.to, country:l.country, tripDate:l.date,
     packageType:orderPackageType,
-    kg, photo, weightProof, desc, value:parseInt(value), recipientName,
+    kg, photo, weightProof, desc, recipientName,
     priceTotal:total, commission, priceNet:(kg*PRICE_PER_KG)-commission, discountUsed,
     pickupLocation:'', pickupSuggested:false, pickupTime:'',
     clientLat:geo?geo.lat:null, clientLng:geo?geo.lng:null, gpLat:null, gpLng:null,
@@ -1938,7 +1930,7 @@ async function acceptColisRequest(reqId){
     gpPhone:cleanPhone(me.phone), gpName:me.name,
     clientPhone:cleanPhone(req.phone), clientName:req.name,
     from:req.from, to:req.to, country:req.country, tripDate:req.date,
-    kg, photo:req.photo, desc:req.desc, value:req.value, recipientName:req.recipientName||'',
+    kg, photo:req.photo, desc:req.desc, recipientName:req.recipientName||'',
     priceTotal:total, commission, priceNet:total-commission, discountUsed:false,
     pickupLocation, pickupSuggested, pickupTime:'',
     clientLat:req.clientLat||null, clientLng:req.clientLng||null,
@@ -2066,13 +2058,11 @@ async function publishColis(){
   const date=document.getElementById('sDate').value;
   const kg=document.getElementById('sKg').value;
   const desc=document.getElementById('sDesc').value.trim();
-  const value=document.getElementById('sValue').value;
   const recipientName=document.getElementById('sRecipient').value.trim();
   const photoFile=document.getElementById('sPhoto').files[0];
 
-  if(!name||!phone||!from||!to||!kg||!value||!recipientName){ showToast("Merci de remplir tous les champs"); return; }
+  if(!name||!phone||!from||!to||!kg||!recipientName){ showToast("Merci de remplir tous les champs"); return; }
   if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
-  if(parseInt(value)>150){ showToast("Valeur trop élevée (max 150€)"); return; }
   if(!photoFile){ showToast("Merci d'ajouter une photo"); return; }
   const rules=['ruleCash','ruleDocs','ruleValuables','ruleIllegal'];
   if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Cochez toutes les cases"); return; }
@@ -2082,12 +2072,12 @@ async function publishColis(){
   try{ photo=await compressImage(photoFile); }catch(e){ showToast("Photo illisible"); return; }
   const geo=await getGeoPosition();
 
-  listings.push({id:Date.now().toString(),type:'colis',name,phone,from,to,country,date,kg:parseInt(kg),value:parseInt(value),desc,recipientName,verified:false,photo,clientLat:geo?geo.lat:null,clientLng:geo?geo.lng:null});
+  listings.push({id:Date.now().toString(),type:'colis',name,phone,from,to,country,date,kg:parseInt(kg),desc,recipientName,verified:false,photo,clientLat:geo?geo.lat:null,clientLng:geo?geo.lng:null});
   await saveListings();
   ensureThread(phone,name); await saveMessages();
   showToast("Demande envoyée ! 🙏");
 
-  ['sName','sPhone','sFrom','sTo','sDate','sKg','sDesc','sPhoto','sValue','sRecipient'].forEach(id=>document.getElementById(id).value='');
+  ['sName','sPhone','sFrom','sTo','sDate','sKg','sDesc','sPhoto','sRecipient'].forEach(id=>document.getElementById(id).value='');
   rules.forEach(id=>document.getElementById(id).checked=false);
   ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('searchCountry').value='';
