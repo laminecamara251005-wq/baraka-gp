@@ -1388,6 +1388,15 @@ function hoursUntil(dateStr){
   const target=new Date(dateStr+"T12:00:00").getTime();
   return (target-Date.now())/3600000;
 }
+function canCancelTrip(o){
+  const hUntilTrip=hoursUntil(o.tripDate);
+  const minutesSinceAccepted = o.acceptedAt ? (Date.now()-o.acceptedAt)/60000 : Infinity;
+  // Au-delà de 48h avant le trajet, annulation libre. En dessous, on laisse
+  // quand même 30 minutes après l'acceptation pour se rétracter tout de
+  // suite (utile pour un trajet accepté la veille, où le délai de 48h est de
+  // toute façon déjà dépassé dès l'acceptation).
+  return (hUntilTrip!==null && (hUntilTrip-48)>0) || minutesSinceAccepted<30;
+}
 function renderOrders(){
   const list=document.getElementById('ordersList');
   const myPhone=cleanPhone(me.phone);
@@ -1415,7 +1424,12 @@ function renderOrders(){
     }
     if(ordersRole==='gp' && ['accepted','paid','picked_up'].includes(o.status) && hUntilTrip!==null){
       const hLeft=hUntilTrip-48;
-      if(hLeft>0) countdown=`<div class="countdown" style="background:var(--gold-soft);color:#8A611D;">⏳ Annulation possible encore ${Math.floor(hLeft)}h</div>`;
+      if(hLeft>0){
+        countdown=`<div class="countdown" style="background:var(--gold-soft);color:#8A611D;">⏳ Annulation possible encore ${Math.floor(hLeft)}h</div>`;
+      }else if(o.acceptedAt){
+        const minLeft=30-(Date.now()-o.acceptedAt)/60000;
+        if(minLeft>0) countdown=`<div class="countdown" style="background:var(--gold-soft);color:#8A611D;">⏳ Trajet à moins de 48h : encore ${Math.ceil(minLeft)} min pour annuler sans condition</div>`;
+      }
     }
     return `
     <div class="order-card">
@@ -1483,8 +1497,7 @@ function renderOrderActions(o){
     return `${discountBox}<button class="btn ${expired?'':'gold'} sm" ${expired?'disabled':''} onclick="payOrder('${o.id}')">${expired?'Délai dépassé':'💳 Payer maintenant (simulation)'}</button>`;
   }
   if(ordersRole==='gp' && o.status==='paid'){
-    const hUntilTrip=hoursUntil(o.tripDate);
-    const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
+    const canCancel = canCancelTrip(o);
     return `
       <button class="btn gold sm" onclick="showPickupCode('${o.id}')">🔑 Voir mon code (à donner au client à la remise)</button>
       ${canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
@@ -1500,8 +1513,7 @@ function renderOrderActions(o){
     `;
   }
   if(ordersRole==='gp' && o.status==='picked_up'){
-    const hUntilTrip=hoursUntil(o.tripDate);
-    const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
+    const canCancel = canCancelTrip(o);
     let html = `<button class="btn sm" onclick="markDelivered('${o.id}')">📦 Marquer comme remis</button>`;
     if(canCancel) html += `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>`;
     return html;
@@ -1514,12 +1526,11 @@ function renderOrderActions(o){
       <label>Horaire de remise proposé</label>
       <input type="datetime-local" id="gpPickupTime-${o.id}">
       <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">Proposer au client</button>
+      ${canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
     `;
   }
   if(ordersRole==='gp' && ['accepted'].includes(o.status)){
-    const hUntilTrip=hoursUntil(o.tripDate);
-    const canCancel = hUntilTrip!==null && (hUntilTrip-48)>0;
-    return canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : '';
+    return canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : '';
   }
   if(ordersRole==='gp' && o.status==='delivered'){
     return `<button class="btn ghost sm" onclick="showDeliveryCode('${o.id}')">📋 Revoir le lien/code de réception</button>`;
@@ -1551,6 +1562,7 @@ async function respondOrder(orderId, status){
   if(!o) return;
   o.status=status;
   if(status==='cancelled_gp') o.adminSeen=false;
+  if(status==='accepted') o.acceptedAt=Date.now();
   let noSuggestionReason=null;
   if(status==='accepted' && !o.pickupLocation){
     showToast("Acceptation en cours...");
