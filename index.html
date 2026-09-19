@@ -338,7 +338,7 @@
       <label>Pays de destination</label>
       <select id="sCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option><option value="France">🇫🇷 France</option></select>
       <label>Nom du destinataire</label><input type="text" id="sRecipient" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
-      <div class="hint">Pour que le voyageur sache à qui remettre le colis. Son numéro reste privé, comme le vôtre.</div>
+      <div class="hint">Pour que le voyageur sache à qui remettre le colis. Son numéro reste privé, comme le vôtre. Conseil : écrivez vos deux prénoms sur le colis, avec votre identifiant Baraka GP (visible dans « Mes points ») plutôt que votre numéro.</div>
       <label>Date d'envoi souhaitée</label><input type="date" id="sDate">
       <label>Poids approximatif</label><input type="number" id="sKg" placeholder="Ex. 5" min="1">
       <label>Description du contenu</label><textarea id="sDesc" placeholder="Ex. Vêtements et quelques cadeaux"></textarea>
@@ -462,6 +462,7 @@
     <div class="hint">Plafond 150€.</div>
     <label>Nom du destinataire</label>
     <input type="text" id="oRecipient" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
+    <div class="hint">Conseil : écrivez vos deux prénoms sur le colis, avec votre identifiant Baraka GP (visible dans « Mes points ») plutôt que votre numéro.</div>
 
     <div class="order-section-title">📍 Remise du colis</div>
     <div class="hint">Le lieu de RDV sera suggéré automatiquement à l'acceptation du voyageur (selon vos positions), ou proposé par lui si ce n'est pas possible.</div>
@@ -954,6 +955,11 @@ function renderPointsPanel(){
     <div class="points-progress"><div style="width:${(p%50)/50*100}%;"></div></div>
     <div style="font-size:12.5px;color:var(--ink-soft);text-align:center;">${toNext} points avant votre prochaine remise de 5€</div>
     ${discounts>0 ? `<div class="badge verified" style="display:block;text-align:center;margin-top:14px;">🎉 Vous avez ${discounts} remise(s) de 5€ disponible(s) ! Elle${discounts>1?'s':''} s'appliquera à votre prochaine commande si vous le souhaitez.</div>` : ''}
+    <div class="ref-box" style="background:var(--green-pale);margin-top:14px;">
+      <b style="color:var(--green-dark);">🏷️ Votre identifiant Baraka GP</b>
+      <div style="font-size:13px;color:var(--green-dark);margin-top:4px;">À écrire sur vos colis (avec les prénoms), à la place de votre numéro de téléphone.</div>
+      <div style="font-family:'Fraunces',serif;font-size:26px;color:var(--green-dark);text-align:center;letter-spacing:3px;margin:8px 0 0;">${points[key].refCode.toUpperCase()}</div>
+    </div>
     <div class="ref-box">
       <b>🎁 Parrainez vos proches</b>
       <div style="font-size:13px;color:#7A5619;margin-top:4px;">Vous gagnez 10 points à leur 1ère commande, ils gagnent 10 points à l'inscription.</div>
@@ -1506,7 +1512,11 @@ function renderOrderActions(o){
     `;
   }
   if(ordersRole==='client' && o.status==='paid'){
+    const myId=points[ensurePoints(me.phone)].refCode.toUpperCase();
     return `
+      <div class="hint" style="margin-top:10px;background:var(--green-pale);padding:10px 12px;border-radius:10px;">
+        🏷️ Avant la remise, écrivez sur le colis : <b>${esc(me.name)}</b> → <b>${esc(o.recipientName||'destinataire')}</b>, et votre identifiant Baraka GP <b>${myId}</b> (pas besoin d'écrire votre numéro de téléphone).
+      </div>
       <div class="hint" style="margin-top:10px;">Demandez le code au voyageur au moment de la remise, pour confirmer que c'est bien lui.</div>
       <div style="display:flex;gap:8px;margin-top:6px;">
         <input type="text" inputmode="numeric" pattern="[0-9]*" id="pickupInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
