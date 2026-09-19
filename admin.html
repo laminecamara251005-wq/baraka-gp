@@ -171,8 +171,13 @@ function exportOrdersCsv(){
   downloadCsv('commandes_'+todayStr()+'.csv', rows);
 }
 function exportProfilesCsv(){
-  const header=['Téléphone','Nom','Vérifié','Bloqué','Créé le'];
-  const rows=[header, ...Object.entries(profiles).map(([phone,p])=>[p.phone||phone,p.name,p.verified?'Oui':'Non',blockedPhones[phone]?'Oui':'Non',p.createdAt?new Date(p.createdAt).toLocaleDateString('fr-FR'):''])];
+  const header=['Téléphone','Nom','Vérifié','Bloqué','Note voyageur','Note client','Créé le'];
+  const rows=[header, ...Object.entries(profiles).map(([phone,p])=>[
+    p.phone||phone, p.name, p.verified?'Oui':'Non', blockedPhones[phone]?'Oui':'Non',
+    p.ratingCount?(p.ratingSum/p.ratingCount).toFixed(1)+'/5 ('+p.ratingCount+')':'',
+    p.clientRatingCount?(p.clientRatingSum/p.clientRatingCount).toFixed(1)+'/5 ('+p.clientRatingCount+')':'',
+    p.createdAt?new Date(p.createdAt).toLocaleDateString('fr-FR'):''
+  ])];
   downloadCsv('profils_'+todayStr()+'.csv', rows);
 }
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
@@ -400,6 +405,8 @@ function renderAdminProfiles(){
       <span class="type-pill profile">👤 IDENTITÉ</span>
       ${blockedPhones[phone]?'<span class="type-pill" style="background:var(--red-soft);color:var(--red);">⛔ Bloqué</span>':''}<br>
       <b>${esc(p.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(p.phone)}</span>
+      ${p.ratingCount?`<div style="font-size:12px;margin-top:4px;">⭐ Comme voyageur : ${(p.ratingSum/p.ratingCount).toFixed(1)}/5 (${p.ratingCount} avis)</div>`:''}
+      ${p.clientRatingCount?`<div style="font-size:12px;margin-top:2px;">⭐ Comme client : ${(p.clientRatingSum/p.clientRatingCount).toFixed(1)}/5 (${p.clientRatingCount} avis)</div>`:''}
       ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
       <div class="name-check">Pièce d'identité</div>
       ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(p.idPhoto?p.idPhoto.name:'non fourni')}</p>`}

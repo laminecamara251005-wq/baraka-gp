@@ -508,7 +508,7 @@
 <!-- RATING MODAL -->
 <div class="overlay" id="ratingOverlay">
   <div class="modal center">
-    <h3>Comment s'est passée la livraison ?</h3>
+    <h3 id="ratingModalTitle">Comment s'est passée la livraison ?</h3>
 
     <p>Votre avis aide les autres à choisir en toute confiance.</p>
     <div class="stars-input" id="starsInput">
@@ -581,7 +581,7 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 
 let listings=[], profiles={}, alerts=[], messages={}, orders=[], orderMsgs={}, points={};
-let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0;
+let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0, ratingTarget='gp';
 let currentOrderChatId=null, ordersRole='client';
 let pollTimer=null, pendingRef=null, receiveMode=false, receiveChatPolling=null;
 
@@ -1145,6 +1145,12 @@ function gpRating(phone){
   if(!p||!p.ratingCount) return null;
   return (p.ratingSum/p.ratingCount);
 }
+function clientRating(phone){
+  const key=cleanPhone(phone);
+  const p=profiles[key];
+  if(!p||!p.clientRatingCount) return null;
+  return (p.clientRatingSum/p.clientRatingCount);
+}
 function starsHtml(avg){
   if(avg===null) return '';
   const full=Math.round(avg);
@@ -1526,10 +1532,16 @@ function renderOrderActions(o){
       </div>`;
   }
   if(ordersRole==='client' && o.status==='completed' && !o.rating){
-    return `<button class="btn ghost sm" onclick="openRating('${o.id}')">⭐ Noter ce voyageur</button>`;
+    return `<button class="btn ghost sm" onclick="openRating('${o.id}','gp')">⭐ Noter ce voyageur</button>`;
   }
-  if(o.status==='completed' && o.rating){
-    return `<div class="hint" style="margin-top:10px;">${starsHtml(o.rating)} ${o.ratingComment?'— "'+esc(o.ratingComment)+'"':''}</div>`;
+  if(ordersRole==='gp' && o.status==='completed' && !o.clientRating){
+    return `<button class="btn ghost sm" onclick="openRating('${o.id}','client')">⭐ Noter ce client</button>`;
+  }
+  if(o.status==='completed' && (o.rating || o.clientRating)){
+    let html='';
+    if(o.rating) html+=`<div class="hint" style="margin-top:10px;">Voyageur noté : ${starsHtml(o.rating)}${o.ratingComment?' — "'+esc(o.ratingComment)+'"':''}</div>`;
+    if(o.clientRating) html+=`<div class="hint" style="margin-top:6px;">Client noté : ${starsHtml(o.clientRating)}${o.clientRatingComment?' — "'+esc(o.clientRatingComment)+'"':''}</div>`;
+    return html;
   }
   return '';
 }
@@ -1666,8 +1678,9 @@ async function confirmDelivery(orderId){
   showToast("Livraison confirmée, merci ! 🎉");
   renderOrders();
 }
-function openRating(orderId){
-  ratingOrderId=orderId; ratingStars=0;
+function openRating(orderId, target){
+  ratingOrderId=orderId; ratingStars=0; ratingTarget=target;
+  document.getElementById('ratingModalTitle').textContent = target==='client' ? "Comment s'est passé ce client ?" : "Comment s'est passée la livraison ?";
   document.querySelectorAll('#starsInput span').forEach(s=>s.classList.remove('on'));
   document.getElementById('ratingComment').value='';
   document.getElementById('ratingOverlay').classList.add('show');
@@ -1680,14 +1693,26 @@ async function submitRating(){
   if(ratingStars===0){ showToast("Choisissez une note"); return; }
   const o=orders.find(x=>x.id===ratingOrderId);
   if(!o) return;
-  o.rating=ratingStars;
-  o.ratingComment=document.getElementById('ratingComment').value.trim();
-  await saveOrders();
-  const gpKey=cleanPhone(o.gpPhone);
-  if(profiles[gpKey]){
-    profiles[gpKey].ratingSum = (profiles[gpKey].ratingSum||0) + ratingStars;
-    profiles[gpKey].ratingCount = (profiles[gpKey].ratingCount||0) + 1;
+  const comment=document.getElementById('ratingComment').value.trim();
+  if(ratingTarget==='client'){
+    o.clientRating=ratingStars;
+    o.clientRatingComment=comment;
+    await saveOrders();
+    const clientKey=cleanPhone(o.clientPhone);
+    if(!profiles[clientKey]) profiles[clientKey]={name:o.clientName, phone:o.clientPhone, verified:false, ratingSum:0, ratingCount:0};
+    profiles[clientKey].clientRatingSum = (profiles[clientKey].clientRatingSum||0) + ratingStars;
+    profiles[clientKey].clientRatingCount = (profiles[clientKey].clientRatingCount||0) + 1;
     await saveProfiles();
+  }else{
+    o.rating=ratingStars;
+    o.ratingComment=comment;
+    await saveOrders();
+    const gpKey=cleanPhone(o.gpPhone);
+    if(profiles[gpKey]){
+      profiles[gpKey].ratingSum = (profiles[gpKey].ratingSum||0) + ratingStars;
+      profiles[gpKey].ratingCount = (profiles[gpKey].ratingCount||0) + 1;
+      await saveProfiles();
+    }
   }
   document.getElementById('ratingOverlay').classList.remove('show');
   showToast("Merci pour votre avis !");
@@ -1818,7 +1843,9 @@ function renderMyTrips(){
   available.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
   availBox.innerHTML = available.length===0
     ? `<div class="empty"><b>Aucune demande disponible</b>Revenez plus tard, ou publiez votre trajet pour être trouvé plus facilement.</div>`
-    : available.map(l=>`
+    : available.map(l=>{
+      const cAvg=clientRating(l.phone);
+      return `
     <div class="gp-card">
       <div class="top"><div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div></div>
       <div class="meta">
@@ -1826,9 +1853,11 @@ function renderMyTrips(){
         <span>📅 <b>${fmtDate(l.date)}</b></span>
         <span>📦 <b>${l.kg} kg</b></span>
       </div>
+      ${cAvg!==null ? `<div style="font-size:12.5px;margin-top:4px;">${starsHtml(cAvg)} <span style="color:var(--ink-soft);">(client)</span></div>` : ''}
       ${l.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(l.desc)}</div>` : ''}
       <button class="btn gold sm" onclick="acceptColisRequest('${l.id}')">Accepter cette demande</button>
-    </div>`).join('');
+    </div>`;
+    }).join('');
 }
 async function acceptColisRequest(reqId){
   const req=listings.find(x=>x.id===reqId && x.type==='colis');
