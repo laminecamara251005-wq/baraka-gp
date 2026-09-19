@@ -573,6 +573,8 @@ let currentOrderChatId=null, ordersRole='client';
 let pollTimer=null, pendingRef=null, receiveMode=false, receiveChatPolling=null;
 
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+function todayDateStr(){ const d=new Date(); return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function setDateMins(){ const t=todayDateStr(); ['sDate','pDate','elDate'].forEach(id=>{ const el=document.getElementById(id); if(el) el.min=t; }); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function withTimeout(promise, ms){
   return Promise.race([
@@ -1692,6 +1694,7 @@ async function publishListing(){
   const ticketFile=document.getElementById('pTicket').files[0];
 
   if(!name||!phone||!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
+  if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
   if(!ticketFile){ showToast("Merci d'ajouter votre billet"); return; }
 
   const hasProfile=!!profiles[phone];
@@ -1883,6 +1886,7 @@ async function saveListingEdit(){
   const date=document.getElementById('elDate').value;
   const country=document.getElementById('elCountry').value;
   if(!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
+  if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
   l.from=from; l.to=to; l.kg=kg; l.date=date; l.country=country;
   await saveListings();
   showToast("Mis à jour");
@@ -1916,6 +1920,7 @@ async function publishColis(){
   const photoFile=document.getElementById('sPhoto').files[0];
 
   if(!name||!phone||!from||!to||!kg||!value||!recipientName){ showToast("Merci de remplir tous les champs"); return; }
+  if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
   if(parseInt(value)>150){ showToast("Valeur trop élevée (max 150€)"); return; }
   if(!photoFile){ showToast("Merci d'ajouter une photo"); return; }
   const rules=['ruleCash','ruleDocs','ruleValuables','ruleIllegal'];
@@ -2049,6 +2054,7 @@ async function sendReceiveMessage(orderId){
 // ---- INIT ----
 (function(){
   syncDarkModeToggle();
+  setDateMins();
   const params=new URLSearchParams(location.search);
   pendingRef = params.get('ref');
   const receiveOrderId = params.get('receive');
