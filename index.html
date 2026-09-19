@@ -781,8 +781,14 @@ function updateNotifBadge(){
   const messagesCount = (msgKey && msgKey.unreadUser) ? 1 : 0;
   let ordersCount=0;
   orders.forEach(o=>{
-    if(cleanPhone(o.clientPhone)===myPhone && ['accepted','delivered'].includes(o.status)) ordersCount++;
-    if(cleanPhone(o.gpPhone)===myPhone && ['pending','picked_up'].includes(o.status)) ordersCount++;
+    if(cleanPhone(o.clientPhone)===myPhone){
+      if(['accepted','delivered'].includes(o.status)) ordersCount++;
+      if(o.status==='completed' && !o.rating) ordersCount++;
+    }
+    if(cleanPhone(o.gpPhone)===myPhone){
+      if(['pending','picked_up'].includes(o.status)) ordersCount++;
+      if(o.status==='completed' && !o.clientRating) ordersCount++;
+    }
   });
   setBadge('notifBadge', messagesCount+ordersCount);
   setBadge('badgeMessages', messagesCount);
