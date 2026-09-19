@@ -46,6 +46,7 @@
   .admin-subtab{display:flex;gap:5px;margin:20px 0 14px;flex-wrap:wrap;}
   .admin-subtab div{flex:1;min-width:70px;text-align:center;padding:10px 3px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;background:var(--panel);border:1px solid var(--line);color:var(--ink-soft);}
   .admin-subtab div.active{background:var(--green);color:#fff;border-color:var(--green);}
+  .subtab-badge{background:var(--red);color:#fff;font-size:10.5px;font-weight:700;min-width:16px;height:16px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;margin-left:4px;vertical-align:middle;}
 
   .admin-list{margin-top:6px;}
   .admin-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;text-align:left;}
@@ -106,11 +107,11 @@
 
   <div id="panelView" style="display:none;">
     <div class="admin-subtab">
-      <div class="active" id="subtabProfiles" onclick="switchAdminSub('profiles')">Identités</div>
+      <div class="active" id="subtabProfiles" onclick="switchAdminSub('profiles')">Identités <span class="subtab-badge" id="badgeProfiles" style="display:none;">0</span></div>
       <div id="subtabOrders" onclick="switchAdminSub('orders')">Commandes</div>
-      <div id="subtabListings" onclick="switchAdminSub('listings')">Annonces</div>
-      <div id="subtabAlerts" onclick="switchAdminSub('alerts')">Alertes</div>
-      <div id="subtabMessages" onclick="switchAdminSub('messages')">Support</div>
+      <div id="subtabListings" onclick="switchAdminSub('listings')">Annonces <span class="subtab-badge" id="badgeListings" style="display:none;">0</span></div>
+      <div id="subtabAlerts" onclick="switchAdminSub('alerts')">Alertes <span class="subtab-badge" id="badgeAlerts" style="display:none;">0</span></div>
+      <div id="subtabMessages" onclick="switchAdminSub('messages')">Support <span class="subtab-badge" id="badgeMessages" style="display:none;">0</span></div>
     </div>
     <div class="admin-list" id="adminList"></div>
   </div>
@@ -204,6 +205,23 @@ async function loadAll(){
   try{ alerts=await fetchCollectionArray('alerts'); }catch(e){ alerts=[]; }
   try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
   try{ orders=await fetchCollectionArray('orders'); }catch(e){ orders=[]; }
+  updateAdminNotifBadges();
+}
+function setBadge(id,count){
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(count>0){ el.textContent=count>9?'9+':count; el.style.display='inline-flex'; }
+  else{ el.style.display='none'; }
+}
+function updateAdminNotifBadges(){
+  const profilesCount=Object.values(profiles).filter(p=>!p.verified).length;
+  const listingsCount=listings.filter(l=>l.type!=='gp' && !l.verified).length;
+  const alertsCount=alerts.filter(a=>!a.notified).length;
+  const messagesCount=Object.values(messages).filter(th=>th.unreadAdmin).length;
+  setBadge('badgeProfiles', profilesCount);
+  setBadge('badgeListings', listingsCount);
+  setBadge('badgeAlerts', alertsCount);
+  setBadge('badgeMessages', messagesCount);
 }
 async function saveListings(){ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }
 async function saveProfiles(){ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }
@@ -322,6 +340,7 @@ function switchAdminSub(sub){
   else renderAdminMessages();
 }
 function renderAdminAlerts(){
+  updateAdminNotifBadges();
   const list=document.getElementById('adminList');
   if(alerts.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune alerte.</p>'; return; }
   list.innerHTML=alerts.slice().reverse().map(a=>`
@@ -344,6 +363,7 @@ async function removeAlert(id){
   }catch(e){ adminWriteError(e); }
 }
 function renderAdminProfiles(){
+  updateAdminNotifBadges();
   const list=document.getElementById('adminList');
   const entries=Object.entries(profiles);
   if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucun profil.</p>'; return; }
@@ -392,6 +412,7 @@ async function removeOrder(orderId){
   }catch(e){ adminWriteError(e); }
 }
 function renderAdminListings(){
+  updateAdminNotifBadges();
   const list=document.getElementById('adminList');
   if(listings.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune annonce.</p>'; return; }
   list.innerHTML=listings.slice().reverse().map(l=>{
@@ -427,6 +448,7 @@ async function notifyAlert(alertId,from,to,date){
   }catch(e){ adminWriteError(e); }
 }
 function renderAdminMessages(){
+  updateAdminNotifBadges();
   const list=document.getElementById('adminList');
   if(adminOpenThreadPhone){
     const th=messages[adminOpenThreadPhone];
