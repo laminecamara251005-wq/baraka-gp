@@ -139,6 +139,16 @@ let listings=[], profiles={}, alerts=[], messages={}, orders=[];
 let adminSub='profiles', adminOpenThreadPhone=null;
 let pollTimer=null;
 
+let chatFocused=false;
+function isProtectedField(el){
+  if(!el) return false;
+  if(el.tagName!=='INPUT' && el.tagName!=='TEXTAREA') return false;
+  return el.id==='adminChatInput';
+}
+document.addEventListener('focusin', e=>{ if(isProtectedField(e.target)) chatFocused=true; });
+document.addEventListener('focusout', e=>{ if(isProtectedField(e.target)) chatFocused=false; });
+function isTypingInChat(){ return chatFocused; }
+
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escJs(s){ return esc(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")); }
@@ -287,6 +297,7 @@ function startPolling(){
   stopPolling();
   pollTimer=setInterval(async ()=>{
     await loadAll();
+    if(isTypingInChat()) return;
     if(adminSub==='profiles') renderAdminProfiles();
     else if(adminSub==='orders') renderAdminOrders();
     else if(adminSub==='listings') renderAdminListings();
