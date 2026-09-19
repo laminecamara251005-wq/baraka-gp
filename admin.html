@@ -36,6 +36,9 @@
   label:first-of-type{margin-top:0;}
   input, textarea{width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid var(--line);background:var(--input-bg);font-family:'Inter',sans-serif;font-size:16px;color:var(--ink);}
   input:focus, textarea:focus{outline:none;border-color:var(--green);}
+  .password-field{position:relative;}
+  .password-field input{padding-right:44px;}
+  .password-toggle{position:absolute;right:2px;top:0;width:auto;height:100%;padding:0 12px;margin:0;background:none;border:none;font-size:17px;cursor:pointer;line-height:1;}
   .btn{margin-top:18px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;}
   .btn:hover{background:var(--green-dark);}
   .btn.sm{margin-top:8px;padding:9px;font-size:13px;}
@@ -82,7 +85,11 @@
   <div id="loginView" class="panel">
     <h2>Connexion</h2>
     <label>Email</label><input type="email" id="adminEmail" placeholder="vous@example.com" autocomplete="username">
-    <label>Mot de passe</label><input type="password" id="adminPassword" placeholder="Mot de passe" autocomplete="current-password">
+    <label>Mot de passe</label>
+    <div class="password-field">
+      <input type="password" id="adminPassword" placeholder="Mot de passe" autocomplete="current-password">
+      <button type="button" class="password-toggle" onclick="togglePasswordVisibility('adminPassword', this)">👁</button>
+    </div>
     <button class="btn" onclick="adminSignIn()">Se connecter</button>
     <p style="margin-top:10px;font-size:13px;">
       <a href="javascript:void(0)" onclick="adminForgotPassword()" style="color:var(--ink-soft);text-decoration:underline;">Mot de passe oublié ?</a>
@@ -142,6 +149,11 @@ function withTimeout(promise, ms){
   ]);
 }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'; setTimeout(()=>t.classList.remove('show'),3000); }
+function togglePasswordVisibility(id, btn){
+  const input=document.getElementById(id);
+  if(input.type==='password'){ input.type='text'; btn.textContent='🙈'; }
+  else{ input.type='password'; btn.textContent='👁'; }
+}
 function copyNotAdminUid(){
   const input=document.getElementById('notAdminUidInput');
   input.select();
