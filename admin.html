@@ -249,7 +249,7 @@ function updateAdminNotifBadges(){
   const listingsCount=listings.filter(l=>l.type!=='gp' && !l.verified).length;
   const alertsCount=alerts.filter(a=>!a.notified).length;
   const messagesCount=Object.values(messages).filter(th=>th.unreadAdmin).length;
-  const ordersCount=orders.filter(o=>o.status==='cancelled_gp' && o.adminSeen!==true).length;
+  const ordersCount=orders.filter(o=>['cancelled_gp','cancelled_client'].includes(o.status) && o.adminSeen!==true).length;
   setBadge('badgeProfiles', profilesCount);
   setBadge('badgeListings', listingsCount);
   setBadge('badgeAlerts', alertsCount);
@@ -439,7 +439,7 @@ function renderAdminOrders(){
   const list=document.getElementById('adminList');
   if(orders.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune commande.</p>'; return; }
   list.innerHTML=orders.slice().reverse().map(o=>{
-    const needsReview = o.status==='cancelled_gp' && o.adminSeen!==true;
+    const needsReview = ['cancelled_gp','cancelled_client'].includes(o.status) && o.adminSeen!==true;
     return `
     <div class="admin-card">
       <span class="type-pill gp">${statusLabel(o.status)}</span>

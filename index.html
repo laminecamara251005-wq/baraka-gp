@@ -1515,11 +1515,13 @@ function renderOrderActions(o){
   }
   if(ordersRole==='client' && o.status==='accepted'){
     if(!o.pickupLocation || !o.pickupTime){
-      return `<div class="hint" style="margin-top:10px;">Le voyageur a accepté ! ${o.pickupLocation?'Il finalise l\'horaire de remise':'Il propose le lieu et l\'horaire de remise'}, vous serez prévenu(e).</div>`;
+      return `<div class="hint" style="margin-top:10px;">Le voyageur a accepté ! ${o.pickupLocation?'Il finalise l\'horaire de remise':'Il propose le lieu et l\'horaire de remise'}, vous serez prévenu(e).</div>
+        <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
     }
     const discounts = me ? availableDiscounts(me.phone) : 0;
     const discountBox = discounts>0 ? `<label class="check-line" style="background:var(--green-pale);color:#1F2B24;padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>` : '';
-    return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">💳 Payer maintenant (simulation)</button>`;
+    return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">💳 Payer maintenant (simulation)</button>
+      <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
   }
   if(ordersRole==='gp' && o.status==='paid'){
     const canCancel = canCancelTrip(o);
@@ -1539,6 +1541,8 @@ function renderOrderActions(o){
         <input type="text" inputmode="numeric" pattern="[0-9]*" id="pickupInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
         <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmPickup('${o.id}')">Valider</button>
       </div>
+      <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>
+      <div class="hint">Paiement simulé : en cas d'annulation après paiement, contactez le support si vous attendez un remboursement.</div>
     `;
   }
   if(ordersRole==='gp' && o.status==='picked_up'){
@@ -1590,7 +1594,7 @@ async function respondOrder(orderId, status){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
   o.status=status;
-  if(status==='cancelled_gp') o.adminSeen=false;
+  if(status==='cancelled_gp' || status==='cancelled_client') o.adminSeen=false;
   if(status==='accepted') o.acceptedAt=Date.now();
   let noSuggestionReason=null;
   if(status==='accepted' && !o.pickupLocation){
