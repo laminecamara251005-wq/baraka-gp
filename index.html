@@ -259,7 +259,10 @@
   <div class="drawer-head">
     <div style="display:flex;align-items:center;gap:10px;">
       <span id="drawerAvatarBox" onclick="document.getElementById('changeAvatarInput').click()" style="cursor:pointer;" title="Changer ma photo"></span>
-      <span id="drawerNameLabel">Menu</span>
+      <div>
+        <div id="drawerNameLabel">Menu</div>
+        <div id="drawerRatingBox" style="font-size:12px;font-family:'Inter',sans-serif;"></div>
+      </div>
     </div>
     <button class="drawer-close" onclick="closeDrawer()">✕</button>
   </div>
@@ -800,11 +803,14 @@ function updateUserHeader(){
     topName.style.display='none';
     document.getElementById('drawerAvatarBox').innerHTML='';
     document.getElementById('drawerNameLabel').textContent='Menu';
+    document.getElementById('drawerRatingBox').innerHTML='';
     return;
   }
   topName.style.display='block';
   topName.textContent=me.name||'Mon compte';
   document.getElementById('drawerNameLabel').textContent=me.name||'Mon compte';
+  const myAvg = gpRating(me.phone)!==null ? gpRating(me.phone) : clientRating(me.phone);
+  document.getElementById('drawerRatingBox').innerHTML = myAvg!==null ? starsHtml(myAvg) : '';
   document.getElementById('drawerAvatarBox').innerHTML = (me.avatar && me.avatar.type==='image')
     ? `<img src="${me.avatar.data}" class="avatar">`
     : `<div class="avatar avatar-placeholder">${esc((me.name||'?').charAt(0).toUpperCase())}</div>`;
