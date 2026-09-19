@@ -8,11 +8,16 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Un admin est un utilisateur authentifié explicitement listé dans la
-    // collection "admins" (un document par UID, créé à la main dans la console
-    // Firebase par le propriétaire du projet — jamais depuis l'app elle-même).
+    // Un admin est soit le compte propriétaire (UID codé ici en dur, pour ne
+    // plus dépendre d'un document créé à la main dans la console Firebase —
+    // trop d'erreurs possibles via l'interface mobile), soit un utilisateur
+    // listé dans la collection "admins" (un document par UID) si on veut en
+    // ajouter d'autres plus tard.
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn() && (
+        request.auth.uid == 'pn4WsdLN1gWrwIwMewMPumiRstj1' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
     }
 
     // Comptes utilisateurs (créés à l'inscription dans index.html). Chacun ne

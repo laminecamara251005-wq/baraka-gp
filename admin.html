@@ -249,13 +249,16 @@ async function adminSignOut(){
   stopPolling();
   try{ await auth.signOut(); }catch(e){}
 }
+const OWNER_UID='pn4WsdLN1gWrwIwMewMPumiRstj1';
 auth.onAuthStateChanged(async (user)=>{
   if(user){
-    let isAdmin=false;
-    try{
-      const snap=await withTimeout(db.collection('admins').doc(user.uid).get(), 8000);
-      isAdmin=snap.exists;
-    }catch(e){}
+    let isAdmin=(user.uid===OWNER_UID);
+    if(!isAdmin){
+      try{
+        const snap=await withTimeout(db.collection('admins').doc(user.uid).get(), 8000);
+        isAdmin=snap.exists;
+      }catch(e){}
+    }
     if(!isAdmin){
       stopPolling();
       document.getElementById('loginView').style.display='block';

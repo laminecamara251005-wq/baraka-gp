@@ -39,15 +39,23 @@ Firebase Firestore et partagées entre tous les utilisateurs. `index.html` et
    firebase use --add        # sélectionnez votre projet
    firebase deploy --only firestore:rules
    ```
-6. **Déclarer un compte admin** : dans **Authentication → Users**, créez votre
-   compte (email + mot de passe) — ou utilisez un compte déjà créé en vous
-   inscrivant normalement sur `index.html` — puis copiez son **User UID**.
-   Allez dans **Firestore Database → Données → Commencer une collection**,
-   nommez-la `admins`, et créez un document dont l'**ID est exactement cet
-   UID** (le contenu du document importe peu, un champ `role: "admin"` suffit).
-   Sans ce document, le compte peut se connecter à `admin.html` mais aucune
-   action (vérifier, supprimer) ne fonctionnera : les règles Firestore les
-   refuseront silencieusement.
+6. **Déclarer un compte admin** : le compte propriétaire du projet est reconnu
+   directement par son **UID**, codé en dur dans `firestore.rules`
+   (`isAdmin()`) et dans `admin.html` (`OWNER_UID`) — pas besoin de créer quoi
+   que ce soit dans la console Firebase pour ce compte-là. Pour changer ce
+   compte ou en ajouter un autre : dans **Authentication → Users**, copiez le
+   **User UID** du compte voulu (icône 📋 à côté de la ligne), puis :
+   - soit remplacez la valeur dans les deux fichiers (`OWNER_UID` dans
+     `admin.html`, et la valeur correspondante dans `isAdmin()` de
+     `firestore.rules`) et republiez les règles ;
+   - soit, pour un admin supplémentaire sans toucher au code, allez dans
+     **Firestore Database → Données → Commencer une collection**, nommez-la
+     `admins`, et créez un document dont l'**ID est exactement cet UID**
+     (le contenu importe peu, un champ `role: "admin"` suffit) — c'est le
+     mécanisme de secours que `isAdmin()` vérifie en plus de l'UID codé en dur.
+   Sans l'un ou l'autre, le compte peut se connecter à `admin.html` mais
+   aucune action (vérifier, supprimer) ne fonctionnera : les règles Firestore
+   les refuseront silencieusement.
 
 Si vous hébergez le site (Firebase Hosting ou autre), pensez à ne pas mettre de
 lien vers `admin.html` nulle part dans le site public ni dans vos moteurs de
