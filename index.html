@@ -273,6 +273,10 @@
   <div class="drawer-item" id="tabPoints" onclick="switchTab('points')">🌟 Mes points</div>
   <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')">💬 Support <span class="drawer-badge" id="badgeMessages" style="display:none;">0</span></div>
   <div class="drawer-item static">
+    <span>📍 Localisation</span>
+    <button class="btn" style="width:auto;margin:0;padding:7px 14px;font-size:12.5px;" onclick="requestLocationAccess()">Activer</button>
+  </div>
+  <div class="drawer-item static">
     <span>🌙 Mode sombre</span>
     <label class="switch">
       <input type="checkbox" id="darkModeToggle" onchange="setDarkMode(this.checked)">
@@ -659,6 +663,19 @@ function compressImage(file){
   });
 }
 // ---- LOCALISATION (pour suggérer un point de RDV, jamais affichée publiquement) ----
+function requestLocationAccess(){
+  if(!navigator.geolocation){ showToast("Localisation non disponible sur cet appareil/navigateur"); return; }
+  showToast("Demande de localisation en cours...");
+  navigator.geolocation.getCurrentPosition(
+    ()=>{ showToast("Localisation activée ✅ Elle sera utilisée pour suggérer un point de RDV.", true); },
+    (err)=>{
+      if(err.code===1) showToast("Localisation refusée — autorisez-la pour ce site dans les réglages de votre navigateur/téléphone");
+      else if(err.code===2) showToast("Position indisponible pour le moment, réessayez");
+      else showToast("Délai dépassé, réessayez");
+    },
+    {timeout:8000}
+  );
+}
 function getGeoPosition(timeoutMs=6000){
   return new Promise((resolve)=>{
     if(!navigator.geolocation){ resolve(null); return; }
