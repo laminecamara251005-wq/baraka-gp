@@ -80,6 +80,14 @@ intercepte le lien ET le code pourrait valider une réception à la place du
 vrai destinataire. C'est le même niveau de sécurité que le code de remise
 utilisé plus tôt dans le parcours, pas un vrai contrôle d'identité.
 
+Le blocage d'un numéro par l'admin (collection `blockedPhones`) échoue de
+façon permissive : si la vérification Firestore échoue au moment de
+l'inscription/connexion (réseau instable, service indisponible), la personne
+n'est pas bloquée par erreur — mieux vaut laisser passer une fois de trop
+que bloquer tout le monde pendant une panne. Un compte bloqué juste après
+qu'il s'est connecté n'est éjecté qu'à sa prochaine connexion ou au
+rechargement de la page, pas en temps réel.
+
 La collection `points` (solde de fidélité de chacun) est, comme le reste,
 seulement protégée par « il faut être connecté » — n'importe quel compte
 signé (y compris une session anonyme, utilisée pour la confirmation de

@@ -283,7 +283,10 @@
 </nav>
 
 <div class="wrap">
-
+  <div id="tripReminderBanner" style="display:none;background:var(--gold-soft);border-radius:12px;padding:12px 14px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:10px;">
+    <span id="tripReminderText" style="font-size:13.5px;color:#7A5619;font-weight:600;"></span>
+    <button onclick="dismissTripReminder()" style="background:none;border:none;font-size:16px;cursor:pointer;color:#7A5619;flex-shrink:0;">✕</button>
+  </div>
 
   <!-- SEARCH -->
   <div id="viewSearch">
@@ -302,8 +305,18 @@
         <option value="Sénégal">🇸🇳 Sénégal</option>
         <option value="Mali">🇲🇱 Mali</option>
         <option value="Égypte">🇪🇬 Égypte</option>
+        <option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option>
         <option value="France">🇫🇷 France</option>
       </select>
+      <div class="row2">
+        <div><label>Trier par</label>
+          <select id="searchSort" onchange="renderResults()">
+            <option value="date">Date (plus proche)</option>
+            <option value="kg">Poids disponible (plus grand)</option>
+          </select>
+        </div>
+        <div><label>Poids min. dispo (kg)</label><input type="number" id="searchMinKg" min="1" placeholder="Ex. 5" oninput="renderResults()"></div>
+      </div>
     </div>
     <div id="searchResultsSection">
       <div class="results-head"><h3>Voyageurs disponibles</h3><span id="resultCount"></span></div>
@@ -323,7 +336,7 @@
         <div><label>Ville d'arrivée</label><input type="text" id="sTo" list="toCities" oninput="autoSetCountry('sTo','sCountry')" placeholder="Nouakchott"></div>
       </div>
       <label>Pays de destination</label>
-      <select id="sCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
+      <select id="sCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option><option value="France">🇫🇷 France</option></select>
       <label>Nom du destinataire</label><input type="text" id="sRecipient" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
       <div class="hint">Pour que le voyageur sache à qui remettre le colis. Son numéro reste privé, comme le vôtre.</div>
       <label>Date d'envoi souhaitée</label><input type="date" id="sDate">
@@ -364,7 +377,7 @@
         <div><label>Ville d'arrivée</label><input type="text" id="pTo" list="toCities" oninput="autoSetCountry('pTo','pCountry')" placeholder="Nouakchott"></div>
       </div>
       <label>Pays de destination</label>
-      <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
+      <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option><option value="France">🇫🇷 France</option></select>
       <label>Date du voyage</label><input type="date" id="pDate">
       <label>Kg disponibles</label><input type="number" id="pKg" placeholder="Ex. 8" min="1">
       <div class="rules-box">
@@ -484,7 +497,7 @@
       <div><label>Ville d'arrivée</label><input type="text" id="elTo" list="toCities" oninput="autoSetCountry('elTo','elCountry')" placeholder="Nouakchott"></div>
     </div>
     <label>Pays de destination</label>
-    <select id="elCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="France">🇫🇷 France</option></select>
+    <select id="elCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option><option value="France">🇫🇷 France</option></select>
     <label>Date du voyage</label><input type="date" id="elDate">
     <label>Kg disponibles</label><input type="number" id="elKg" min="1">
     <button class="btn gold" onclick="saveListingEdit()">Enregistrer</button>
@@ -573,6 +586,12 @@ let currentOrderChatId=null, ordersRole='client';
 let pollTimer=null, pendingRef=null, receiveMode=false, receiveChatPolling=null;
 
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
+async function isPhoneBlocked(phone){
+  try{
+    const snap=await withTimeout(db.collection('blockedPhones').doc(cleanPhone(phone)).get(), 8000);
+    return snap.exists;
+  }catch(e){ return false; }
+}
 function todayDateStr(){ const d=new Date(); return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function setDateMins(){ const t=todayDateStr(); ['sDate','pDate','elDate'].forEach(id=>{ const el=document.getElementById(id); if(el) el.min=t; }); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -586,7 +605,7 @@ function showToast(msg, gold){ const t=document.getElementById('toast'); t.textC
 function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
 function fmtDateTime(dt){ if(!dt) return "—"; return new Date(dt).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(dt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
-function flag(c){ return {Mauritanie:"🇲🇷",Sénégal:"🇸🇳",Mali:"🇲🇱",Égypte:"🇪🇬",France:"🇫🇷"}[c] || "🌍"; }
+function flag(c){ return {Mauritanie:"🇲🇷",Sénégal:"🇸🇳",Mali:"🇲🇱",Égypte:"🇪🇬","Arabie Saoudite":"🇸🇦",France:"🇫🇷"}[c] || "🌍"; }
 
 // ---- STORAGE (Firestore : chaque enregistrement est son propre document, partagé entre tous les utilisateurs) ----
 async function fetchCollectionArray(name){
@@ -719,6 +738,7 @@ async function completeLogin(uid, acc){
   updatePointsHeader();
   updateUserHeader();
   updateNotifBadge();
+  checkTripReminders();
   renderResults();
   startPolling();
 }
@@ -811,6 +831,11 @@ async function authSubmit(){
             return;
           }
         }
+        if(await isPhoneBlocked(phone)){
+          try{ await auth.currentUser.delete(); }catch(e){ try{ await auth.signOut(); }catch(e2){} }
+          showToast("Ce numéro a été bloqué. Contactez le support si vous pensez qu'il s'agit d'une erreur.");
+          return;
+        }
         const avatarFile=document.getElementById('authAvatar').files[0];
         let avatar=null;
         if(avatarFile){ try{ avatar=await compressImage(avatarFile); }catch(e){} }
@@ -856,6 +881,11 @@ auth.onAuthStateChanged(async (user)=>{
       // pas laisser la personne bloquée derrière l'écran de connexion.
       acc={name:'', phone:'', email:user.email||''};
       try{ await withTimeout(db.collection('accounts').doc(user.uid).set({...acc, createdAt:Date.now()}), 8000); }catch(e){}
+    }
+    if(acc.phone && await isPhoneBlocked(acc.phone)){
+      showToast("Ce compte est bloqué. Contactez le support si vous pensez qu'il s'agit d'une erreur.");
+      try{ await auth.signOut(); }catch(e){}
+      return;
     }
     await completeLogin(user.uid, acc);
   }else{
@@ -1033,9 +1063,31 @@ function startPolling(){
     if(document.getElementById('viewMytrips').style.display==='block') renderMyTrips();
     if(document.getElementById('viewMydemandes').style.display==='block') renderMyDemandes();
     updateNotifBadge();
+    checkTripReminders();
   }, 4000);
 }
 function stopPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer=null; }
+function tomorrowDateStr(){ const t=new Date(); t.setDate(t.getDate()+1); return new Date(t-t.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function checkTripReminders(){
+  const banner=document.getElementById('tripReminderBanner');
+  if(!me){ banner.style.display='none'; return; }
+  const myPhone=cleanPhone(me.phone);
+  const tomorrowStr=tomorrowDateStr();
+  const activeStatuses=['accepted','paid','picked_up'];
+  const dueOrders=orders.filter(o=>o.tripDate===tomorrowStr && activeStatuses.includes(o.status) && (cleanPhone(o.clientPhone)===myPhone || cleanPhone(o.gpPhone)===myPhone));
+  let dismissed=false;
+  try{ dismissed=localStorage.getItem('baraka-gp-reminder-dismissed-'+tomorrowStr)==='1'; }catch(e){}
+  if(dueOrders.length>0 && !dismissed){
+    document.getElementById('tripReminderText').textContent = `📅 Rappel : ${dueOrders.length>1?'vous avez '+dueOrders.length+' trajets prévus':'vous avez un trajet prévu'} demain (${fmtDate(tomorrowStr)}).`;
+    banner.style.display='flex';
+  }else{
+    banner.style.display='none';
+  }
+}
+function dismissTripReminder(){
+  try{ localStorage.setItem('baraka-gp-reminder-dismissed-'+tomorrowDateStr(), '1'); }catch(e){}
+  document.getElementById('tripReminderBanner').style.display='none';
+}
 
 // ---- SUPPORT MESSAGING ----
 function ensureThread(phone,name){
@@ -1098,8 +1150,8 @@ function starsHtml(avg){
   const full=Math.round(avg);
   return `<span class="stars">${'★'.repeat(full)}${'☆'.repeat(5-full)} (${avg.toFixed(1)})</span>`;
 }
-const COMMON_CITIES=['Paris','Nouakchott','Bamako','Dakar','Le Caire'];
-const CITY_COUNTRY={Nouakchott:'Mauritanie',Dakar:'Sénégal',Bamako:'Mali','Le Caire':'Égypte',Paris:'France'};
+const COMMON_CITIES=['Paris','Nouakchott','Bamako','Dakar','Le Caire','Riyad'];
+const CITY_COUNTRY={Nouakchott:'Mauritanie',Dakar:'Sénégal',Bamako:'Mali','Le Caire':'Égypte',Riyad:'Arabie Saoudite',Paris:'France'};
 function autoSetCountry(toInputId, countrySelectId){
   const country=CITY_COUNTRY[document.getElementById(toInputId).value.trim()];
   if(country) document.getElementById(countrySelectId).value=country;
@@ -1117,7 +1169,9 @@ function renderResults(){
   const country=document.getElementById('searchCountry').value;
   const from=document.getElementById('searchFrom').value.trim();
   const to=document.getElementById('searchTo').value.trim();
-  displayResults(country, from, to);
+  const sortBy=document.getElementById('searchSort').value;
+  const minKg=parseInt(document.getElementById('searchMinKg').value)||0;
+  displayResults(country, from, to, sortBy, minKg);
 }
 function remainingKg(l){
   const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
@@ -1138,19 +1192,22 @@ async function remainingKgLive(l){
     return remainingKg(l);
   }
 }
-function displayResults(country, from, to){
+function displayResults(country, from, to, sortBy, minKg){
   const activeStatuses=['pending','accepted','paid','picked_up','delivered','completed'];
   let filtered=listings.filter(l=>{
     if(l.type!=='gp') return false;
     if(me && cleanPhone(l.phone)===cleanPhone(me.phone)) return false;
     if(me && orders.some(o=>o.listingId===l.id && cleanPhone(o.clientPhone)===cleanPhone(me.phone) && activeStatuses.includes(o.status))) return false;
+    if(l.date && l.date<todayDateStr()) return false;
     if(remainingKg(l)<=0) return false;
+    if(minKg && remainingKg(l)<minKg) return false;
     if(country && l.country!==country) return false;
     if(from && !l.from.toLowerCase().includes(from.toLowerCase())) return false;
     if(to && !l.to.toLowerCase().includes(to.toLowerCase())) return false;
     return true;
   });
-  filtered.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  if(sortBy==='kg'){ filtered.sort((a,b)=>remainingKg(b)-remainingKg(a)); }
+  else{ filtered.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999')); }
   document.getElementById('resultCount').textContent=filtered.length+(filtered.length>1?" résultats":" résultat");
   const list=document.getElementById('resultsList');
   if(filtered.length===0){
@@ -1481,6 +1538,7 @@ async function respondOrder(orderId, status){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
   o.status=status;
+  if(status==='cancelled_gp') o.adminSeen=false;
   let noSuggestionReason=null;
   if(status==='accepted' && !o.pickupLocation){
     showToast("Acceptation en cours...");
@@ -1756,7 +1814,7 @@ function renderMyTrips(){
     </div>`).join('');
 
   const availBox=document.getElementById('availableColisList');
-  const available=listings.filter(l=>l.type==='colis' && cleanPhone(l.phone)!==cleanPhone(me.phone));
+  const available=listings.filter(l=>l.type==='colis' && cleanPhone(l.phone)!==cleanPhone(me.phone) && (!l.date || l.date>=todayDateStr()));
   available.sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
   availBox.innerHTML = available.length===0
     ? `<div class="empty"><b>Aucune demande disponible</b>Revenez plus tard, ou publiez votre trajet pour être trouvé plus facilement.</div>`

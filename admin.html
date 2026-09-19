@@ -108,10 +108,14 @@
   <div id="panelView" style="display:none;">
     <div class="admin-subtab">
       <div class="active" id="subtabProfiles" onclick="switchAdminSub('profiles')">Identités <span class="subtab-badge" id="badgeProfiles" style="display:none;">0</span></div>
-      <div id="subtabOrders" onclick="switchAdminSub('orders')">Commandes</div>
+      <div id="subtabOrders" onclick="switchAdminSub('orders')">Commandes <span class="subtab-badge" id="badgeOrders" style="display:none;">0</span></div>
       <div id="subtabListings" onclick="switchAdminSub('listings')">Annonces <span class="subtab-badge" id="badgeListings" style="display:none;">0</span></div>
       <div id="subtabAlerts" onclick="switchAdminSub('alerts')">Alertes <span class="subtab-badge" id="badgeAlerts" style="display:none;">0</span></div>
       <div id="subtabMessages" onclick="switchAdminSub('messages')">Support <span class="subtab-badge" id="badgeMessages" style="display:none;">0</span></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="btn ghost sm" style="width:auto;margin:0;" onclick="exportOrdersCsv()">⬇️ Export commandes (CSV)</button>
+      <button class="btn ghost sm" style="width:auto;margin:0;" onclick="exportProfilesCsv()">⬇️ Export profils (CSV)</button>
     </div>
     <div class="admin-list" id="adminList"></div>
   </div>
@@ -136,7 +140,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-let listings=[], profiles={}, alerts=[], messages={}, orders=[];
+let listings=[], profiles={}, alerts=[], messages={}, orders=[], blockedPhones={};
 let adminSub='profiles', adminOpenThreadPhone=null;
 let pollTimer=null;
 
@@ -144,12 +148,33 @@ let chatFocused=false;
 function isProtectedField(el){
   if(!el) return false;
   if(el.tagName!=='INPUT' && el.tagName!=='TEXTAREA') return false;
-  return el.id==='adminChatInput';
+  const adminList=document.getElementById('adminList');
+  return !!(adminList && adminList.contains(el));
 }
 document.addEventListener('focusin', e=>{ if(isProtectedField(e.target)) chatFocused=true; });
 document.addEventListener('focusout', e=>{ if(isProtectedField(e.target)) chatFocused=false; });
 function isTypingInChat(){ return chatFocused; }
 
+function todayStr(){ const d=new Date(); return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function downloadCsv(filename, rows){
+  const csv=rows.map(row=>row.map(cell=>'"'+String(cell==null?'':cell).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+function exportOrdersCsv(){
+  const header=['ID','Client','Téléphone client','GP','Téléphone GP','Départ','Arrivée','Date trajet','Kg','Prix total (€)','Commission (€)','Statut','Note admin'];
+  const rows=[header, ...orders.map(o=>[o.id,o.clientName,o.clientPhone,o.gpName,o.gpPhone,o.from,o.to,o.tripDate,o.kg,o.priceTotal,o.commission,statusLabel(o.status),o.adminNote||''])];
+  downloadCsv('commandes_'+todayStr()+'.csv', rows);
+}
+function exportProfilesCsv(){
+  const header=['Téléphone','Nom','Vérifié','Bloqué','Créé le'];
+  const rows=[header, ...Object.entries(profiles).map(([phone,p])=>[p.phone||phone,p.name,p.verified?'Oui':'Non',blockedPhones[phone]?'Oui':'Non',p.createdAt?new Date(p.createdAt).toLocaleDateString('fr-FR'):''])];
+  downloadCsv('profils_'+todayStr()+'.csv', rows);
+}
 function cleanPhone(p){ return (p||'').replace(/[^0-9]/g,''); }
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escJs(s){ return esc(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")); }
@@ -205,6 +230,7 @@ async function loadAll(){
   try{ alerts=await fetchCollectionArray('alerts'); }catch(e){ alerts=[]; }
   try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
   try{ orders=await fetchCollectionArray('orders'); }catch(e){ orders=[]; }
+  try{ blockedPhones=await fetchCollectionMap('blockedPhones'); }catch(e){ blockedPhones={}; }
   updateAdminNotifBadges();
 }
 function setBadge(id,count){
@@ -218,10 +244,12 @@ function updateAdminNotifBadges(){
   const listingsCount=listings.filter(l=>l.type!=='gp' && !l.verified).length;
   const alertsCount=alerts.filter(a=>!a.notified).length;
   const messagesCount=Object.values(messages).filter(th=>th.unreadAdmin).length;
+  const ordersCount=orders.filter(o=>o.status==='cancelled_gp' && o.adminSeen!==true).length;
   setBadge('badgeProfiles', profilesCount);
   setBadge('badgeListings', listingsCount);
   setBadge('badgeAlerts', alertsCount);
   setBadge('badgeMessages', messagesCount);
+  setBadge('badgeOrders', ordersCount);
 }
 async function saveListings(){ const batch=db.batch(); listings.forEach(l=>batch.set(db.collection('listings').doc(String(l.id)), l)); await batch.commit(); }
 async function saveProfiles(){ const batch=db.batch(); Object.keys(profiles).forEach(k=>batch.set(db.collection('profiles').doc(k), profiles[k])); await batch.commit(); }
@@ -369,40 +397,85 @@ function renderAdminProfiles(){
   if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucun profil.</p>'; return; }
   list.innerHTML=entries.slice().reverse().map(([phone,p])=>`
     <div class="admin-card">
-      <span class="type-pill profile">👤 IDENTITÉ</span><br>
+      <span class="type-pill profile">👤 IDENTITÉ</span>
+      ${blockedPhones[phone]?'<span class="type-pill" style="background:var(--red-soft);color:var(--red);">⛔ Bloqué</span>':''}<br>
       <b>${esc(p.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(p.phone)}</span>
       ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
       <div class="name-check">Pièce d'identité</div>
       ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(p.idPhoto?p.idPhoto.name:'non fourni')}</p>`}
       <div class="admin-actions">
         <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
+        <button class="btn-reject" onclick="toggleBlockPhone('${phone}')">${blockedPhones[phone]?'Débloquer':'Bloquer ce numéro'}</button>
         <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer</button>
       </div>
     </div>`).join('');
 }
+async function toggleBlockPhone(phone){
+  const key=cleanPhone(phone);
+  const wasBlocked=!!blockedPhones[key];
+  try{
+    if(wasBlocked){
+      await db.collection('blockedPhones').doc(key).delete();
+      delete blockedPhones[key];
+      showToast("Numéro débloqué");
+    }else{
+      const entry={blockedAt:Date.now()};
+      await db.collection('blockedPhones').doc(key).set(entry);
+      blockedPhones[key]=entry;
+      showToast("Numéro bloqué");
+    }
+    renderAdminProfiles();
+  }catch(e){ adminWriteError(e); }
+}
 function renderAdminOrders(){
+  updateAdminNotifBadges();
   const list=document.getElementById('adminList');
   if(orders.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune commande.</p>'; return; }
-  list.innerHTML=orders.slice().reverse().map(o=>`
+  list.innerHTML=orders.slice().reverse().map(o=>{
+    const needsReview = o.status==='cancelled_gp' && o.adminSeen!==true;
+    return `
     <div class="admin-card">
       <span class="type-pill gp">${statusLabel(o.status)}</span>
-      <span class="type-pill colis">${o.packageType==='valise' ? '🧳 Valise entière' : '📦 Colis'}</span><br>
+      <span class="type-pill colis">${o.packageType==='valise' ? '🧳 Valise entière' : '📦 Colis'}</span>
+      ${needsReview?'<span class="type-pill" style="background:var(--red-soft);color:var(--red);">🚨 À traiter</span>':''}<br>
       <b>${esc(o.clientName)}</b> → <b>${esc(o.gpName)}</b> · ${esc(o.from)} → ${esc(o.to)}<br>
       <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
       ${o.weightProof&&o.weightProof.type==='image'?`<div class="name-check">Photo sur balance</div><img src="${o.weightProof.data}">`:''}
+      <div class="name-check">Note interne (visible seulement par l'admin)</div>
+      <textarea id="adminNote_${o.id}" placeholder="Ex. Client recontacté le..." style="min-height:50px;">${esc(o.adminNote||'')}</textarea>
       <div class="admin-actions">
+        <button class="btn-approve" onclick="saveOrderNote('${o.id}')">Enregistrer la note</button>
+        ${needsReview ? `<button class="btn-approve" onclick="markOrderSeen('${o.id}')">Marquer comme traité</button>` : ''}
         ${['refused','cancelled_gp','cancelled_client','expired'].includes(o.status) ? '' : `<button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>`}
         <button class="btn-reject" onclick="removeOrder('${o.id}')">Supprimer</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 async function adminCancelOrder(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
-  const prevStatus=o.status;
+  const prevStatus=o.status, prevSeen=o.adminSeen;
   o.status='cancelled_client';
+  o.adminSeen=true;
   try{ await saveOrders(); renderAdminOrders(); showToast("Commande annulée"); }
-  catch(e){ o.status=prevStatus; adminWriteError(e); }
+  catch(e){ o.status=prevStatus; o.adminSeen=prevSeen; adminWriteError(e); }
+}
+async function markOrderSeen(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const prev=o.adminSeen;
+  o.adminSeen=true;
+  try{ await saveOrders(); renderAdminOrders(); showToast("Marqué comme traité"); }
+  catch(e){ o.adminSeen=prev; adminWriteError(e); }
+}
+async function saveOrderNote(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  const prev=o.adminNote;
+  o.adminNote=document.getElementById('adminNote_'+orderId).value;
+  try{ await saveOrders(); showToast("Note enregistrée"); }
+  catch(e){ o.adminNote=prev; adminWriteError(e); }
 }
 async function removeOrder(orderId){
   try{
