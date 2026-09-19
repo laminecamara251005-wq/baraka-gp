@@ -432,9 +432,12 @@ function renderAdminMessages(){
     const th=messages[adminOpenThreadPhone];
     if(!th){ adminOpenThreadPhone=null; renderAdminMessages(); return; }
     list.innerHTML=`
-      <button class="btn ghost sm" onclick="adminOpenThreadPhone=null;renderAdminMessages();">← Retour</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <button class="btn ghost sm" onclick="adminOpenThreadPhone=null;renderAdminMessages();">← Retour</button>
+        <button class="btn-reject" style="flex:none;width:auto;padding:7px 12px;border-radius:8px;font-weight:600;font-size:12px;" onclick="removeMessageThread('${adminOpenThreadPhone}')">🗑️ Supprimer la conversation</button>
+      </div>
       <div style="font-weight:700;margin:10px 0;">${esc(th.name)} · ${esc(adminOpenThreadPhone)}</div>
-      <div class="chat-thread">${th.thread.map(m=>`<div class="bubble ${m.from==='admin'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)}</span></div>`).join('')||'<p style="color:var(--ink-soft);font-size:12.5px;">Aucun message.</p>'}</div>
+      <div class="chat-thread">${th.thread.map((m,i)=>`<div class="bubble ${m.from==='admin'?'mine':'theirs'}">${esc(m.text)}<span class="time">${fmtTime(m.ts)} · <span style="cursor:pointer;" onclick="removeMessage('${adminOpenThreadPhone}',${i})">🗑️</span></span></div>`).join('')||'<p style="color:var(--ink-soft);font-size:12.5px;">Aucun message.</p>'}</div>
       <div class="chat-input"><textarea id="adminChatInput" placeholder="Répondre..."></textarea><button class="btn" style="margin-top:0;" onclick="sendAdminMessage()">Envoyer</button></div>`;
     return;
   }
@@ -447,9 +450,30 @@ function renderAdminMessages(){
     const last=th.thread[th.thread.length-1];
     return `<div class="thread-row" onclick="adminOpenThreadPhone='${phone}';renderAdminMessages();">
       <div><b>${esc(th.name)}</b><br><span style="color:var(--ink-soft);font-size:12px;">${last?esc(last.text.slice(0,38)+(last.text.length>38?'…':'')):'Pas de message'}</span></div>
-      ${th.unreadAdmin?`<span class="unread">Nouveau</span>`:''}
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${th.unreadAdmin?`<span class="unread">Nouveau</span>`:''}
+        <button class="btn-reject" style="flex:none;width:auto;padding:6px 10px;border-radius:8px;font-weight:600;font-size:14px;" onclick="event.stopPropagation();removeMessageThread('${phone}');">🗑️</button>
+      </div>
     </div>`;
   }).join('');
+}
+async function removeMessageThread(phone){
+  try{
+    await db.collection('messages').doc(phone).delete();
+    delete messages[phone];
+    if(adminOpenThreadPhone===phone) adminOpenThreadPhone=null;
+    renderAdminMessages(); showToast("Conversation supprimée");
+  }catch(e){ adminWriteError(e); }
+}
+async function removeMessage(phone,idx){
+  const th=messages[phone];
+  if(!th) return;
+  const prevThread=th.thread.slice();
+  th.thread.splice(idx,1);
+  try{
+    await db.collection('messages').doc(phone).set(th);
+    renderAdminMessages(); showToast("Message supprimé");
+  }catch(e){ th.thread=prevThread; adminWriteError(e); }
 }
 async function sendAdminMessage(){
   const text=document.getElementById('adminChatInput').value.trim();
