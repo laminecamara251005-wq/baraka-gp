@@ -87,6 +87,14 @@
     <p style="margin-top:10px;font-size:13px;">
       <a href="javascript:void(0)" onclick="adminForgotPassword()" style="color:var(--ink-soft);text-decoration:underline;">Mot de passe oublié ?</a>
     </p>
+    <div id="notAdminBox" style="display:none;margin-top:16px;background:var(--gold-soft);border-radius:12px;padding:14px 15px;">
+      <b style="color:#7A5619;">Ce compte n'est pas reconnu comme admin.</b>
+      <div style="font-size:12.5px;color:#7A5619;margin-top:6px;">Copiez cet UID exact et créez un document avec cet ID dans la collection « admins » de Firestore :</div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <input type="text" readonly value="" id="notAdminUidInput" style="background:var(--panel);font-size:12px;">
+        <button class="btn gold" style="width:auto;margin:0;padding:0 14px;flex-shrink:0;" onclick="copyNotAdminUid()">Copier</button>
+      </div>
+    </div>
   </div>
 
   <div id="panelView" style="display:none;">
@@ -134,6 +142,11 @@ function withTimeout(promise, ms){
   ]);
 }
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'; setTimeout(()=>t.classList.remove('show'),3000); }
+function copyNotAdminUid(){
+  const input=document.getElementById('notAdminUidInput');
+  input.select();
+  try{ document.execCommand('copy'); showToast("UID copié !"); }catch(e){ showToast("Copiez l'UID manuellement"); }
+}
 function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
 function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function statusLabel(s){
@@ -236,10 +249,13 @@ auth.onAuthStateChanged(async (user)=>{
       document.getElementById('loginView').style.display='block';
       document.getElementById('panelView').style.display='none';
       document.getElementById('signOutBtn').style.display='inline-block';
-      showToast("Ce compte n'est pas reconnu comme admin (UID absent de la collection « admins »).");
+      document.getElementById('notAdminUidInput').value=user.uid;
+      document.getElementById('notAdminBox').style.display='block';
+      showToast("Ce compte n'est pas reconnu comme admin.");
       try{ await auth.signOut(); }catch(e){}
       return;
     }
+    document.getElementById('notAdminBox').style.display='none';
   }
   document.getElementById('loginView').style.display = user ? 'none' : 'block';
   document.getElementById('panelView').style.display = user ? 'block' : 'none';
