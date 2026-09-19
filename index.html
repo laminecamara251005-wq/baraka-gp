@@ -1265,7 +1265,7 @@ function displayResults(country, from, to, sortBy, minKg){
           ${avatarHtml}
           <div>
             <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
-            <div style="font-size:12px;color:var(--ink-soft);">${esc(profile.name||'Voyageur')}</div>
+            <div style="font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;">${esc(profile.name||'Voyageur')}${avg!==null ? starsHtml(avg) : ''}</div>
           </div>
         </div>
         <div class="price">${PRICE_PER_KG}€/kg</div>
@@ -1275,7 +1275,6 @@ function displayResults(country, from, to, sortBy, minKg){
         <span>📅 <b>${fmtDate(l.date)}</b></span>
         <span>🧳 <b>${remainingKg(l)} kg</b> dispo</span>
       </div>
-      ${avg!==null ? `<div style="margin-top:6px;">${starsHtml(avg)}</div>` : ''}
       ${verified ? `<div class="badge verified">✅ Voyageur vérifié</div>` : `<div class="badge pending">⏳ Vérification en cours</div>`}
       <button class="btn gold sm" onclick='openOrderModal(${JSON.stringify(l).replace(/'/g,"&apos;")})'>Choisir ce voyageur</button>
     </div>`;
