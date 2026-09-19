@@ -1150,8 +1150,8 @@ function starsHtml(avg){
   const full=Math.round(avg);
   return `<span class="stars">${'★'.repeat(full)}${'☆'.repeat(5-full)} (${avg.toFixed(1)})</span>`;
 }
-const COMMON_CITIES=['Paris','Nouakchott','Bamako','Dakar','Le Caire','Riyad'];
-const CITY_COUNTRY={Nouakchott:'Mauritanie',Dakar:'Sénégal',Bamako:'Mali','Le Caire':'Égypte',Riyad:'Arabie Saoudite',Paris:'France'};
+const COMMON_CITIES=['Paris','Nouakchott','Bamako','Dakar','Le Caire','Riyad','Djeddah','La Mecque','Médine'];
+const CITY_COUNTRY={Nouakchott:'Mauritanie',Dakar:'Sénégal',Bamako:'Mali','Le Caire':'Égypte',Riyad:'Arabie Saoudite',Djeddah:'Arabie Saoudite','La Mecque':'Arabie Saoudite',Médine:'Arabie Saoudite',Paris:'France'};
 function autoSetCountry(toInputId, countrySelectId){
   const country=CITY_COUNTRY[document.getElementById(toInputId).value.trim()];
   if(country) document.getElementById(countrySelectId).value=country;
