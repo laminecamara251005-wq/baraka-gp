@@ -1405,16 +1405,6 @@ function canCancelTrip(o){
   // toute façon déjà dépassé dès l'acceptation).
   return (hUntilTrip!==null && (hUntilTrip-48)>0) || minutesSinceAccepted<30;
 }
-function orderPaymentExpired(o){
-  const hUntilTrip=hoursUntil(o.tripDate);
-  const minutesSinceAccepted = o.acceptedAt ? (Date.now()-o.acceptedAt)/60000 : Infinity;
-  // Même principe que canCancelTrip : le délai normal de 24h avant le trajet
-  // ne peut pas s'appliquer à un trajet accepté le jour même, sinon le
-  // client ne peut jamais payer. On laisse 30 minutes après l'acceptation
-  // pour valider et payer dans ce cas.
-  const pastDeadline = hUntilTrip!==null && (hUntilTrip-24)<=0;
-  return pastDeadline && minutesSinceAccepted>=30;
-}
 function renderOrders(){
   const list=document.getElementById('ordersList');
   const myPhone=cleanPhone(me.phone);
@@ -1435,17 +1425,6 @@ function renderOrders(){
     const isFailed=['refused','cancelled_gp','cancelled_client','expired'].includes(o.status);
     const hUntilTrip=hoursUntil(o.tripDate);
     let countdown='';
-    if(ordersRole==='client' && o.status==='accepted' && hUntilTrip!==null){
-      const hLeft=hUntilTrip-24;
-      if(hLeft>0){
-        countdown=`<div class="countdown">⏳ ${Math.floor(hLeft)}h restantes pour valider et payer</div>`;
-      }else if(!orderPaymentExpired(o) && o.acceptedAt){
-        const minLeft=30-(Date.now()-o.acceptedAt)/60000;
-        countdown=`<div class="countdown">⏳ Trajet le jour même : encore ${Math.ceil(minLeft)} min pour valider et payer</div>`;
-      }else{
-        countdown=`<div class="countdown">⌛ Délai de validation dépassé</div>`;
-      }
-    }
     if(ordersRole==='gp' && ['accepted','paid','picked_up'].includes(o.status) && hUntilTrip!==null){
       const hLeft=hUntilTrip-48;
       if(hLeft>0){
@@ -1514,10 +1493,9 @@ function renderOrderActions(o){
     if(!o.pickupLocation || !o.pickupTime){
       return `<div class="hint" style="margin-top:10px;">Le voyageur a accepté ! ${o.pickupLocation?'Il finalise l\'horaire de remise':'Il propose le lieu et l\'horaire de remise'}, vous serez prévenu(e).</div>`;
     }
-    const expired = orderPaymentExpired(o);
     const discounts = me ? availableDiscounts(me.phone) : 0;
-    const discountBox = (discounts>0 && !expired) ? `<label class="check-line" style="background:var(--green-pale);color:#1F2B24;padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>` : '';
-    return `${discountBox}<button class="btn ${expired?'':'gold'} sm" ${expired?'disabled':''} onclick="payOrder('${o.id}')">${expired?'Délai dépassé':'💳 Payer maintenant (simulation)'}</button>`;
+    const discountBox = discounts>0 ? `<label class="check-line" style="background:var(--green-pale);color:#1F2B24;padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>` : '';
+    return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">💳 Payer maintenant (simulation)</button>`;
   }
   if(ordersRole==='gp' && o.status==='paid'){
     const canCancel = canCancelTrip(o);
