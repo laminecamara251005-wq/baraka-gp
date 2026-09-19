@@ -880,9 +880,9 @@ async function authSubmit(){
         const key=ensurePoints(phone);
         if(pendingRef && pendingRef!==points[key].refCode && !points[key].referredBy){
           points[key].referredBy=pendingRef;
-          points[key].points+=10;
+          points[key].points+=5;
           try{ await savePoints(); }catch(e){}
-          showToast("🎉 Bienvenue ! +10 points grâce à votre parrainage", true);
+          showToast("🎉 Bienvenue ! +5 points grâce à votre parrainage", true);
         }
         await completeLogin(uid, acc);
       } finally {
@@ -993,13 +993,13 @@ function renderPointsPanel(){
     </div>
     <div class="ref-box">
       <b>🎁 Parrainez vos proches</b>
-      <div style="font-size:13px;color:#7A5619;margin-top:4px;">Vous gagnez 10 points à leur 1ère commande, ils gagnent 10 points à l'inscription.</div>
+      <div style="font-size:13px;color:#7A5619;margin-top:4px;">Vous gagnez 5 points à leur 1ère commande, ils gagnent 5 points à l'inscription.</div>
       <div class="link-row">
         <input type="text" readonly value="${refLink}" id="refLinkInput">
         <button class="btn gold" onclick="copyRefLink()">Copier</button>
       </div>
     </div>
-    <div style="font-size:12px;color:var(--ink-soft);">Comment gagner des points : +10 par commande complétée, +10 par filleul actif.</div>
+    <div style="font-size:12px;color:var(--ink-soft);">Comment gagner des points : +5 par commande complétée, +5 par filleul actif.</div>
   `;
 }
 function copyRefLink(){
@@ -1716,14 +1716,14 @@ async function confirmDelivery(orderId){
   }
   o.status='completed';
   await saveOrders();
-  await awardPoints(o.clientPhone, 10, "🎉 Commande terminée, +10 points !");
+  await awardPoints(o.clientPhone, 5, "🎉 Commande terminée, +5 points !");
   const gpKey=ensurePoints(o.gpPhone);
   const clientPointsKey=cleanPhone(o.clientPhone);
   if(points[clientPointsKey] && points[clientPointsKey].referredBy && !points[clientPointsKey].firstOrderCredited){
     points[clientPointsKey].firstOrderCredited=true;
     const referrerCode=points[clientPointsKey].referredBy;
     const referrerKey=Object.keys(points).find(k=>points[k] && points[k].refCode===referrerCode);
-    if(referrerKey) points[referrerKey].points += 10;
+    if(referrerKey) points[referrerKey].points += 5;
     await savePoints();
   }
   showToast("Livraison confirmée, merci ! 🎉");
@@ -2094,7 +2094,7 @@ async function grantOrderCompletionRewards(clientPhone){
   const ref=db.collection('points').doc(key);
   const snap=await withTimeout(ref.get(), 8000);
   const data=snap.exists ? snap.data() : { points:0, referredBy:null, firstOrderCredited:false, refCode:genRefCode() };
-  data.points=(data.points||0)+10;
+  data.points=(data.points||0)+5;
   let referrerDoc=null;
   if(data.referredBy && !data.firstOrderCredited){
     data.firstOrderCredited=true;
@@ -2106,7 +2106,7 @@ async function grantOrderCompletionRewards(clientPhone){
   await withTimeout(ref.set(data), 8000);
   if(referrerDoc){
     const rData=referrerDoc.data();
-    rData.points=(rData.points||0)+10;
+    rData.points=(rData.points||0)+5;
     try{ await withTimeout(db.collection('points').doc(referrerDoc.id).set(rData), 8000); }catch(e){}
   }
 }
