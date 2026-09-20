@@ -403,8 +403,8 @@
   <!-- ORDERS -->
   <div id="viewOrders" style="display:none;">
     <div class="role-toggle">
-      <div class="active" id="roleClient" onclick="switchRole('client')">📤 Mes envois</div>
-      <div id="roleGp" onclick="switchRole('gp')">✈️ Commandes reçues (GP)</div>
+      <div class="active" id="roleClient" onclick="switchRole('client')">📤 Mes envois <span class="drawer-badge" id="badgeRoleClient" style="display:none;">0</span></div>
+      <div id="roleGp" onclick="switchRole('gp')">✈️ Commandes reçues (GP) <span class="drawer-badge" id="badgeRoleGp" style="display:none;">0</span></div>
     </div>
     <div id="ordersList"></div>
   </div>
@@ -773,24 +773,27 @@ function setBadge(id, count){
   else{ el.style.display='none'; }
 }
 function updateNotifBadge(){
-  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); return; }
+  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); setBadge('badgeRoleClient',0); setBadge('badgeRoleGp',0); return; }
   const myPhone=cleanPhone(me.phone);
   const msgKey=messages[myPhone];
   const messagesCount = (msgKey && msgKey.unreadUser) ? 1 : 0;
-  let ordersCount=0;
+  let clientOrdersCount=0, gpOrdersCount=0;
   orders.forEach(o=>{
     if(cleanPhone(o.clientPhone)===myPhone){
-      if(['accepted','delivered'].includes(o.status)) ordersCount++;
-      if(o.status==='completed' && !o.rating) ordersCount++;
+      if(['accepted','delivered'].includes(o.status)) clientOrdersCount++;
+      if(o.status==='completed' && !o.rating) clientOrdersCount++;
     }
     if(cleanPhone(o.gpPhone)===myPhone){
-      if(['pending','picked_up'].includes(o.status)) ordersCount++;
-      if(o.status==='completed' && !o.clientRating) ordersCount++;
+      if(['pending','picked_up'].includes(o.status)) gpOrdersCount++;
+      if(o.status==='completed' && !o.clientRating) gpOrdersCount++;
     }
   });
+  const ordersCount=clientOrdersCount+gpOrdersCount;
   setBadge('notifBadge', messagesCount+ordersCount);
   setBadge('badgeMessages', messagesCount);
   setBadge('badgeOrders', ordersCount);
+  setBadge('badgeRoleClient', clientOrdersCount);
+  setBadge('badgeRoleGp', gpOrdersCount);
 }
 function updateUserHeader(){
   const topName=document.getElementById('topLeftName');
