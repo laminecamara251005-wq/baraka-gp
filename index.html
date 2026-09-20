@@ -386,10 +386,16 @@
 
   <!-- MY TRIPS (voyageurs) -->
   <div id="viewMytrips" style="display:none;">
-    <div class="results-head"><h3>Mes trajets publiés</h3></div>
-    <div id="myTripsList"></div>
-    <div class="results-head"><h3>Demandes de colis disponibles</h3></div>
-    <div id="availableColisList"></div>
+    <div class="role-toggle">
+      <div class="active" id="mytripsTabTrips" onclick="switchMytripsSub('trips')">🧳 Mes trajets publiés</div>
+      <div id="mytripsTabColis" onclick="switchMytripsSub('colis')">📦 Demandes disponibles</div>
+    </div>
+    <div id="mytripsSectionTrips">
+      <div id="myTripsList"></div>
+    </div>
+    <div id="mytripsSectionColis" style="display:none;">
+      <div id="availableColisList"></div>
+    </div>
   </div>
 
   <!-- MY REQUESTS (clients) -->
@@ -1401,6 +1407,16 @@ async function submitOrder(){
   closeOrderModal();
   showToast("Commande envoyée ! En attente de réponse du voyageur 🙏");
   switchTab('orders');
+}
+
+// ---- MY TRIPS TAB ----
+let mytripsSub='trips';
+function switchMytripsSub(sub){
+  mytripsSub=sub;
+  document.getElementById('mytripsTabTrips').classList.toggle('active', sub==='trips');
+  document.getElementById('mytripsTabColis').classList.toggle('active', sub==='colis');
+  document.getElementById('mytripsSectionTrips').style.display = sub==='trips' ? 'block' : 'none';
+  document.getElementById('mytripsSectionColis').style.display = sub==='colis' ? 'block' : 'none';
 }
 
 // ---- ORDERS TAB ----
