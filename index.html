@@ -1326,7 +1326,7 @@ function openOrderModal(listing){
     document.getElementById('orderRouteInfo').textContent = `${listing.from} → ${listing.to} · ${fmtDate(listing.date)} · max ${remainingKg(listing)}kg dispo`;
     document.getElementById('oKg').max=remainingKg(listing);
     document.getElementById('oKg').value='';
-    document.getElementById('oDesc').value=''; document.getElementById('oValue').value='';
+    document.getElementById('oDesc').value='';
     document.getElementById('oRecipient').value='';
     document.getElementById('oPhoto').value=''; document.getElementById('oWeightProof').value='';
     setPackageType('colis');
