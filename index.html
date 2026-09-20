@@ -372,7 +372,9 @@
       </div>
       <label>Pays de destination</label>
       <select id="pCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option><option value="France">🇫🇷 France</option></select>
-      <label>Date du voyage</label><input type="date" id="pDate">
+      <label>Date de départ</label><input type="date" id="pDate">
+      <label>Date et heure d'arrivée estimée</label><input type="datetime-local" id="pArrival">
+      <div class="hint">Utilisée pour savoir à partir de quand le destinataire peut confirmer la réception.</div>
       <label>Kg disponibles</label><input type="number" id="pKg" placeholder="Ex. 8" min="1">
       <div class="rules-box">
         <div class="rules-title">🙏 Engagement du voyageur</div>
@@ -515,7 +517,10 @@
     </div>
     <label>Pays de destination</label>
     <select id="elCountry"><option value="Mauritanie">🇲🇷 Mauritanie</option><option value="Sénégal">🇸🇳 Sénégal</option><option value="Mali">🇲🇱 Mali</option><option value="Égypte">🇪🇬 Égypte</option><option value="Arabie Saoudite">🇸🇦 Arabie Saoudite</option><option value="France">🇫🇷 France</option></select>
-    <label>Date du voyage</label><input type="date" id="elDate">
+    <label>Date de départ</label><input type="date" id="elDate">
+    <div id="elArrivalRow" style="display:none;">
+      <label>Date et heure d'arrivée estimée</label><input type="datetime-local" id="elArrival">
+    </div>
     <label>Kg disponibles</label><input type="number" id="elKg" min="1">
     <button class="btn gold" onclick="saveListingEdit()">Enregistrer</button>
     <button class="btn ghost" onclick="closeEditListing()">Annuler</button>
@@ -1299,6 +1304,7 @@ function displayResults(country, from, to, sortBy, minKg){
         <span>📅 <b>${fmtDate(l.date)}</b></span>
         <span>🧳 <b>${remainingKg(l)} kg</b> dispo</span>
       </div>
+      ${l.arrivalDateTime ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">🛬 Arrivée estimée : ${fmtDateTime(l.arrivalDateTime)}</div>` : ''}
       ${verified ? `<div class="badge verified">✅ Voyageur vérifié</div>` : `<div class="badge pending">⏳ Vérification en cours</div>`}
       <button class="btn gold sm" onclick='openOrderModal(${JSON.stringify(l).replace(/'/g,"&apos;")})'>Choisir ce voyageur</button>
     </div>`;
@@ -1392,7 +1398,7 @@ async function submitOrder(){
     id:Date.now().toString(), listingId:l.id,
     gpPhone:cleanPhone(l.phone), gpName:(profiles[l.phone]||{}).name||'Voyageur',
     clientPhone:cleanPhone(me.phone), clientName:me.name,
-    from:l.from, to:l.to, country:l.country, tripDate:l.date,
+    from:l.from, to:l.to, country:l.country, tripDate:l.date, arrivalDateTime:l.arrivalDateTime||null,
     packageType:orderPackageType,
     kg, photo, weightProof, desc, recipientName,
     priceTotal:total, commission, priceNet:(kg*PRICE_PER_KG)-commission, discountUsed,
@@ -1437,6 +1443,9 @@ function progressSteps(order){
   }
   const idx=steps.indexOf(order.status);
   return steps.map((s,i)=> i<=idx ? 'done' : '');
+}
+function orderArrivalDateStr(o){
+  return o.arrivalDateTime ? o.arrivalDateTime.slice(0,10) : o.tripDate;
 }
 function hoursUntil(dateStr){
   if(!dateStr) return null;
@@ -1493,6 +1502,7 @@ function renderOrders(){
         <span>📅 <b>${fmtDate(o.tripDate)}</b></span>
         <span>⚖️ <b>${o.kg}kg</b></span>
       </div>
+      ${o.arrivalDateTime ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">🛬 Arrivée estimée : ${fmtDateTime(o.arrivalDateTime)}</div>` : ''}
       <div class="progress">${steps.map(s=>`<span class="${s}"></span>`).join('')}</div>
       <div class="progress-labels"><span>Envoyée</span><span>Acceptée</span><span>Payée</span><span>Prise en charge</span><span>Remise</span><span>Terminée</span></div>
       ${countdown}
@@ -1723,7 +1733,8 @@ async function confirmDelivery(orderId){
   const o=orders.find(x=>x.id===orderId);
   const input=document.getElementById('codeInput-'+orderId);
   if(!o||!input) return;
-  if(o.tripDate && o.tripDate>todayDateStr()){ showToast("Le voyageur n'est pas encore arrivé, revenez après le "+fmtDate(o.tripDate)); return; }
+  const arrivalDate=orderArrivalDateStr(o);
+  if(arrivalDate && arrivalDate>todayDateStr()){ showToast("Le voyageur n'est pas encore arrivé, revenez après le "+fmtDate(arrivalDate)); return; }
   if(input.value.trim()!==o.deliveryCode){ showToast("Code incorrect, vérifiez avec le voyageur"); return; }
   let snap;
   try{ snap=await withTimeout(db.collection('orders').doc(orderId).get(), 8000); }catch(e){ showToast("Connexion trop lente, réessayez"); return; }
@@ -1843,11 +1854,13 @@ async function publishListing(){
   const to=document.getElementById('pTo').value.trim();
   const country=document.getElementById('pCountry').value;
   const date=document.getElementById('pDate').value;
+  const arrival=document.getElementById('pArrival').value;
   const kg=document.getElementById('pKg').value;
   const ticketFile=document.getElementById('pTicket').files[0];
 
-  if(!name||!phone||!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
+  if(!name||!phone||!from||!to||!kg||!arrival){ showToast("Merci de remplir tous les champs"); return; }
   if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
+  if(date && arrival.slice(0,10)<date){ showToast("La date d'arrivée ne peut pas être avant la date de départ"); return; }
   if(!ticketFile){ showToast("Merci d'ajouter votre billet"); return; }
 
   const hasProfile=!!profiles[phone];
@@ -1871,11 +1884,11 @@ async function publishListing(){
   let ticket;
   try{ ticket=await compressImage(ticketFile); }catch(e){ showToast("Billet illisible"); return; }
 
-  listings.push({id:Date.now().toString(),type:'gp',phone,from,to,country,date,kg:parseInt(kg),price:PRICE_PER_KG,ticket});
+  listings.push({id:Date.now().toString(),type:'gp',phone,from,to,country,date,arrivalDateTime:arrival,kg:parseInt(kg),price:PRICE_PER_KG,ticket});
   await saveListings();
   showToast(hasProfile?"Trajet publié !":"Trajet publié ! Identité en attente de vérification 🙏");
 
-  ['pName','pFrom','pTo','pDate','pKg','pTicket','pId'].forEach(id=>document.getElementById(id).value='');
+  ['pName','pFrom','pTo','pDate','pArrival','pKg','pTicket','pId'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pPhone').value=phoneRaw;
   rules.forEach(id=>document.getElementById(id).checked=false);
   ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
@@ -1901,6 +1914,7 @@ function renderMyTrips(){
         <span>📅 <b>${fmtDate(l.date)}</b></span>
         <span>🧳 <b>${remainingKg(l)} kg</b> dispo (sur ${l.kg}kg)</span>
       </div>
+      ${l.arrivalDateTime ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">🛬 Arrivée estimée : ${fmtDateTime(l.arrivalDateTime)}</div>` : ''}
       ${remainingKg(l)<=0 ? `<div class="badge verified" style="display:block;">✅ Complet, n'apparaît plus dans les recherches</div>` : ''}
       <div class="admin-actions" style="margin-top:12px;">
         <button class="btn-approve" onclick="openEditListing('${l.id}')">Modifier</button>
@@ -2028,6 +2042,8 @@ function openEditListing(id){
   document.getElementById('elCountry').value=l.country;
   document.getElementById('elDate').value=l.date||'';
   document.getElementById('elKg').value=l.kg;
+  document.getElementById('elArrivalRow').style.display = l.type==='gp' ? 'block' : 'none';
+  document.getElementById('elArrival').value = l.arrivalDateTime||'';
   document.getElementById('editListingOverlay').classList.add('show');
 }
 function closeEditListing(){
@@ -2051,6 +2067,12 @@ async function saveListingEdit(){
   const country=document.getElementById('elCountry').value;
   if(!from||!to||!kg){ showToast("Merci de remplir tous les champs"); return; }
   if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
+  if(l.type==='gp'){
+    const arrival=document.getElementById('elArrival').value;
+    if(!arrival){ showToast("Merci d'indiquer la date et l'heure d'arrivée"); return; }
+    if(date && arrival.slice(0,10)<date){ showToast("La date d'arrivée ne peut pas être avant la date de départ"); return; }
+    l.arrivalDateTime=arrival;
+  }
   l.from=from; l.to=to; l.kg=kg; l.date=date; l.country=country;
   await saveListings();
   showToast("Mis à jour");
@@ -2147,8 +2169,8 @@ function renderReceiveContent(orderId, order){
     statusHtml=`<div class="sub" style="text-align:center;">✅ Réception déjà confirmée. Merci !</div>`;
   }else if(order.status!=='delivered'){
     statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'a pas encore remis ce colis. Revenez sur ce lien une fois le colis en main. Vous pouvez déjà lui écrire ci-dessous.</div>`;
-  }else if(order.tripDate && order.tripDate>todayDateStr()){
-    statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'est pas encore arrivé (trajet prévu le ${fmtDate(order.tripDate)}). Revenez sur ce lien à partir de cette date pour confirmer la réception. Vous pouvez déjà lui écrire ci-dessous.</div>`;
+  }else if(orderArrivalDateStr(order) && orderArrivalDateStr(order)>todayDateStr()){
+    statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'est pas encore arrivé (arrivée prévue le ${fmtDate(orderArrivalDateStr(order))}). Revenez sur ce lien à partir de cette date pour confirmer la réception. Vous pouvez déjà lui écrire ci-dessous.</div>`;
   }else{
     statusHtml=`
       <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${esc(order.recipientName)},<br>`:''}confirmez que vous avez bien reçu le colis (${esc(order.from)} → ${esc(order.to)}) en entrant le code à 4 chiffres donné par le voyageur.</div>
@@ -2179,7 +2201,8 @@ async function confirmReceiveDelivery(orderId){
   if(!snap.exists){ showToast("Commande introuvable"); return; }
   const order=snap.data();
   if(order.status==='completed'){ renderReceiveContent(orderId, order); return; }
-  if(order.tripDate && order.tripDate>todayDateStr()){ showToast("Le voyageur n'est pas encore arrivé, revenez après le "+fmtDate(order.tripDate)); renderReceiveContent(orderId, order); return; }
+  const arrivalDate=orderArrivalDateStr(order);
+  if(arrivalDate && arrivalDate>todayDateStr()){ showToast("Le voyageur n'est pas encore arrivé, revenez après le "+fmtDate(arrivalDate)); renderReceiveContent(orderId, order); return; }
   if(code!==order.deliveryCode){ showToast("Code incorrect, vérifiez avec le voyageur"); return; }
   try{
     await withTimeout(db.collection('orders').doc(orderId).update({status:'completed'}), 8000);

@@ -201,6 +201,7 @@ function copyNotAdminUid(){
   try{ document.execCommand('copy'); showToast("UID copié !"); }catch(e){ showToast("Copiez l'UID manuellement"); }
 }
 function fmtDate(d){ if(!d) return "Date à confirmer"; return new Date(d+"T00:00:00").toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+function fmtDateTime(dt){ if(!dt) return "—"; return new Date(dt).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(dt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function fmtTime(ts){ return new Date(ts).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' à '+new Date(ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
 function statusLabel(s){
   return {pending:'⏳ En attente',accepted:'✅ Acceptée',paid:'💳 Payée',picked_up:'🧳 Prise en charge',delivered:'📦 Remise confirmée',completed:'🎉 Terminée',refused:'❌ Refusée',cancelled_gp:'❌ Annulée par le GP',cancelled_client:'❌ Annulée',expired:'⌛ Expirée'}[s]||s;
@@ -446,7 +447,7 @@ function renderAdminOrders(){
       <span class="type-pill colis">${o.packageType==='valise' ? '🧳 Valise entière' : '📦 Colis'}</span>
       ${needsReview?'<span class="type-pill" style="background:var(--red-soft);color:var(--red);">🚨 À traiter</span>':''}<br>
       <b>${esc(o.clientName)}</b> → <b>${esc(o.gpName)}</b> · ${esc(o.from)} → ${esc(o.to)}<br>
-      <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
+      <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)}${o.arrivalDateTime?' · arrivée '+fmtDateTime(o.arrivalDateTime):''} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
       ${o.weightProof&&o.weightProof.type==='image'?`<div class="name-check">Photo sur balance</div><img src="${o.weightProof.data}">`:''}
       <div class="name-check">Note interne (visible seulement par l'admin)</div>
       <textarea id="adminNote_${o.id}" placeholder="Ex. Client recontacté le..." style="min-height:50px;">${esc(o.adminNote||'')}</textarea>
