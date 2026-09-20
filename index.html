@@ -1477,13 +1477,6 @@ function renderOrders(){
       <div class="progress">${steps.map(s=>`<span class="${s}"></span>`).join('')}</div>
       <div class="progress-labels"><span>Envoyée</span><span>Acceptée</span><span>Payée</span><span>Prise en charge</span><span>Remise</span><span>Terminée</span></div>
       ${countdown}
-      <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);">
-        ${o.pickupLocation ? `📍 ${esc(o.pickupLocation)} · 🕒 ${fmtDateTime(o.pickupTime)}<br>` : ''}
-        ${ordersRole==='client' ? `💰 Prix total : <b>${o.priceTotal.toFixed(2)}€</b>${o.discountUsed?' <span style="color:var(--green-dark);">(remise 5€ appliquée)</span>':''}` : `💰 Vous touchez : <b>${o.priceNet.toFixed(2)}€</b> (commission Baraka GP déjà déduite)`}
-      </div>
-      ${o.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(o.desc)}</div>` : ''}
-      ${o.recipientName ? `<div style="font-size:12.5px;margin-top:4px;color:var(--ink-soft);">🙋 À remettre à : <b>${esc(o.recipientName)}</b></div>` : ''}
-      ${renderOrderActions(o)}
       ${!isFailed && o.status!=='pending' ? `
         <div class="chat-thread" id="oc-${o.id}" style="margin-top:12px;"></div>
         <div class="chat-input">
@@ -1491,6 +1484,13 @@ function renderOrders(){
           <button class="btn" style="margin-top:0;" onclick="sendOrderMessage('${o.id}')">Envoyer</button>
         </div>
       ` : ''}
+      <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);">
+        ${o.pickupLocation ? `📍 ${esc(o.pickupLocation)} · 🕒 ${fmtDateTime(o.pickupTime)}<br>` : ''}
+        ${ordersRole==='client' ? `💰 Prix total : <b>${o.priceTotal.toFixed(2)}€</b>${o.discountUsed?' <span style="color:var(--green-dark);">(remise 5€ appliquée)</span>':''}` : `💰 Vous touchez : <b>${o.priceNet.toFixed(2)}€</b> (commission Baraka GP déjà déduite)`}
+      </div>
+      ${o.desc ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(o.desc)}</div>` : ''}
+      ${o.recipientName ? `<div style="font-size:12.5px;margin-top:4px;color:var(--ink-soft);">🙋 À remettre à : <b>${esc(o.recipientName)}</b></div>` : ''}
+      ${renderOrderActions(o)}
       ${(o.recipientName && !isFailed && o.status!=='pending') ? `
         <button class="btn ghost sm" onclick="shareWithRecipient('${o.id}')">🔗 Partager le lien avec le destinataire</button>
         <div class="hint" style="margin-top:10px;">💬 Discussion avec le destinataire</div>
