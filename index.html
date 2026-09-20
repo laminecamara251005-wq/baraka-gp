@@ -1580,7 +1580,7 @@ function renderOrderActions(o){
       <label>Lieu de remise proposé</label>
       <input type="text" id="gpPickupLoc-${o.id}" placeholder="Ex. Gare du Nord, Paris" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
       <label>Horaire de remise proposé</label>
-      <input type="datetime-local" id="gpPickupTime-${o.id}">
+      <input type="datetime-local" id="gpPickupTime-${o.id}" max="${o.tripDate}T23:59">
       <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">Proposer au client</button>
       ${canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
     `;
@@ -1646,6 +1646,7 @@ async function gpProposePickup(orderId){
   const loc=document.getElementById('gpPickupLoc-'+orderId).value.trim();
   const time=document.getElementById('gpPickupTime-'+orderId).value;
   if(!loc||!time){ showToast("Merci de remplir le lieu et l'horaire"); return; }
+  if(o.tripDate && time.slice(0,10)>o.tripDate){ showToast("La remise doit avoir lieu avant ou le jour du départ ("+fmtDate(o.tripDate)+")"); return; }
   o.pickupLocation=loc; o.pickupTime=time;
   await saveOrders();
   showToast("Lieu et horaire proposés au client !");
@@ -1722,6 +1723,7 @@ async function confirmDelivery(orderId){
   const o=orders.find(x=>x.id===orderId);
   const input=document.getElementById('codeInput-'+orderId);
   if(!o||!input) return;
+  if(o.tripDate && o.tripDate>todayDateStr()){ showToast("Le voyageur n'est pas encore arrivé, revenez après le "+fmtDate(o.tripDate)); return; }
   if(input.value.trim()!==o.deliveryCode){ showToast("Code incorrect, vérifiez avec le voyageur"); return; }
   let snap;
   try{ snap=await withTimeout(db.collection('orders').doc(orderId).get(), 8000); }catch(e){ showToast("Connexion trop lente, réessayez"); return; }
@@ -2145,6 +2147,8 @@ function renderReceiveContent(orderId, order){
     statusHtml=`<div class="sub" style="text-align:center;">✅ Réception déjà confirmée. Merci !</div>`;
   }else if(order.status!=='delivered'){
     statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'a pas encore remis ce colis. Revenez sur ce lien une fois le colis en main. Vous pouvez déjà lui écrire ci-dessous.</div>`;
+  }else if(order.tripDate && order.tripDate>todayDateStr()){
+    statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'est pas encore arrivé (trajet prévu le ${fmtDate(order.tripDate)}). Revenez sur ce lien à partir de cette date pour confirmer la réception. Vous pouvez déjà lui écrire ci-dessous.</div>`;
   }else{
     statusHtml=`
       <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${esc(order.recipientName)},<br>`:''}confirmez que vous avez bien reçu le colis (${esc(order.from)} → ${esc(order.to)}) en entrant le code à 4 chiffres donné par le voyageur.</div>
@@ -2175,6 +2179,7 @@ async function confirmReceiveDelivery(orderId){
   if(!snap.exists){ showToast("Commande introuvable"); return; }
   const order=snap.data();
   if(order.status==='completed'){ renderReceiveContent(orderId, order); return; }
+  if(order.tripDate && order.tripDate>todayDateStr()){ showToast("Le voyageur n'est pas encore arrivé, revenez après le "+fmtDate(order.tripDate)); renderReceiveContent(orderId, order); return; }
   if(code!==order.deliveryCode){ showToast("Code incorrect, vérifiez avec le voyageur"); return; }
   try{
     await withTimeout(db.collection('orders').doc(orderId).update({status:'completed'}), 8000);
