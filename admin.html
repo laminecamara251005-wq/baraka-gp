@@ -409,8 +409,10 @@ function renderAdminProfiles(){
       <span class="type-pill profile">👤 IDENTITÉ</span>
       ${blockedPhones[phone]?'<span class="type-pill" style="background:var(--red-soft);color:var(--red);">⛔ Bloqué</span>':''}<br>
       <b>${esc(p.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(p.phone)}</span>
-      ${p.ratingCount?`<div style="font-size:12px;margin-top:4px;">⭐ Comme voyageur : ${(p.ratingSum/p.ratingCount).toFixed(1)}/5 (${p.ratingCount} avis)</div>`:''}
-      ${p.clientRatingCount?`<div style="font-size:12px;margin-top:2px;">⭐ Comme client : ${(p.clientRatingSum/p.clientRatingCount).toFixed(1)}/5 (${p.clientRatingCount} avis)</div>`:''}
+      ${p.ratingCount?`<div style="font-size:12px;margin-top:4px;">⭐ Comme voyageur : ${(p.ratingSum/p.ratingCount).toFixed(1)}/5 (${p.ratingCount} avis)
+        <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="resetGpRating('${phone}')">Réinitialiser la note</button></div>`:''}
+      ${p.clientRatingCount?`<div style="font-size:12px;margin-top:2px;">⭐ Comme client : ${(p.clientRatingSum/p.clientRatingCount).toFixed(1)}/5 (${p.clientRatingCount} avis)
+        <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="resetClientRating('${phone}')">Réinitialiser la note</button></div>`:''}
       ${gpReviews.length>0 ? `
         <div class="name-check">Avis reçus comme voyageur</div>
         ${gpReviews.map(o=>`
@@ -533,6 +535,36 @@ async function deleteOrderClientRating(orderId){
   }catch(e){
     o.clientRating=prevRating; o.clientRatingComment=prevComment;
     if(p){ p.clientRatingSum=prevSum; p.clientRatingCount=prevCount; }
+    adminWriteError(e);
+  }
+}
+async function resetGpRating(phone){
+  const p=profiles[phone];
+  if(!p || !p.ratingCount) return;
+  if(!confirm("Réinitialiser la note voyageur de ce profil (y compris les avis liés à des commandes déjà supprimées) ?")) return;
+  const prevSum=p.ratingSum, prevCount=p.ratingCount;
+  p.ratingSum=0; p.ratingCount=0;
+  try{
+    await saveProfiles();
+    renderAdminProfiles();
+    showToast("Note réinitialisée");
+  }catch(e){
+    p.ratingSum=prevSum; p.ratingCount=prevCount;
+    adminWriteError(e);
+  }
+}
+async function resetClientRating(phone){
+  const p=profiles[phone];
+  if(!p || !p.clientRatingCount) return;
+  if(!confirm("Réinitialiser la note client de ce profil (y compris les avis liés à des commandes déjà supprimées) ?")) return;
+  const prevSum=p.clientRatingSum, prevCount=p.clientRatingCount;
+  p.clientRatingSum=0; p.clientRatingCount=0;
+  try{
+    await saveProfiles();
+    renderAdminProfiles();
+    showToast("Note réinitialisée");
+  }catch(e){
+    p.clientRatingSum=prevSum; p.clientRatingCount=prevCount;
     adminWriteError(e);
   }
 }
