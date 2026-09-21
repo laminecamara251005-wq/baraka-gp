@@ -414,6 +414,7 @@
     <div class="role-toggle">
       <div class="active" id="roleClient" onclick="switchRole('client')">📤 Mes envois <span class="drawer-badge" id="badgeRoleClient" style="display:none;">0</span></div>
       <div id="roleGp" onclick="switchRole('gp')">✈️ Commandes reçues (GP) <span class="drawer-badge" id="badgeRoleGp" style="display:none;">0</span></div>
+      <div id="roleCompleted" onclick="switchRole('completed')">✅ Terminées</div>
     </div>
     <div id="ordersList"></div>
   </div>
@@ -1502,6 +1503,7 @@ function switchRole(role){
   ordersRole=role;
   document.getElementById('roleClient').classList.toggle('active', role==='client');
   document.getElementById('roleGp').classList.toggle('active', role==='gp');
+  document.getElementById('roleCompleted').classList.toggle('active', role==='completed');
   renderOrders();
 }
 function statusLabel(s){
@@ -1536,6 +1538,33 @@ function canCancelTrip(o){
 function renderOrders(){
   const list=document.getElementById('ordersList');
   const myPhone=cleanPhone(me.phone);
+  if(ordersRole==='completed'){
+    const asClient=orders.filter(o=>o.clientPhone===myPhone && o.status==='completed');
+    const asGp=orders.filter(o=>o.gpPhone===myPhone && o.status==='completed');
+    asClient.sort((a,b)=>b.createdAt-a.createdAt);
+    asGp.sort((a,b)=>b.createdAt-a.createdAt);
+    if(asClient.length===0 && asGp.length===0){
+      list.innerHTML=`<div class="empty"><b>Aucune commande terminée</b>Vos commandes terminées (envoyées ou reçues) apparaîtront ici.</div>`;
+      return;
+    }
+    let html='';
+    if(asClient.length>0){
+      ordersRole='client';
+      html+=`<div class="results-head"><h3>📤 Envoyées</h3></div>`+asClient.map(o=>renderOrderCard(o)).join('');
+    }
+    if(asGp.length>0){
+      ordersRole='gp';
+      html+=`<div class="results-head"><h3>✈️ Reçues</h3></div>`+asGp.map(o=>renderOrderCard(o)).join('');
+    }
+    ordersRole='completed';
+    list.innerHTML=html;
+    [...asClient,...asGp].forEach(o=>{
+      renderOrderChat(o.id);
+      if(o.recipientName) renderRecipientChat(o.id);
+    });
+    return;
+  }
+
   const hiddenStatuses=['refused','cancelled_gp','cancelled_client','expired','completed'];
   const mine = (ordersRole==='client'
     ? orders.filter(o=>o.clientPhone===myPhone)
@@ -1548,7 +1577,15 @@ function renderOrders(){
     return;
   }
 
-  list.innerHTML = mine.map(o=>{
+  list.innerHTML = mine.map(o=>renderOrderCard(o)).join('');
+
+  mine.forEach(o=>{
+    if(!['pending'].includes(o.status)) renderOrderChat(o.id);
+    const failed=['refused','cancelled_gp','cancelled_client','expired'].includes(o.status);
+    if(o.recipientName && !failed && o.status!=='pending') renderRecipientChat(o.id);
+  });
+}
+function renderOrderCard(o){
     const steps=progressSteps(o);
     const isFailed=['refused','cancelled_gp','cancelled_client','expired'].includes(o.status);
     const hUntilTrip=hoursUntil(o.tripDate);
@@ -1602,13 +1639,6 @@ function renderOrders(){
         </div>
       ` : ''}
     </div>`;
-  }).join('');
-
-  mine.forEach(o=>{
-    if(!['pending'].includes(o.status)) renderOrderChat(o.id);
-    const failed=['refused','cancelled_gp','cancelled_client','expired'].includes(o.status);
-    if(o.recipientName && !failed && o.status!=='pending') renderRecipientChat(o.id);
-  });
 }
 
 function renderOrderActions(o){
