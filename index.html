@@ -1744,14 +1744,17 @@ function renderOrderActions(o){
     return canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : '';
   }
   if(ordersRole==='gp' && o.status==='delivered'){
-    return `<button class="btn ghost sm" onclick="showDeliveryCode('${o.id}')">📋 Revoir le lien/code de réception</button>`;
-  }
-  if(ordersRole==='client' && o.status==='delivered'){
-    return `<div class="hint" style="margin-top:10px;">Le destinataire confirme lui-même la réception via le lien envoyé par le voyageur. En cas de souci, vous pouvez aussi saisir ici le code qu'il vous communique.</div>
+    return `
+      <div class="hint" style="margin-top:10px;">Demandez le code à 4 chiffres au destinataire au moment de la remise, pour confirmer la réception.</div>
       <div style="display:flex;gap:8px;margin-top:6px;">
         <input type="text" inputmode="numeric" pattern="[0-9]*" id="codeInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
         <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmDelivery('${o.id}')">Valider</button>
-      </div>`;
+      </div>
+      <button class="btn ghost sm" onclick="showDeliveryCode('${o.id}')" style="margin-top:8px;">📋 Revoir le lien envoyé au destinataire</button>
+    `;
+  }
+  if(ordersRole==='client' && o.status==='delivered'){
+    return `<div class="hint" style="margin-top:10px;">Le voyageur remet le colis au destinataire, qui lui communique son code de réception pour confirmer.</div>`;
   }
   if(ordersRole==='client' && o.status==='completed' && !o.rating){
     return `<button class="btn ghost sm" onclick="openRating('${o.id}','gp')">⭐ Noter ce voyageur</button>`;
@@ -1859,12 +1862,11 @@ function showDeliveryCode(orderId){
   const o=orders.find(x=>x.id===orderId);
   if(!o) return;
   const receiveLink = location.origin + location.pathname + '?receive=' + orderId;
-  document.getElementById('codeModalTitle').textContent = o.deliveryCode ? 'À transmettre au destinataire' : 'Lien pour le destinataire';
+  document.getElementById('codeModalTitle').textContent = 'Lien pour le destinataire';
   document.getElementById('codeModalText').textContent = o.deliveryCode
-    ? (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp) et ce code, à donner à la remise du colis. Il confirmera lui-même la réception, sans avoir besoin de compte."
-    : (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp) pour qu'il puisse déjà vous écrire, sans compte. Le code de réception ne sera généré que quand vous marquerez le colis comme remis.";
+    ? (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp) : il y trouvera son code de réception à 4 chiffres. Lors de la remise du colis, demandez-lui ce code pour confirmer la réception."
+    : (o.recipientName?`Envoyez à ${o.recipientName} `:'Envoyez ')+"ce lien (par SMS/WhatsApp) pour qu'il puisse déjà vous écrire, sans compte. Son code de réception sera généré et visible sur ce lien dès que vous marquerez le colis comme remis.";
   document.getElementById('codeModalContent').innerHTML = `
-    ${o.deliveryCode ? `<div style="font-family:'Fraunces',serif;font-size:36px;letter-spacing:8px;color:var(--green-dark);text-align:center;margin:10px 0;">${o.deliveryCode}</div>` : ''}
     <label>Lien de confirmation</label>
     <div class="link-row">
       <input type="text" readonly value="${receiveLink}" id="receiveLinkInput">
@@ -2335,10 +2337,10 @@ function renderReceiveContent(orderId, order){
     statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'est pas encore arrivé (arrivée prévue le ${fmtDate(orderArrivalDateStr(order))}). Revenez sur ce lien à partir de cette date pour confirmer la réception. Vous pouvez déjà lui écrire ci-dessous.</div>`;
   }else{
     statusHtml=`
-      <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${esc(order.recipientName)},<br>`:''}confirmez que vous avez bien reçu le colis (${esc(order.from)} → ${esc(order.to)}) en entrant le code à 4 chiffres donné par le voyageur.</div>
-      <label>Code à 4 chiffres</label>
-      <input type="text" inputmode="numeric" pattern="[0-9]*" id="receiveCodeInput" placeholder="Ex. 4821" maxlength="4">
-      <button class="btn gold" onclick="confirmReceiveDelivery('${orderId}')">Confirmer la réception</button>
+      <div class="sub" style="text-align:center;">${order.recipientName?`Bonjour ${esc(order.recipientName)},<br>`:''}voici votre code de réception pour le colis (${esc(order.from)} → ${esc(order.to)}). Donnez-le au voyageur au moment où il vous remet le colis, pour confirmer que vous l'avez bien reçu.</div>
+      <div style="font-family:'Fraunces',serif;font-size:36px;letter-spacing:8px;color:var(--green-dark);text-align:center;margin:14px 0;">${order.deliveryCode}</div>
+      <div class="hint" style="text-align:center;">Vous pouvez aussi confirmer vous-même ici, une fois le colis en main :</div>
+      <button class="btn gold" onclick="confirmReceiveDelivery('${orderId}')">J'ai bien reçu le colis</button>
     `;
   }
   content.innerHTML = statusHtml + `
@@ -2353,10 +2355,6 @@ function renderReceiveContent(orderId, order){
   if(!receiveChatPolling){ receiveChatPolling=setInterval(()=>loadReceiveChat(orderId), 6000); }
 }
 async function confirmReceiveDelivery(orderId){
-  const input=document.getElementById('receiveCodeInput');
-  if(!input) return;
-  const code=input.value.trim();
-  if(code.length!==4){ showToast("Entrez le code à 4 chiffres"); return; }
   let snap;
   try{ snap=await withTimeout(db.collection('orders').doc(orderId).get(), 10000); }
   catch(e){ showToast("Connexion trop lente, réessayez"); return; }
@@ -2365,7 +2363,6 @@ async function confirmReceiveDelivery(orderId){
   if(order.status==='completed'){ renderReceiveContent(orderId, order); return; }
   const arrivalDate=orderArrivalDateStr(order);
   if(arrivalDate && arrivalDate>todayDateStr()){ showToast("Le voyageur n'est pas encore arrivé, revenez après le "+fmtDate(arrivalDate)); renderReceiveContent(orderId, order); return; }
-  if(code!==order.deliveryCode){ showToast("Code incorrect, vérifiez avec le voyageur"); return; }
   try{
     await withTimeout(db.collection('orders').doc(orderId).update({status:'completed'}), 8000);
     await grantOrderCompletionRewards(order.clientPhone);
