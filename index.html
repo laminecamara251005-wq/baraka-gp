@@ -274,6 +274,7 @@
   <div class="drawer-item" id="tabMytrips" onclick="switchTab('mytrips')">🧳 Mes trajets</div>
   <div class="drawer-item" id="tabOrders" onclick="switchTab('orders')">🧾 Mes commandes <span class="drawer-badge" id="badgeOrders" style="display:none;">0</span></div>
   <div class="drawer-item" id="tabPoints" onclick="switchTab('points')">🌟 Mes points</div>
+  <div class="drawer-item" id="tabBalance" onclick="switchTab('balance')">💰 Mon solde</div>
   <div class="drawer-item" id="tabMessages" onclick="switchTab('messages')">💬 Support <span class="drawer-badge" id="badgeMessages" style="display:none;">0</span></div>
   <div class="drawer-item" onclick="closeDrawer();openSettings();">⚙️ Paramètres</div>
 </nav>
@@ -420,6 +421,11 @@
   <!-- POINTS -->
   <div id="viewPoints" style="display:none;">
     <div class="panel" id="pointsPanel"></div>
+  </div>
+
+  <!-- BALANCE -->
+  <div id="viewBalance" style="display:none;">
+    <div class="panel" id="balancePanel"></div>
   </div>
 
   <!-- MESSAGES (support) -->
@@ -1017,6 +1023,71 @@ function renderPointsPanel(){
     <div style="font-size:12px;color:var(--ink-soft);">Comment gagner des points : +5 par commande complétée, +5 par filleul actif.</div>
   `;
 }
+function renderBalancePanel(){
+  const myPhone=cleanPhone(me.phone);
+  const failedStates=['refused','cancelled_gp','cancelled_client','expired'];
+  const gpUpcomingStates=['pending','accepted','paid','picked_up','delivered'];
+  const clientPendingStates=['pending','accepted'];
+  const clientPaidStates=['paid','picked_up','delivered','completed'];
+
+  const gpOrders=orders.filter(o=>cleanPhone(o.gpPhone)===myPhone);
+  const clientOrders=orders.filter(o=>cleanPhone(o.clientPhone)===myPhone);
+
+  const gpReceived=gpOrders.filter(o=>o.status==='completed');
+  const gpUpcoming=gpOrders.filter(o=>gpUpcomingStates.includes(o.status));
+  const gpCancelled=gpOrders.filter(o=>failedStates.includes(o.status));
+  const gpReceivedTotal=gpReceived.reduce((s,o)=>s+(o.priceNet||0),0);
+  const gpUpcomingTotal=gpUpcoming.reduce((s,o)=>s+(o.priceNet||0),0);
+
+  const clientPaid=clientOrders.filter(o=>clientPaidStates.includes(o.status));
+  const clientPending=clientOrders.filter(o=>clientPendingStates.includes(o.status));
+  const clientCancelled=clientOrders.filter(o=>failedStates.includes(o.status));
+  const clientPaidTotal=clientPaid.reduce((s,o)=>s+(o.priceTotal||0),0);
+  const clientPendingTotal=clientPending.reduce((s,o)=>s+(o.priceTotal||0),0);
+
+  function orderRow(o, amount){
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
+      <span>${esc(o.from)} → ${esc(o.to)} · ${fmtDate(o.tripDate)}<br><span style="color:var(--ink-soft);font-size:11.5px;">${statusLabel(o.status)}</span></span>
+      <b style="white-space:nowrap;margin-left:10px;">${amount.toFixed(2)}€</b>
+    </div>`;
+  }
+  function orderList(list, priceField){
+    return list.length===0 ? '' : `<div style="margin-top:8px;">${list.map(o=>orderRow(o, o[priceField]||0)).join('')}</div>`;
+  }
+
+  let html = `<h2>💰 Mon solde</h2>
+    <div class="sub">Simulation : Baraka GP n'a pas encore de système de paiement réel, aucun vrai virement bancaire n'a lieu. Ceci récapitule ce que vous devriez recevoir ou avez payé selon vos commandes.</div>`;
+
+  if(gpOrders.length>0){
+    html += `
+    <h3 style="margin-top:20px;font-family:'Fraunces',serif;">✈️ En tant que voyageur</h3>
+    <div class="price-recap">
+      <div class="price-recap-row"><span>🟢 Reçu</span><b>${gpReceivedTotal.toFixed(2)}€</b></div>
+      ${orderList(gpReceived,'priceNet')}
+      <div class="price-recap-row" style="margin-top:10px;"><span>🟡 À venir (commande en cours)</span><b>${gpUpcomingTotal.toFixed(2)}€</b></div>
+      ${orderList(gpUpcoming,'priceNet')}
+      ${gpCancelled.length>0 ? `<div class="price-recap-row sub" style="margin-top:10px;"><span>🔴 Annulées / refusées</span><span>${gpCancelled.length}</span></div>` : ''}
+    </div>`;
+  }
+
+  if(clientOrders.length>0){
+    html += `
+    <h3 style="margin-top:20px;font-family:'Fraunces',serif;">📦 En tant que client</h3>
+    <div class="price-recap" style="background:var(--gold-soft);">
+      <div class="price-recap-row" style="color:#8A611D;"><span>💳 Payé</span><b>${clientPaidTotal.toFixed(2)}€</b></div>
+      ${orderList(clientPaid,'priceTotal')}
+      <div class="price-recap-row" style="color:#8A611D;margin-top:10px;"><span>⏳ En attente de paiement</span><b>${clientPendingTotal.toFixed(2)}€</b></div>
+      ${orderList(clientPending,'priceTotal')}
+      ${clientCancelled.length>0 ? `<div class="price-recap-row sub" style="margin-top:10px;color:#8A611D;"><span>🔴 Annulées / refusées</span><span>${clientCancelled.length}</span></div>` : ''}
+    </div>`;
+  }
+
+  if(gpOrders.length===0 && clientOrders.length===0){
+    html += `<div class="empty"><b>Rien à afficher pour l'instant</b>Votre solde apparaîtra ici dès votre première commande, envoyée ou reçue.</div>`;
+  }
+
+  document.getElementById('balancePanel').innerHTML = html;
+}
 function copyRefLink(){
   const input = document.getElementById('refLinkInput');
   input.select();
@@ -1053,11 +1124,11 @@ function closeDrawer(){
 function switchTab(tab){
   closeDrawer();
   updateNotifBadge();
-  ['search','send','publish','mytrips','mydemandes','orders','points','messages'].forEach(t=>{
+  ['search','send','publish','mytrips','mydemandes','orders','points','balance','messages'].forEach(t=>{
     const el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
     if(el) el.classList.toggle('active', t===tab);
   });
-  ['Search','Send','Publish','Mytrips','Mydemandes','Orders','Points','Messages'].forEach(v=>{
+  ['Search','Send','Publish','Mytrips','Mydemandes','Orders','Points','Balance','Messages'].forEach(v=>{
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
   stopPolling();
@@ -1068,6 +1139,7 @@ function switchTab(tab){
   if(tab==='mydemandes'){ ensureIdentity(()=>{ renderMyDemandes(); startPolling(); }); }
   if(tab==='orders'){ ensureIdentity(()=>{ renderOrders(); startPolling(); }); }
   if(tab==='points'){ ensureIdentity(()=>{ renderPointsPanel(); }); }
+  if(tab==='balance'){ ensureIdentity(()=>{ renderBalancePanel(); }); }
   if(tab==='messages'){
     ensureIdentity(()=>{
       const key=ensureThread(me.phone, me.name);
