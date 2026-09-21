@@ -259,7 +259,7 @@
   <div class="drawer-head">
     <div style="display:flex;align-items:center;gap:10px;">
       <span id="drawerAvatarBox" onclick="document.getElementById('changeAvatarInput').click()" style="cursor:pointer;" title="Changer ma photo"></span>
-      <div>
+      <div id="drawerNameBox" style="cursor:pointer;" onclick="if(me){ closeDrawer(); showProfileDetail(me.phone); }">
         <div id="drawerNameLabel">Menu</div>
         <div id="drawerRatingBox" style="font-size:12px;font-family:'Inter',sans-serif;"></div>
       </div>
