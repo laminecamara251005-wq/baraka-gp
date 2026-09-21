@@ -559,6 +559,11 @@
   </div>
 </div>
 
+<!-- PROFILE DETAIL -->
+<div class="overlay" id="profileDetailOverlay">
+  <div class="modal center" id="profileDetailContent"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- AUTH GATE -->
@@ -1276,6 +1281,44 @@ function clientRating(phone){
   if(!p||!p.clientRatingCount) return null;
   return (p.clientRatingSum/p.clientRatingCount);
 }
+function showProfileDetail(phone){
+  const key=cleanPhone(phone);
+  const profile=profiles[key]||{};
+  const avg=gpRating(key);
+  const tripsCount=orders.filter(o=>cleanPhone(o.gpPhone)===key && o.status==='completed').length;
+  const comments=orders
+    .filter(o=>cleanPhone(o.gpPhone)===key && o.rating && o.ratingComment)
+    .sort((a,b)=>b.createdAt-a.createdAt)
+    .slice(0,5);
+  const avatarHtml = profile.avatar && profile.avatar.type==='image'
+    ? `<img src="${profile.avatar.data}" class="avatar" style="width:64px;height:64px;">`
+    : `<div class="avatar avatar-placeholder" style="width:64px;height:64px;font-size:24px;">${esc((profile.name||'?').charAt(0).toUpperCase())}</div>`;
+  document.getElementById('profileDetailContent').innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;">
+      ${avatarHtml}
+      <h3 style="margin-top:10px;">${esc(profile.name||'Voyageur')}</h3>
+      ${profile.verified ? `<div class="badge verified">✅ Identité vérifiée</div>` : `<div class="badge pending">⏳ Vérification en cours</div>`}
+    </div>
+    <div style="display:flex;justify-content:space-around;text-align:center;margin-top:18px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:22px;color:var(--green-dark);">${avg!==null ? avg.toFixed(1) : '—'}</div>
+        <div style="font-size:11.5px;color:var(--ink-soft);">${profile.ratingCount||0} avis</div>
+      </div>
+      <div>
+        <div style="font-family:'Fraunces',serif;font-size:22px;color:var(--green-dark);">${tripsCount}</div>
+        <div style="font-size:11.5px;color:var(--ink-soft);">trajet${tripsCount>1?'s':''} terminé${tripsCount>1?'s':''}</div>
+      </div>
+    </div>
+    ${comments.length>0 ? `
+      <div style="margin-top:14px;text-align:left;">
+        <b style="font-size:13px;">Derniers avis</b>
+        ${comments.map(o=>`<div style="margin-top:8px;font-size:12.5px;color:var(--ink-soft);">${starsHtml(o.rating)}<br>"${esc(o.ratingComment)}"</div>`).join('')}
+      </div>
+    ` : `<div class="sub" style="text-align:center;margin-top:14px;">Aucun avis pour l'instant.</div>`}
+    <button class="btn ghost" style="margin-top:18px;" onclick="document.getElementById('profileDetailOverlay').classList.remove('show')">Fermer</button>
+  `;
+  document.getElementById('profileDetailOverlay').classList.add('show');
+}
 function starsHtml(avg){
   if(avg===null) return '';
   const full=Math.round(avg);
@@ -1363,7 +1406,7 @@ function displayResults(country, from, to, sortBy, minKg){
     return `
     <div class="gp-card">
       <div class="top">
-        <div style="display:flex;align-items:center;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="showProfileDetail('${l.phone}')">
           ${avatarHtml}
           <div>
             <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
