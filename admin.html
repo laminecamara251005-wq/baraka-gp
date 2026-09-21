@@ -401,13 +401,30 @@ function renderAdminProfiles(){
   const list=document.getElementById('adminList');
   const entries=Object.entries(profiles);
   if(entries.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucun profil.</p>'; return; }
-  list.innerHTML=entries.slice().reverse().map(([phone,p])=>`
+  list.innerHTML=entries.slice().reverse().map(([phone,p])=>{
+    const gpReviews=orders.filter(o=>cleanPhone(o.gpPhone)===phone && o.rating);
+    const clientReviews=orders.filter(o=>cleanPhone(o.clientPhone)===phone && o.clientRating);
+    return `
     <div class="admin-card">
       <span class="type-pill profile">👤 IDENTITÉ</span>
       ${blockedPhones[phone]?'<span class="type-pill" style="background:var(--red-soft);color:var(--red);">⛔ Bloqué</span>':''}<br>
       <b>${esc(p.name)}</b><br><span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(p.phone)}</span>
       ${p.ratingCount?`<div style="font-size:12px;margin-top:4px;">⭐ Comme voyageur : ${(p.ratingSum/p.ratingCount).toFixed(1)}/5 (${p.ratingCount} avis)</div>`:''}
       ${p.clientRatingCount?`<div style="font-size:12px;margin-top:2px;">⭐ Comme client : ${(p.clientRatingSum/p.clientRatingCount).toFixed(1)}/5 (${p.clientRatingCount} avis)</div>`:''}
+      ${gpReviews.length>0 ? `
+        <div class="name-check">Avis reçus comme voyageur</div>
+        ${gpReviews.map(o=>`
+          <p style="font-size:13px;margin:4px 0;">${'⭐'.repeat(o.rating)}${o.ratingComment?' — "'+esc(o.ratingComment)+'"':''}
+            <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="deleteOrderRating('${o.id}')">Supprimer</button>
+          </p>`).join('')}
+      ` : ''}
+      ${clientReviews.length>0 ? `
+        <div class="name-check">Avis reçus comme client</div>
+        ${clientReviews.map(o=>`
+          <p style="font-size:13px;margin:4px 0;">${'⭐'.repeat(o.clientRating)}${o.clientRatingComment?' — "'+esc(o.clientRatingComment)+'"':''}
+            <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="deleteOrderClientRating('${o.id}')">Supprimer</button>
+          </p>`).join('')}
+      ` : ''}
       ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
       <div class="name-check">Pièce d'identité</div>
       ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(p.idPhoto?p.idPhoto.name:'non fourni')}</p>`}
@@ -416,7 +433,8 @@ function renderAdminProfiles(){
         <button class="btn-reject" onclick="toggleBlockPhone('${phone}')">${blockedPhones[phone]?'Débloquer':'Bloquer ce numéro'}</button>
         <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 async function toggleBlockPhone(phone){
   const key=cleanPhone(phone);
@@ -486,7 +504,7 @@ async function deleteOrderRating(orderId){
   try{
     await saveOrders();
     if(p) await saveProfiles();
-    renderAdminOrders();
+    if(adminSub==='profiles') renderAdminProfiles(); else renderAdminOrders();
     showToast("Note supprimée");
   }catch(e){
     o.rating=prevRating; o.ratingComment=prevComment;
@@ -510,7 +528,7 @@ async function deleteOrderClientRating(orderId){
   try{
     await saveOrders();
     if(p) await saveProfiles();
-    renderAdminOrders();
+    if(adminSub==='profiles') renderAdminProfiles(); else renderAdminOrders();
     showToast("Note supprimée");
   }catch(e){
     o.clientRating=prevRating; o.clientRatingComment=prevComment;
