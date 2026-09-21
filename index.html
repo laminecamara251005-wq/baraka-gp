@@ -2053,6 +2053,16 @@ async function acceptColisRequest(reqId){
   showToast(pickupSuggested ? "Demande acceptée ! Point de RDV suggéré automatiquement." : "Demande acceptée !"+(noSuggestionReason?" "+noSuggestionReason:" Proposez un lieu et un horaire de remise."));
   renderMyTrips();
 }
+function alertFulfilled(a){
+  const phone=cleanPhone(a.phone);
+  return orders.some(o=>
+    cleanPhone(o.clientPhone)===phone &&
+    o.status==='completed' &&
+    (!a.country || o.country===a.country) &&
+    (!a.from || o.from.toLowerCase().includes(a.from.toLowerCase())) &&
+    (!a.to || o.to.toLowerCase().includes(a.to.toLowerCase()))
+  );
+}
 function renderMyDemandes(){
   const colisList=document.getElementById('myColisList');
   const myColis=listings.filter(l=>l.type==='colis' && cleanPhone(l.phone)===cleanPhone(me.phone));
@@ -2078,7 +2088,14 @@ function renderMyDemandes(){
     </div>`).join('');
 
   const alertsList=document.getElementById('myAlertsList');
-  const myAlerts=alerts.filter(a=>cleanPhone(a.phone)===cleanPhone(me.phone));
+  const myPhoneClean=cleanPhone(me.phone);
+  const fulfilledAlerts=alerts.filter(a=>cleanPhone(a.phone)===myPhoneClean && alertFulfilled(a));
+  if(fulfilledAlerts.length>0){
+    fulfilledAlerts.forEach(a=>{ db.collection('alerts').doc(a.id).delete().catch(()=>{}); });
+    const fulfilledIds=new Set(fulfilledAlerts.map(a=>a.id));
+    alerts=alerts.filter(a=>!fulfilledIds.has(a.id));
+  }
+  const myAlerts=alerts.filter(a=>cleanPhone(a.phone)===myPhoneClean);
   myAlerts.sort((a,b)=>b.createdAt-a.createdAt);
   alertsList.innerHTML = myAlerts.length===0
     ? `<div class="empty"><b>Aucune alerte</b>Depuis la recherche, cliquez sur "Me prévenir" quand aucun voyageur ne correspond.</div>`
