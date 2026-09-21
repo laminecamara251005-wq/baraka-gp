@@ -385,7 +385,7 @@ function renderAdminAlerts(){
       <p style="font-size:13.5px;margin:0;">${esc(a.from) || '(ville de départ non précisée)'} → ${esc(a.to) || '(ville d\'arrivée non précisée)'}${a.country ? ' · ' + esc(a.country) : ''}</p>
       <div class="name-check">Demande créée le ${fmtTime(a.createdAt)}</div>
       <div class="admin-actions">
-        <button class="btn-reject" onclick="removeAlert('${a.id}')">Supprimer</button>
+        <button class="btn-reject" onclick="removeAlert('${a.id}')">Supprimer l'alerte</button>
       </div>
     </div>`).join('');
 }
@@ -415,14 +415,14 @@ function renderAdminProfiles(){
         <div class="name-check">Avis reçus comme voyageur</div>
         ${gpReviews.map(o=>`
           <p style="font-size:13px;margin:4px 0;">${'⭐'.repeat(o.rating)}${o.ratingComment?' — "'+esc(o.ratingComment)+'"':''}
-            <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="deleteOrderRating('${o.id}')">Supprimer</button>
+            <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="deleteOrderRating('${o.id}')">Supprimer cet avis</button>
           </p>`).join('')}
       ` : ''}
       ${clientReviews.length>0 ? `
         <div class="name-check">Avis reçus comme client</div>
         ${clientReviews.map(o=>`
           <p style="font-size:13px;margin:4px 0;">${'⭐'.repeat(o.clientRating)}${o.clientRatingComment?' — "'+esc(o.clientRatingComment)+'"':''}
-            <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="deleteOrderClientRating('${o.id}')">Supprimer</button>
+            <button class="btn-reject" style="padding:2px 8px;font-size:11.5px;margin-left:6px;" onclick="deleteOrderClientRating('${o.id}')">Supprimer cet avis</button>
           </p>`).join('')}
       ` : ''}
       ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
@@ -431,7 +431,7 @@ function renderAdminProfiles(){
       <div class="admin-actions">
         <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
         <button class="btn-reject" onclick="toggleBlockPhone('${phone}')">${blockedPhones[phone]?'Débloquer':'Bloquer ce numéro'}</button>
-        <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer</button>
+        <button class="btn-reject" onclick="removeProfile('${phone}')">Supprimer le profil</button>
       </div>
     </div>`;
   }).join('');
@@ -483,7 +483,7 @@ function renderAdminOrders(){
         <button class="btn-approve" onclick="saveOrderNote('${o.id}')">Enregistrer la note</button>
         ${needsReview ? `<button class="btn-approve" onclick="markOrderSeen('${o.id}')">Marquer comme traité</button>` : ''}
         ${['refused','cancelled_gp','cancelled_client','expired'].includes(o.status) ? '' : `<button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>`}
-        <button class="btn-reject" onclick="removeOrder('${o.id}')">Supprimer</button>
+        <button class="btn-reject" onclick="removeOrder('${o.id}')">Supprimer la commande</button>
       </div>
     </div>`;
   }).join('');
@@ -590,7 +590,7 @@ function renderAdminListings(){
       ${isGp&&matches.length>0?`<div class="name-check">🔔 ${matches.length} à prévenir</div>${matches.map(a=>`<div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px;"><span>${esc(a.name)}</span><button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11.5px;" onclick="notifyAlert('${a.id}','${escJs(l.from)}','${escJs(l.to)}','${fmtDate(l.date)}')">Notifier</button></div>`).join('')}`:''}
       <div class="admin-actions">
         ${!isGp?`<button class="btn-approve" onclick="setColisVerified('${l.id}',true)">${l.verified?'✅ Vérifié':'Approuver'}</button>`:''}
-        <button class="btn-reject" onclick="removeListing('${l.id}')">Supprimer</button>
+        <button class="btn-reject" onclick="removeListing('${l.id}')">Supprimer l'annonce</button>
       </div>
     </div>`;
   }).join('');
