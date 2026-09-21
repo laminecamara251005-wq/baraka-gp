@@ -449,6 +449,16 @@ function renderAdminOrders(){
       <b>${esc(o.clientName)}</b> → <b>${esc(o.gpName)}</b> · ${esc(o.from)} → ${esc(o.to)}<br>
       <span style="color:var(--ink-soft);font-size:12.5px;">${fmtDate(o.tripDate)}${o.arrivalDateTime?' · arrivée '+fmtDateTime(o.arrivalDateTime):''} · ${o.kg}kg · Total ${o.priceTotal.toFixed(2)}€ · Commission ${o.commission.toFixed(2)}€</span>
       ${o.weightProof&&o.weightProof.type==='image'?`<div class="name-check">Photo sur balance</div><img src="${o.weightProof.data}">`:''}
+      ${o.rating ? `
+        <div class="name-check">Note laissée sur le voyageur</div>
+        <p style="font-size:13px;margin:0;">${'⭐'.repeat(o.rating)}${o.ratingComment?' — "'+esc(o.ratingComment)+'"':''}</p>
+        <div class="admin-actions"><button class="btn-reject" onclick="deleteOrderRating('${o.id}')">Supprimer cette note</button></div>
+      ` : ''}
+      ${o.clientRating ? `
+        <div class="name-check">Note laissée sur le client</div>
+        <p style="font-size:13px;margin:0;">${'⭐'.repeat(o.clientRating)}${o.clientRatingComment?' — "'+esc(o.clientRatingComment)+'"':''}</p>
+        <div class="admin-actions"><button class="btn-reject" onclick="deleteOrderClientRating('${o.id}')">Supprimer cette note</button></div>
+      ` : ''}
       <div class="name-check">Note interne (visible seulement par l'admin)</div>
       <textarea id="adminNote_${o.id}" placeholder="Ex. Client recontacté le..." style="min-height:50px;">${esc(o.adminNote||'')}</textarea>
       <div class="admin-actions">
@@ -459,6 +469,54 @@ function renderAdminOrders(){
       </div>
     </div>`;
   }).join('');
+}
+async function deleteOrderRating(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o || !o.rating) return;
+  if(!confirm("Supprimer cette note et ce commentaire ?")) return;
+  const prevRating=o.rating, prevComment=o.ratingComment;
+  const key=cleanPhone(o.gpPhone);
+  const p=profiles[key];
+  const prevSum=p?p.ratingSum:undefined, prevCount=p?p.ratingCount:undefined;
+  o.rating=null; o.ratingComment=null;
+  if(p && p.ratingCount>0){
+    p.ratingSum=Math.max(0,(p.ratingSum||0)-prevRating);
+    p.ratingCount=Math.max(0,(p.ratingCount||0)-1);
+  }
+  try{
+    await saveOrders();
+    if(p) await saveProfiles();
+    renderAdminOrders();
+    showToast("Note supprimée");
+  }catch(e){
+    o.rating=prevRating; o.ratingComment=prevComment;
+    if(p){ p.ratingSum=prevSum; p.ratingCount=prevCount; }
+    adminWriteError(e);
+  }
+}
+async function deleteOrderClientRating(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o || !o.clientRating) return;
+  if(!confirm("Supprimer cette note et ce commentaire ?")) return;
+  const prevRating=o.clientRating, prevComment=o.clientRatingComment;
+  const key=cleanPhone(o.clientPhone);
+  const p=profiles[key];
+  const prevSum=p?p.clientRatingSum:undefined, prevCount=p?p.clientRatingCount:undefined;
+  o.clientRating=null; o.clientRatingComment=null;
+  if(p && p.clientRatingCount>0){
+    p.clientRatingSum=Math.max(0,(p.clientRatingSum||0)-prevRating);
+    p.clientRatingCount=Math.max(0,(p.clientRatingCount||0)-1);
+  }
+  try{
+    await saveOrders();
+    if(p) await saveProfiles();
+    renderAdminOrders();
+    showToast("Note supprimée");
+  }catch(e){
+    o.clientRating=prevRating; o.clientRatingComment=prevComment;
+    if(p){ p.clientRatingSum=prevSum; p.clientRatingCount=prevCount; }
+    adminWriteError(e);
+  }
 }
 async function adminCancelOrder(orderId){
   const o=orders.find(x=>x.id===orderId);
