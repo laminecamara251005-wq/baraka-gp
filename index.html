@@ -156,16 +156,6 @@
   .toast.show{opacity:1;transform:translate(-50%,-6px);}
   .toast.gold{background:var(--gold);}
 
-  .install-banner{position:fixed;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:0 6px 20px rgba(0,0,0,.14);z-index:40;display:none;align-items:center;gap:12px;}
-  .install-banner.show{display:flex;}
-  .install-banner img{width:40px;height:40px;border-radius:10px;flex-shrink:0;}
-  .install-banner .txt{flex:1;font-size:12.5px;color:var(--ink);line-height:1.4;}
-  .install-banner .txt b{display:block;font-size:13.5px;margin-bottom:2px;}
-  .install-banner .actions{display:flex;flex-direction:column;gap:6px;align-items:stretch;}
-  .install-banner button{border:none;border-radius:8px;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer;white-space:nowrap;}
-  .install-banner .btn-install{background:var(--green);color:#fff;}
-  .install-banner .btn-dismiss{background:transparent;color:var(--ink-soft);}
-
   footer{text-align:center;padding:8px 20px 0;color:var(--ink-soft);font-size:12px;}
 
   .rules-box{margin-top:16px;background:var(--gold-soft);border-radius:12px;padding:13px 15px;}
@@ -576,16 +566,6 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- INSTALLATION SUR L'ÉCRAN D'ACCUEIL -->
-<div class="install-banner" id="installBanner">
-  <img src="icons/icon-192.png" alt="">
-  <div class="txt" id="installBannerText"><b>Installe Baraka GP</b>Accède à l'app directement depuis ton écran d'accueil, comme une vraie application.</div>
-  <div class="actions">
-    <button class="btn-install" onclick="triggerInstall()">Installer</button>
-    <button class="btn-dismiss" onclick="dismissInstallBanner()">Non merci</button>
-  </div>
-</div>
-
 <!-- AUTH GATE -->
 <div class="overlay show" id="authGate">
   <div class="modal center">
@@ -621,43 +601,6 @@
 <script>
 const PRICE_PER_KG = 10;
 const COMMISSION_PER_KG = 2;
-
-// ---- INSTALLATION SUR L'ÉCRAN D'ACCUEIL (PWA) ----
-let deferredInstallPrompt=null;
-function isStandaloneApp(){
-  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
-}
-function isIOSDevice(){
-  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-}
-function maybeShowInstallBanner(){
-  if(isStandaloneApp()) return;
-  try{ if(localStorage.getItem('baraka-gp-install-dismissed')==='1') return; }catch(e){}
-  if(isIOSDevice() || deferredInstallPrompt){
-    document.getElementById('installBanner').classList.add('show');
-  }
-}
-function dismissInstallBanner(){
-  document.getElementById('installBanner').classList.remove('show');
-  try{ localStorage.setItem('baraka-gp-install-dismissed','1'); }catch(e){}
-}
-async function triggerInstall(){
-  if(deferredInstallPrompt){
-    deferredInstallPrompt.prompt();
-    try{ await deferredInstallPrompt.userChoice; }catch(e){}
-    deferredInstallPrompt=null;
-    dismissInstallBanner();
-  }else if(isIOSDevice()){
-    document.getElementById('installBannerText').innerHTML = "<b>Comment installer :</b>Appuie sur le bouton Partager 📤 en bas de Safari, puis choisis « Sur l'écran d'accueil ».";
-  }
-}
-window.addEventListener('beforeinstallprompt', (e)=>{
-  e.preventDefault();
-  deferredInstallPrompt=e;
-  maybeShowInstallBanner();
-});
-window.addEventListener('appinstalled', dismissInstallBanner);
-setTimeout(maybeShowInstallBanner, 1500);
 
 // Remplacez par la config de votre projet Firebase (Console Firebase > Paramètres du projet > Vos applications > SDK).
 const firebaseConfig = {
