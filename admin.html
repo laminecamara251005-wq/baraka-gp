@@ -617,6 +617,7 @@ function renderAdminListings(){
       <span style="color:var(--ink-soft);font-size:12.5px;">📱 ${esc(isGp?profile.phone:l.phone)} · ${fmtDate(l.date)} · ${l.kg}kg</span>
       ${isGp?`<div style="margin-top:6px;font-size:12px;">${profile.verified?'✅ Identité vérifiée':'⏳ Non vérifiée'}</div>`:''}
       ${isGp&&l.ticket?`<div class="name-check">Billet</div>${l.ticket.type==='image'?`<img src="${l.ticket.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(l.ticket.name)}</p>`}`:''}
+      ${isGp&&l.ticketText?`<div class="name-check">Texte lu automatiquement sur le billet (à vérifier, peut contenir des erreurs)</div><p style="font-size:11.5px;color:var(--ink-soft);white-space:pre-wrap;background:var(--bg);border-radius:8px;padding:8px 10px;">${esc(l.ticketText)}</p>`:''}
       ${!isGp&&l.desc?`<div style="font-size:12.5px;margin-top:6px;">📝 ${esc(l.desc)}</div>`:''}
       ${!isGp&&l.photo?(l.photo.type==='image'?`<img src="${l.photo.data}">`:''):''}
       ${isGp&&matches.length>0?`<div class="name-check">🔔 ${matches.length} à prévenir</div>${matches.map(a=>`<div style="display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:7px 10px;margin-bottom:5px;font-size:12.5px;"><span>${esc(a.name)}</span><button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11.5px;" onclick="notifyAlert('${a.id}','${escJs(l.from)}','${escJs(l.to)}','${fmtDate(l.date)}')">Notifier</button></div>`).join('')}`:''}

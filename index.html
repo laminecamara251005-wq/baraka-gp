@@ -597,6 +597,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 const PRICE_PER_KG = 10;
 const COMMISSION_PER_KG = 2;
@@ -690,6 +691,16 @@ function compressImage(file){
     };
     reader.onerror=reject; reader.readAsDataURL(file);
   });
+}
+// Lecture automatique (best-effort) du texte du billet, pour aider l'admin à
+// vérifier plus vite — ne bloque jamais la publication en cas d'échec.
+async function readTicketText(file){
+  if(!file || file.type==='application/pdf' || typeof Tesseract==='undefined') return '';
+  try{
+    showToast("Lecture du billet en cours...");
+    const result=await withTimeout(Tesseract.recognize(file,'eng'), 25000);
+    return (result.data.text||'').trim().slice(0,1000);
+  }catch(e){ return ''; }
 }
 // ---- LOCALISATION (pour suggérer un point de RDV, jamais affichée publiquement) ----
 function requestLocationAccess(){
@@ -2030,8 +2041,9 @@ async function publishListing(){
   showToast("Envoi en cours...");
   let ticket;
   try{ ticket=await compressImage(ticketFile); }catch(e){ showToast("Billet illisible"); return; }
+  const ticketText=await readTicketText(ticketFile);
 
-  listings.push({id:Date.now().toString(),type:'gp',phone,from,to,country,date,arrivalDateTime:arrival,kg:parseInt(kg),price:PRICE_PER_KG,ticket});
+  listings.push({id:Date.now().toString(),type:'gp',phone,from,to,country,date,arrivalDateTime:arrival,kg:parseInt(kg),price:PRICE_PER_KG,ticket,ticketText});
   await saveListings();
   showToast(hasProfile?"Trajet publié !":"Trajet publié ! Identité en attente de vérification 🙏");
 
