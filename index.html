@@ -602,6 +602,11 @@
 const PRICE_PER_KG = 10;
 const COMMISSION_PER_KG = 2;
 
+// Clé publique Stripe (mode test) — sans risque à exposer côté client.
+// La clé secrète, elle, ne doit JAMAIS apparaître ici : elle vit uniquement
+// côté serveur (Cloud Functions), qui n'est pas encore branché.
+const STRIPE_PUBLISHABLE_KEY = "pk_test_51Tt2G3CDfXv6AcXJ0cn2GlejLPiEWUtOrhErE3JWhMx0jBHPZ46xU9a5ij2L7AxIATgfHWuSWZzBwIKyBNFbckY300bRnLltzI";
+
 // Remplacez par la config de votre projet Firebase (Console Firebase > Paramètres du projet > Vos applications > SDK).
 const firebaseConfig = {
   apiKey: "AIzaSyD67E8efC3xhu2Uavp3htKhDnOjZDkRz94",
