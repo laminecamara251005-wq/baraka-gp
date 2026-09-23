@@ -1,0 +1,51 @@
+name: Déployer le backend (Cloud Functions)
+
+on:
+  push:
+    branches: [claude/new-session-rtyzv8]
+    paths:
+      - 'functions/**'
+      - 'firebase.json'
+      - '.firebaserc'
+      - '.github/workflows/deploy-functions.yml'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer les dépendances
+        working-directory: functions
+        run: npm install
+
+      - name: Installer Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Authentification Google (compte de service)
+        run: echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/gcp-key.json
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Enregistrer les clés Stripe (Secret Manager)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+        run: |
+          printf '%s' "$STRIPE_SECRET_KEY" | firebase functions:secrets:set STRIPE_SECRET_KEY --data-file - --force
+          printf '%s' "$STRIPE_WEBHOOK_SECRET" | firebase functions:secrets:set STRIPE_WEBHOOK_SECRET --data-file - --force
+
+      - name: Déployer les fonctions
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+        run: firebase deploy --only functions --project baraka-gp --non-interactive
+
+      - name: Nettoyage
+        if: always()
+        run: rm -f /tmp/gcp-key.json
