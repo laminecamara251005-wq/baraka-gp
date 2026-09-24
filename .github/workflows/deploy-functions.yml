@@ -53,4 +53,4 @@ jobs:
           printf '%s' "$STRIPE_WEBHOOK_SECRET" | firebase functions:secrets:set STRIPE_WEBHOOK_SECRET --data-file - --force
 
       - name: Déployer les fonctions
-        run: firebase deploy --only functions --project baraka-gp --non-interactive
+        run: firebase deploy --only functions --project baraka-gp --non-interactive --force
