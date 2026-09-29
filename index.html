@@ -559,6 +559,17 @@
   </div>
 </div>
 
+<!-- PAIEMENT -->
+<div class="overlay" id="paymentOverlay">
+  <div class="modal">
+    <h3>💳 Paiement</h3>
+    <p class="sub">Montant à payer : <b id="paymentAmount"></b></p>
+    <div id="paymentFormBox"></div>
+    <button class="btn gold" id="paymentSubmitBtn" onclick="submitPayment()" disabled>Payer</button>
+    <button class="btn ghost" onclick="closePaymentModal()">Annuler</button>
+  </div>
+</div>
+
 <!-- PROFILE DETAIL -->
 <div class="overlay" id="profileDetailOverlay">
   <div class="modal center" id="profileDetailContent"></div>
@@ -597,6 +608,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
+<script src="https://js.stripe.com/v3/"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 const PRICE_PER_KG = 10;
@@ -619,6 +632,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const cloudFunctions = firebase.app().functions('europe-west1');
+const stripe = typeof Stripe!=='undefined' ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
+let paymentElements=null, pendingPaymentOrderId=null;
 
 let listings=[], profiles={}, alerts=[], messages={}, orders=[], orderMsgs={}, points={};
 let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0, ratingTarget='gp';
@@ -1078,11 +1094,17 @@ function renderBalancePanel(){
   }
 
   let html = `<h2>💰 Mon solde</h2>
-    <div class="sub">Simulation : Baraka GP n'a pas encore de système de paiement réel, aucun vrai virement bancaire n'a lieu. Ceci récapitule ce que vous devriez recevoir ou avez payé selon vos commandes.</div>`;
+    <div class="sub">Ceci récapitule ce que vous devriez recevoir ou avez payé selon vos commandes.</div>`;
 
   if(gpOrders.length>0){
+    const myProfile=profiles[myPhone]||{};
+    const payoutStatus=myProfile.stripeOnboarded
+      ? `<div class="hint" style="margin-top:6px;color:var(--green-dark);">✅ Compte de paiement configuré, vous pouvez recevoir vos versements.</div>`
+      : `<div class="hint" style="margin-top:6px;">⚠️ Configurez votre compte pour recevoir vos versements.</div>
+         <button class="btn gold sm" onclick="setupPayoutAccount()">🏦 Configurer mon compte de paiement</button>`;
     html += `
     <h3 style="margin-top:20px;font-family:'Fraunces',serif;">✈️ En tant que voyageur</h3>
+    ${payoutStatus}
     <div class="price-recap">
       <div class="price-recap-row"><span>🟢 Reçu</span><b>${gpReceivedTotal.toFixed(2)}€</b></div>
       ${orderList(gpReceived,'priceNet')}
@@ -1714,7 +1736,7 @@ function renderOrderActions(o){
     }
     const discounts = me ? availableDiscounts(me.phone) : 0;
     const discountBox = discounts>0 ? `<label class="check-line" style="background:var(--green-pale);color:#1F2B24;padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>` : '';
-    return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">💳 Payer maintenant (simulation)</button>
+    return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">💳 Payer maintenant</button>
       <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
   }
   if(ordersRole==='gp' && o.status==='paid'){
@@ -1736,7 +1758,7 @@ function renderOrderActions(o){
         <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmPickup('${o.id}')">Valider</button>
       </div>
       <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>
-      <div class="hint">Paiement simulé : en cas d'annulation après paiement, contactez le support si vous attendez un remboursement.</div>
+      <div class="hint">En cas d'annulation après paiement, contactez le support si vous attendez un remboursement.</div>
     `;
   }
   if(ordersRole==='gp' && o.status==='picked_up'){
@@ -1837,12 +1859,66 @@ async function payOrder(orderId){
     points[key].points -= 50;
     await savePoints();
     updatePointsHeader();
+    await saveOrders();
   }
-  o.status='paid';
-  o.pickupCode = String(Math.floor(1000+Math.random()*9000));
-  await saveOrders();
-  showToast("Paiement simulé confirmé 💳");
+  openPaymentModal(orderId);
+}
+async function openPaymentModal(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o || !stripe){ showToast("Le paiement n'est pas disponible pour le moment"); return; }
+  pendingPaymentOrderId=orderId;
+  document.getElementById('paymentAmount').textContent=o.priceTotal.toFixed(2)+'€';
+  document.getElementById('paymentFormBox').innerHTML='<p class="sub" style="text-align:center;">Chargement du paiement sécurisé...</p>';
+  document.getElementById('paymentSubmitBtn').disabled=true;
+  document.getElementById('paymentOverlay').classList.add('show');
+  try{
+    const createPaymentIntent=cloudFunctions.httpsCallable('createPaymentIntent');
+    const result=await withTimeout(createPaymentIntent({orderId}), 15000);
+    const clientSecret=result.data.clientSecret;
+    paymentElements=stripe.elements({clientSecret, appearance:{theme:'stripe'}});
+    document.getElementById('paymentFormBox').innerHTML='<div id="paymentElementMount"></div>';
+    paymentElements.create('payment').mount('#paymentElementMount');
+    document.getElementById('paymentSubmitBtn').disabled=false;
+  }catch(e){
+    document.getElementById('paymentFormBox').innerHTML='<p class="sub" style="text-align:center;color:var(--red);">Impossible de charger le paiement. Fermez et réessayez.</p>';
+  }
+}
+function closePaymentModal(){
+  document.getElementById('paymentOverlay').classList.remove('show');
+  paymentElements=null; pendingPaymentOrderId=null;
+}
+async function submitPayment(){
+  if(!paymentElements || !pendingPaymentOrderId || !stripe) return;
+  const btn=document.getElementById('paymentSubmitBtn');
+  btn.disabled=true;
+  showToast("Paiement en cours...");
+  const {error}=await stripe.confirmPayment({
+    elements: paymentElements,
+    confirmParams: { return_url: location.href },
+    redirect: 'if_required'
+  });
+  if(error){
+    showToast(error.message || "Le paiement a échoué, réessayez");
+    btn.disabled=false;
+    return;
+  }
+  showToast("Paiement confirmé ! 💳", true);
+  const paidOrderId=pendingPaymentOrderId;
+  closePaymentModal();
+  try{ const snap=await withTimeout(db.collection('orders').doc(paidOrderId).get(), 8000); if(snap.exists){ const idx=orders.findIndex(x=>x.id===paidOrderId); if(idx>=0) orders[idx]=snap.data(); } }catch(e){}
   renderOrders();
+}
+async function setupPayoutAccount(){
+  if(!me) return;
+  showToast("Préparation de la configuration...");
+  try{
+    const createConnectOnboardingLink=cloudFunctions.httpsCallable('createConnectOnboardingLink');
+    const origin=location.href.replace(/index\.html.*$/, '').replace(/\/$/, '');
+    const result=await withTimeout(createConnectOnboardingLink({phone: me.phone, origin}), 15000);
+    location.href=result.data.url;
+  }catch(e){
+    showToast("Impossible d'ouvrir la configuration, réessayez");
+  }
 }
 async function confirmPickup(orderId){
   const o=orders.find(x=>x.id===orderId);
