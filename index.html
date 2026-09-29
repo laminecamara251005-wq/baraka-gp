@@ -1880,6 +1880,13 @@ async function openPaymentModal(orderId){
     paymentElements.create('payment').mount('#paymentElementMount');
     document.getElementById('paymentSubmitBtn').disabled=false;
   }catch(e){
+    if(e && e.message==='DEJA_PAYE'){
+      showToast("Ce paiement était déjà passé, mise à jour... 💳", true);
+      closePaymentModal();
+      try{ const snap=await withTimeout(db.collection('orders').doc(orderId).get(), 8000); if(snap.exists){ const idx=orders.findIndex(x=>x.id===orderId); if(idx>=0) orders[idx]=snap.data(); } }catch(e2){}
+      renderOrders();
+      return;
+    }
     document.getElementById('paymentFormBox').innerHTML='<p class="sub" style="text-align:center;color:var(--red);">Impossible de charger le paiement. Fermez et réessayez.</p>';
   }
 }

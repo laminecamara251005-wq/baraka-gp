@@ -78,7 +78,26 @@ exports.createPaymentIntent = onCall({ secrets: [stripeSecretKey], region: REGIO
   const stripe = getStripe();
   let paymentIntent;
   if (order.stripePaymentIntentId) {
-    paymentIntent = await stripe.paymentIntents.update(order.stripePaymentIntentId, { amount: amountCents });
+    const existing = await stripe.paymentIntents.retrieve(order.stripePaymentIntentId);
+    if (existing.status === 'succeeded') {
+      // Le paiement a déjà réellement réussi côté Stripe (webhook pas encore
+      // traité, ou raté) : on ne peut pas modifier un paiement terminé, donc
+      // on répare directement la commande au lieu d'échouer.
+      const pickupCode = order.pickupCode || String(Math.floor(1000 + Math.random() * 9000));
+      await orderRef.set({ status: 'paid', pickupCode, paidAt: order.paidAt || Date.now() }, { merge: true });
+      throw new HttpsError('already-exists', 'DEJA_PAYE');
+    }
+    if (['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(existing.status)) {
+      paymentIntent = await stripe.paymentIntents.update(order.stripePaymentIntentId, { amount: amountCents });
+    } else {
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: amountCents,
+        currency: 'eur',
+        metadata: { orderId },
+        automatic_payment_methods: { enabled: true },
+      });
+      await orderRef.set({ stripePaymentIntentId: paymentIntent.id }, { merge: true });
+    }
   } else {
     paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
