@@ -1,0 +1,103 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Un utilisateur normal doit avoir un compte (créé via l'inscription de
+    // index.html) pour lire ou écrire quoi que ce soit.
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Un admin est soit le compte propriétaire (UID codé ici en dur, pour ne
+    // plus dépendre d'un document créé à la main dans la console Firebase —
+    // trop d'erreurs possibles via l'interface mobile), soit un utilisateur
+    // listé dans la collection "admins" (un document par UID) si on veut en
+    // ajouter d'autres plus tard.
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == 'pn4WsdLN1gWrwIwMewMPumiRstj1' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Comptes utilisateurs (créés à l'inscription dans index.html). Chacun ne
+    // peut lire/modifier que le sien.
+    match /accounts/{uid} {
+      allow read, create, update: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if isAdmin();
+    }
+
+    // Liste des admins : jamais modifiable depuis le client, uniquement à la
+    // main dans la console Firebase (Firestore > admins > [UID de l'admin]).
+    match /admins/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Annonces (voyageurs "GP" et demandes de colis) : visibles, publiables,
+    // modifiables et supprimables par tout utilisateur connecté (l'app ne
+    // limite l'affichage des boutons modifier/supprimer qu'aux annonces de son
+    // propre numéro, sans le faire respecter côté règles — même limite que le
+    // reste de l'app, voir la section "Limite connue" du README). Seul
+    // l'admin peut en plus vérifier une annonce (champ "verified").
+    match /listings/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin()
+        || (isSignedIn() && !('verified' in request.resource.data.diff(resource.data).affectedKeys()));
+      allow delete: if isSignedIn();
+    }
+
+    // Profils voyageurs (identité, billet). Seul l'admin peut vérifier/supprimer.
+    match /profiles/{phone} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isAdmin()
+        || (isSignedIn() && !('verified' in request.resource.data.diff(resource.data).affectedKeys()));
+      allow delete: if isAdmin();
+    }
+
+    // Alertes "prévenez-moi".
+    match /alerts/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
+    }
+
+    // Commandes : le workflow (accepter/payer/récupérer/livrer) est piloté par
+    // le client et le voyageur eux-mêmes ; l'app ne restreint pas encore ces
+    // écritures à leur seul auteur (nécessiterait de lier chaque commande au
+    // compte de son auteur).
+    match /orders/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    // Messagerie support et messagerie de commande.
+    match /messages/{phone} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+    match /orderMsgs/{orderId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Points de fidélité.
+    match /points/{phone} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // Numéros bloqués par l'admin. Lecture ouverte à tout compte connecté
+    // (nécessaire pour vérifier son propre numéro à l'inscription/connexion),
+    // écriture réservée à l'admin.
+    match /blockedPhones/{phone} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}
