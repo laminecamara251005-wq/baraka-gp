@@ -469,7 +469,7 @@
     <input type="text" id="oRecipient" placeholder="Ex. Mariam (qui récupère le colis à l'arrivée)">
     <div class="hint">Conseil : écrivez vos deux prénoms sur le colis, avec votre identifiant Baraka GP (visible dans « Mes points ») plutôt que votre numéro.</div>
 
-    <div class="order-section-title">📍 Remise du colis</div>
+    <div class="order-section-title">📍 Prise en charge du colis</div>
     <div class="hint">Le lieu de RDV sera suggéré automatiquement à l'acceptation du voyageur (selon vos positions), ou proposé par lui si ce n'est pas possible.</div>
 
     <div class="order-section-title">✅ Vérifications</div>
@@ -1688,7 +1688,7 @@ function renderOrderCard(o){
       ${countdown}
       ${(o.pickupLocation && o.status!=='completed') ? `
         <div class="rules-box" style="background:var(--green-pale);margin-top:12px;">
-          <div class="rules-title" style="color:var(--green-dark);">📍 Lieu et horaire de remise</div>
+          <div class="rules-title" style="color:var(--green-dark);">📍 Lieu et horaire de prise en charge</div>
           <div style="font-size:15px;font-weight:700;color:var(--ink);">${esc(o.pickupLocation)}</div>
           <div style="font-size:13px;color:var(--ink-soft);margin-top:3px;">🕒 ${fmtDateTime(o.pickupTime)}</div>
           <div style="display:flex;gap:14px;margin-top:8px;">
@@ -1731,7 +1731,7 @@ function renderOrderActions(o){
   }
   if(ordersRole==='client' && o.status==='accepted'){
     if(!o.pickupLocation || !o.pickupTime){
-      return `<div class="hint" style="margin-top:10px;">Le voyageur a accepté ! ${o.pickupLocation?'Il finalise l\'horaire de remise':'Il propose le lieu et l\'horaire de remise'}, vous serez prévenu(e).</div>
+      return `<div class="hint" style="margin-top:10px;">Le voyageur a accepté ! ${o.pickupLocation?'Il finalise l\'horaire de prise en charge':'Il propose le lieu et l\'horaire de prise en charge'}, vous serez prévenu(e).</div>
         <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
     }
     const discounts = me ? availableDiscounts(me.phone) : 0;
@@ -1742,7 +1742,7 @@ function renderOrderActions(o){
   if(ordersRole==='gp' && o.status==='paid'){
     const canCancel = canCancelTrip(o);
     return `
-      <button class="btn gold sm" onclick="showPickupCode('${o.id}')">🔑 Voir mon code (à donner au client à la remise)</button>
+      <button class="btn gold sm" onclick="showPickupCode('${o.id}')">🔑 Voir mon code (à donner au client à la prise en charge)</button>
       ${canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
     `;
   }
@@ -1750,9 +1750,9 @@ function renderOrderActions(o){
     const myId=points[ensurePoints(me.phone)].refCode.toUpperCase();
     return `
       <div class="hint" style="margin-top:10px;background:var(--green-pale);color:#1F2B24;padding:10px 12px;border-radius:10px;">
-        🏷️ Avant la remise, écrivez sur le colis : <b>${esc(me.name)}</b> → <b>${esc(o.recipientName||'destinataire')}</b>, et votre identifiant Baraka GP <b>${myId}</b> (pas besoin d'écrire votre numéro de téléphone).
+        🏷️ Avant la prise en charge, écrivez sur le colis : <b>${esc(me.name)}</b> → <b>${esc(o.recipientName||'destinataire')}</b>, et votre identifiant Baraka GP <b>${myId}</b> (pas besoin d'écrire votre numéro de téléphone).
       </div>
-      <div class="hint" style="margin-top:10px;">Demandez le code au voyageur au moment de la remise, pour confirmer que c'est bien lui.</div>
+      <div class="hint" style="margin-top:10px;">Demandez le code au voyageur au moment de la prise en charge, pour confirmer que c'est bien lui.</div>
       <div style="display:flex;gap:8px;margin-top:6px;">
         <input type="text" inputmode="numeric" pattern="[0-9]*" id="pickupInput-${o.id}" placeholder="Code à 4 chiffres" maxlength="4" style="flex:1;">
         <button class="btn sm" style="width:auto;margin:0;padding:0 16px;" onclick="confirmPickup('${o.id}')">Valider</button>
@@ -1769,10 +1769,10 @@ function renderOrderActions(o){
   }
   if(ordersRole==='gp' && o.status==='accepted' && (!o.pickupLocation || !o.pickupTime)){
     return `
-      <div class="hint" style="margin-top:10px;">${o.pickupSuggested ? "L'app a suggéré un point de RDV à mi-chemin, vous pouvez l'ajuster. Ajoutez l'horaire pour continuer." : "Proposez un lieu et un horaire de remise au client."}</div>
-      <label>Lieu de remise proposé</label>
+      <div class="hint" style="margin-top:10px;">${o.pickupSuggested ? "L'app a suggéré un point de RDV à mi-chemin, vous pouvez l'ajuster. Ajoutez l'horaire pour continuer." : "Proposez un lieu et un horaire de prise en charge au client."}</div>
+      <label>Lieu de prise en charge proposé</label>
       <input type="text" id="gpPickupLoc-${o.id}" placeholder="Ex. Gare du Nord, Paris" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
-      <label>Horaire de remise proposé</label>
+      <label>Horaire de prise en charge proposé</label>
       <input type="datetime-local" id="gpPickupTime-${o.id}" max="${o.tripDate}T23:59">
       <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">Proposer au client</button>
       ${canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
@@ -1842,7 +1842,7 @@ async function gpProposePickup(orderId){
   const loc=document.getElementById('gpPickupLoc-'+orderId).value.trim();
   const time=document.getElementById('gpPickupTime-'+orderId).value;
   if(!loc||!time){ showToast("Merci de remplir le lieu et l'horaire"); return; }
-  if(o.tripDate && time.slice(0,10)>o.tripDate){ showToast("La remise doit avoir lieu avant ou le jour du départ ("+fmtDate(o.tripDate)+")"); return; }
+  if(o.tripDate && time.slice(0,10)>o.tripDate){ showToast("La prise en charge doit avoir lieu avant ou le jour du départ ("+fmtDate(o.tripDate)+")"); return; }
   o.pickupLocation=loc; o.pickupTime=time;
   await saveOrders();
   showToast("Lieu et horaire proposés au client !");
@@ -2224,7 +2224,7 @@ async function acceptColisRequest(reqId){
   listings=listings.filter(x=>x.id!==reqId);
   try{ await db.collection('listings').doc(reqId).delete(); }catch(e){}
   ensureThread(req.phone, req.name);
-  showToast(pickupSuggested ? "Demande acceptée ! Point de RDV suggéré automatiquement." : "Demande acceptée !"+(noSuggestionReason?" "+noSuggestionReason:" Proposez un lieu et un horaire de remise."));
+  showToast(pickupSuggested ? "Demande acceptée ! Point de RDV suggéré automatiquement." : "Demande acceptée !"+(noSuggestionReason?" "+noSuggestionReason:" Proposez un lieu et un horaire de prise en charge."));
   renderMyTrips();
 }
 function alertFulfilled(a){
