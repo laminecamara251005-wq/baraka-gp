@@ -1686,6 +1686,14 @@ function renderOrderCard(o){
       <div class="progress">${steps.map(s=>`<span class="${s}"></span>`).join('')}</div>
       <div class="progress-labels"><span>Envoyée</span><span>Acceptée</span><span>Payée</span><span>Prise en charge</span><span>Remise</span><span>Terminée</span></div>
       ${countdown}
+      ${(o.pickupLocation && o.status!=='completed') ? `
+        <div class="rules-box" style="background:var(--green-pale);margin-top:12px;">
+          <div class="rules-title" style="color:var(--green-dark);">📍 Lieu et horaire de remise</div>
+          <div style="font-size:15px;font-weight:700;color:var(--ink);">${esc(o.pickupLocation)}</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-top:3px;">🕒 ${fmtDateTime(o.pickupTime)}</div>
+          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.pickupLocation)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--green-dark);text-decoration:underline;">🗺️ Voir sur la carte</a>
+        </div>
+      ` : ''}
       ${(!isFailed && o.status!=='pending' && o.status!=='completed') ? `
         <div class="chat-thread" id="oc-${o.id}" style="margin-top:12px;"></div>
         <div class="chat-input">
@@ -1694,7 +1702,6 @@ function renderOrderCard(o){
         </div>
       ` : ''}
       <div style="margin-top:10px;font-size:13px;color:var(--ink-soft);">
-        ${(o.pickupLocation && o.status!=='completed') ? `📍 ${esc(o.pickupLocation)} · 🕒 ${fmtDateTime(o.pickupTime)}<br>` : ''}
         ${ordersRole==='client' ? `💰 Prix total : <b>${o.priceTotal.toFixed(2)}€</b>${o.discountUsed?' <span style="color:var(--green-dark);">(remise 5€ appliquée)</span>':''}` : `💰 Vous touchez : <b>${o.priceNet.toFixed(2)}€</b> (commission Baraka GP déjà déduite)`}
       </div>
       ${(o.desc && o.status!=='completed') ? `<div style="font-size:12.5px;margin-top:6px;color:var(--ink-soft);">📝 ${esc(o.desc)}</div>` : ''}
