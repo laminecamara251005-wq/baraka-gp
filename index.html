@@ -655,6 +655,19 @@ async function isPhoneBlocked(phone){
 }
 function todayDateStr(){ const d=new Date(); return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
 function setDateMins(){ const t=todayDateStr(); ['sDate','pDate','elDate'].forEach(id=>{ const el=document.getElementById(id); if(el) el.min=t; }); }
+// Un même voyageur ne peut pas être sur deux trajets en même temps : on
+// vérifie que la période [date de départ -> date d'arrivée] du nouveau
+// trajet ne chevauche aucun autre trajet déjà publié par ce voyageur.
+function findOverlappingTrip(phone, date, arrivalDateTime, excludeId){
+  const newStart=date, newEnd=arrivalDateTime ? arrivalDateTime.slice(0,10) : date;
+  return listings.find(l=>{
+    if(l.type!=='gp' || l.id===excludeId) return false;
+    if(cleanPhone(l.phone)!==cleanPhone(phone)) return false;
+    const exEnd=l.arrivalDateTime ? l.arrivalDateTime.slice(0,10) : l.date;
+    if(exEnd<todayDateStr()) return false;
+    return newStart<=exEnd && l.date<=newEnd;
+  });
+}
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function withTimeout(promise, ms){
   return Promise.race([
@@ -2117,6 +2130,8 @@ async function publishListing(){
   if(!name||!phone||!from||!to||!kg||!arrival){ showToast("Merci de remplir tous les champs"); return; }
   if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
   if(date && arrival.slice(0,10)<date){ showToast("La date d'arrivée ne peut pas être avant la date de départ"); return; }
+  const overlap=findOverlappingTrip(phone, date, arrival, null);
+  if(overlap){ showToast(`Vous avez déjà un trajet du ${fmtDate(overlap.date)} au ${fmtDate(overlap.arrivalDateTime?overlap.arrivalDateTime.slice(0,10):overlap.date)} (${overlap.from} → ${overlap.to}). Un voyageur ne peut pas être sur deux trajets en même temps.`); return; }
   if(!ticketFile){ showToast("Merci d'ajouter votre billet"); return; }
 
   const hasProfile=!!profiles[phone];
@@ -2344,6 +2359,8 @@ async function saveListingEdit(){
     const arrival=document.getElementById('elArrival').value;
     if(!arrival){ showToast("Merci d'indiquer la date et l'heure d'arrivée"); return; }
     if(date && arrival.slice(0,10)<date){ showToast("La date d'arrivée ne peut pas être avant la date de départ"); return; }
+    const overlap=findOverlappingTrip(l.phone, date, arrival, l.id);
+    if(overlap){ showToast(`Vous avez déjà un trajet du ${fmtDate(overlap.date)} au ${fmtDate(overlap.arrivalDateTime?overlap.arrivalDateTime.slice(0,10):overlap.date)} (${overlap.from} → ${overlap.to}). Un voyageur ne peut pas être sur deux trajets en même temps.`); return; }
     l.arrivalDateTime=arrival;
   }
   l.from=from; l.to=to; l.kg=kg; l.date=date; l.country=country;
