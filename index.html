@@ -44,20 +44,14 @@
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
   h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
-  .wrap{max-width:720px;margin:0 auto;padding:16px 20px calc(80px + env(safe-area-inset-bottom));}
+  .wrap{max-width:720px;margin:0 auto;padding:20px 20px 80px;}
 
-  .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -2px 10px rgba(30,111,92,.08);padding:5px 4px calc(5px + env(safe-area-inset-bottom));}
-  .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:10px;cursor:pointer;color:var(--ink-soft);font-size:10.5px;font-weight:600;position:relative;user-select:none;}
-  .bn-item .bn-icon{font-size:20px;line-height:1;}
-  .bn-item.active{color:var(--green-dark);}
-  .bn-item .bn-badge{position:absolute;top:0;right:12px;background:var(--red);color:#fff;font-size:9.5px;font-weight:700;min-width:15px;height:15px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
-
-  header{padding:calc(16px + env(safe-area-inset-top)) 20px 14px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--green) 0%,var(--green-dark) 100%);}
+  header{padding:calc(26px + env(safe-area-inset-top)) 20px 18px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--green) 0%,var(--green-dark) 100%);}
   header .routes{position:absolute;inset:0;opacity:.14;pointer-events:none;}
   header .brand{position:relative;color:#F5EFDD;}
-  header .brand .star{width:26px;height:26px;margin:0 auto 4px;}
-  header h1{font-size:21px;color:#F5EFDD;letter-spacing:.5px;}
-  header p{margin:3px 0 0;color:#D9CBA3;font-size:11.5px;letter-spacing:1.2px;text-transform:uppercase;}
+  header .brand .star{width:32px;height:32px;margin:0 auto 6px;}
+  header h1{font-size:26px;color:#F5EFDD;letter-spacing:.5px;}
+  header p{margin:5px 0 0;color:#D9CBA3;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;}
 
   .points-bar{position:relative;margin-top:14px;background:rgba(255,255,255,.12);border-radius:999px;padding:8px 16px;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#F5EFDD;cursor:pointer;}
   .points-bar b{color:var(--gold);}
@@ -91,7 +85,7 @@
   .switch input:checked + .switch-slider{background:var(--green);}
   .switch input:checked + .switch-slider:before{transform:translateX(18px);}
 
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:12px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:16px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
   .panel h2{font-size:19px;margin-bottom:4px;}
   .panel .sub{color:var(--ink-soft);font-size:13px;margin-bottom:16px;}
 
@@ -114,7 +108,7 @@
   .btn.sm{margin-top:8px;padding:9px;font-size:13px;}
   .btn:disabled{opacity:.45;cursor:not-allowed;}
 
-  .results-head{display:flex;justify-content:space-between;align-items:baseline;margin:14px 2px 8px;}
+  .results-head{display:flex;justify-content:space-between;align-items:baseline;margin:20px 2px 10px;}
   .results-head h3{font-size:15.5px;} .results-head span{font-size:12.5px;color:var(--ink-soft);}
 
   .gp-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:12px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
@@ -137,7 +131,7 @@
   .price-recap-row{display:flex;justify-content:space-between;font-size:14.5px;font-weight:700;color:var(--green-dark);}
   .price-recap-row.sub{font-size:12px;font-weight:500;color:var(--ink-soft);margin-top:4px;}
 
-  .empty{text-align:center;padding:22px 20px;color:var(--ink-soft);}
+  .empty{text-align:center;padding:34px 20px;color:var(--ink-soft);}
   .empty .star{width:28px;height:28px;margin:0 auto 10px;opacity:.5;}
   .empty b{color:var(--ink);display:block;margin-bottom:4px;font-family:'Fraunces',serif;font-size:16px;}
   .search-spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;margin:0 auto;animation:spin .8s linear infinite;}
@@ -611,15 +605,6 @@
   </div>
 </div>
 
-<!-- BOTTOM NAV -->
-<nav class="bottom-nav" id="bottomNav">
-  <div class="bn-item active" id="bnSearch" onclick="switchTab('search')"><span class="bn-icon">🔍</span>Chercher</div>
-  <div class="bn-item" id="bnSend" onclick="switchTab('send')"><span class="bn-icon">📦</span>Envoyer</div>
-  <div class="bn-item" id="bnPublish" onclick="switchTab('publish')"><span class="bn-icon">✈️</span>Voyager</div>
-  <div class="bn-item" id="bnOrders" onclick="switchTab('orders')"><span class="bn-icon">🧾</span>Suivi<span class="bn-badge" id="bnBadgeOrders" style="display:none;">0</span></div>
-  <div class="bn-item" id="bnMore" onclick="openDrawer()"><span class="bn-icon">🗂️</span>Plus<span class="bn-badge" id="bnBadgeMore" style="display:none;">0</span></div>
-</nav>
-
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -843,7 +828,7 @@ function setBadge(id, count){
   else{ el.style.display='none'; }
 }
 function updateNotifBadge(){
-  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); setBadge('badgeRoleClient',0); setBadge('badgeRoleGp',0); setBadge('bnBadgeOrders',0); setBadge('bnBadgeMore',0); return; }
+  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); setBadge('badgeRoleClient',0); setBadge('badgeRoleGp',0); return; }
   const myPhone=cleanPhone(me.phone);
   const msgKey=messages[myPhone];
   const messagesCount = (msgKey && msgKey.unreadUser) ? 1 : 0;
@@ -864,8 +849,6 @@ function updateNotifBadge(){
   setBadge('badgeOrders', ordersCount);
   setBadge('badgeRoleClient', clientOrdersCount);
   setBadge('badgeRoleGp', gpOrdersCount);
-  setBadge('bnBadgeOrders', ordersCount);
-  setBadge('bnBadgeMore', messagesCount);
 }
 function updateUserHeader(){
   const topName=document.getElementById('topLeftName');
@@ -1189,12 +1172,6 @@ function switchTab(tab){
     const el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
     if(el) el.classList.toggle('active', t===tab);
   });
-  ['search','send','publish','orders'].forEach(t=>{
-    const el=document.getElementById('bn'+t.charAt(0).toUpperCase()+t.slice(1));
-    if(el) el.classList.toggle('active', t===tab);
-  });
-  const bnMore=document.getElementById('bnMore');
-  if(bnMore) bnMore.classList.toggle('active', !['search','send','publish','orders'].includes(tab));
   ['Search','Send','Publish','Mytrips','Mydemandes','Orders','Points','Balance','Messages'].forEach(v=>{
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
