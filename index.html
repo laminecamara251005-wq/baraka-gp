@@ -44,7 +44,13 @@
   *{box-sizing:border-box;}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
   h1,h2,h3{font-family:'Fraunces',serif;margin:0;}
-  .wrap{max-width:720px;margin:0 auto;padding:20px 20px 80px;}
+  .wrap{max-width:720px;margin:0 auto;padding:20px 20px calc(84px + env(safe-area-inset-bottom));}
+
+  .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -2px 10px rgba(30,111,92,.08);padding:5px 4px calc(5px + env(safe-area-inset-bottom));}
+  .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border-radius:10px;cursor:pointer;color:var(--ink-soft);font-size:10.5px;font-weight:600;position:relative;user-select:none;}
+  .bn-item .bn-icon{font-size:20px;line-height:1;}
+  .bn-item.active{color:var(--green-dark);}
+  .bn-item .bn-badge{position:absolute;top:0;right:12px;background:var(--red);color:#fff;font-size:9.5px;font-weight:700;min-width:15px;height:15px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 3px;}
 
   header{padding:calc(26px + env(safe-area-inset-top)) 20px 18px;text-align:center;position:relative;overflow:hidden;background:linear-gradient(180deg,var(--green) 0%,var(--green-dark) 100%);}
   header .routes{position:absolute;inset:0;opacity:.14;pointer-events:none;}
@@ -605,6 +611,15 @@
   </div>
 </div>
 
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottomNav">
+  <div class="bn-item active" id="bnSearch" onclick="switchTab('search')"><span class="bn-icon">🔍</span>Chercher</div>
+  <div class="bn-item" id="bnSend" onclick="switchTab('send')"><span class="bn-icon">📦</span>Envoyer</div>
+  <div class="bn-item" id="bnPublish" onclick="switchTab('publish')"><span class="bn-icon">✈️</span>Voyager</div>
+  <div class="bn-item" id="bnOrders" onclick="switchTab('orders')"><span class="bn-icon">🧾</span>Commandes<span class="bn-badge" id="bnBadgeOrders" style="display:none;">0</span></div>
+  <div class="bn-item" id="bnMore" onclick="openDrawer()"><span class="bn-icon">☰</span>Plus<span class="bn-badge" id="bnBadgeMore" style="display:none;">0</span></div>
+</nav>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -828,7 +843,7 @@ function setBadge(id, count){
   else{ el.style.display='none'; }
 }
 function updateNotifBadge(){
-  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); setBadge('badgeRoleClient',0); setBadge('badgeRoleGp',0); return; }
+  if(!me){ setBadge('notifBadge',0); setBadge('badgeMessages',0); setBadge('badgeOrders',0); setBadge('badgeRoleClient',0); setBadge('badgeRoleGp',0); setBadge('bnBadgeOrders',0); setBadge('bnBadgeMore',0); return; }
   const myPhone=cleanPhone(me.phone);
   const msgKey=messages[myPhone];
   const messagesCount = (msgKey && msgKey.unreadUser) ? 1 : 0;
@@ -849,6 +864,8 @@ function updateNotifBadge(){
   setBadge('badgeOrders', ordersCount);
   setBadge('badgeRoleClient', clientOrdersCount);
   setBadge('badgeRoleGp', gpOrdersCount);
+  setBadge('bnBadgeOrders', ordersCount);
+  setBadge('bnBadgeMore', messagesCount);
 }
 function updateUserHeader(){
   const topName=document.getElementById('topLeftName');
@@ -1172,6 +1189,12 @@ function switchTab(tab){
     const el=document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
     if(el) el.classList.toggle('active', t===tab);
   });
+  ['search','send','publish','orders'].forEach(t=>{
+    const el=document.getElementById('bn'+t.charAt(0).toUpperCase()+t.slice(1));
+    if(el) el.classList.toggle('active', t===tab);
+  });
+  const bnMore=document.getElementById('bnMore');
+  if(bnMore) bnMore.classList.toggle('active', !['search','send','publish','orders'].includes(tab));
   ['Search','Send','Publish','Mytrips','Mydemandes','Orders','Points','Balance','Messages'].forEach(v=>{
     document.getElementById('view'+v).style.display = ('view'+v==='view'+tab.charAt(0).toUpperCase()+tab.slice(1)) ? 'block':'none';
   });
