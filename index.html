@@ -710,6 +710,17 @@ async function saveProfiles(){ try{ const batch=db.batch(); Object.keys(profiles
 async function saveAlerts(){ try{ const batch=db.batch(); alerts.forEach(a=>batch.set(db.collection('alerts').doc(String(a.id)), a)); await batch.commit(); }catch(e){} }
 async function saveMessages(){ try{ const batch=db.batch(); Object.keys(messages).forEach(k=>batch.set(db.collection('messages').doc(k), messages[k])); await batch.commit(); }catch(e){} }
 async function saveOrders(){ try{ const batch=db.batch(); orders.forEach(o=>batch.set(db.collection('orders').doc(String(o.id)), o)); await batch.commit(); }catch(e){} }
+// Une commande "En attente" (le voyageur n'a jamais répondu) ou "Acceptée"
+// (jamais payée) devient caduque dès que la date du trajet est passée : on
+// la marque "Expirée" plutôt que de la laisser bloquée indéfiniment.
+async function expireStaleOrders(){
+  const staleStatuses=['pending','accepted'];
+  const today=todayDateStr();
+  const toExpire=orders.filter(o=>staleStatuses.includes(o.status) && o.tripDate && o.tripDate<today);
+  if(toExpire.length===0) return;
+  toExpire.forEach(o=>{ o.status='expired'; });
+  await saveOrders();
+}
 async function saveOrderMsgs(){ try{ const batch=db.batch(); Object.keys(orderMsgs).forEach(id=>batch.set(db.collection('orderMsgs').doc(id), {thread:orderMsgs[id]})); await batch.commit(); }catch(e){} }
 async function savePoints(){ try{ const batch=db.batch(); Object.keys(points).forEach(k=>batch.set(db.collection('points').doc(k), points[k])); await batch.commit(); }catch(e){} }
 
@@ -831,6 +842,7 @@ async function completeLogin(uid, acc){
   try{ localStorage.setItem('baraka-gp-me', JSON.stringify(me)); }catch(e){}
   document.getElementById('authGate').classList.remove('show');
   await loadAll();
+  await expireStaleOrders();
   ensurePoints(me.phone);
   updatePointsHeader();
   updateUserHeader();
@@ -1239,6 +1251,7 @@ function startPolling(){
   stopPolling();
   pollTimer=setInterval(async ()=>{
     await loadAll();
+    await expireStaleOrders();
     // Ne pas reconstruire l'écran pendant qu'on tape un message : ça coupe le
     // clavier et efface le texte en cours (les champs de chat sont recréés à
     // chaque rendu de la liste des commandes).
