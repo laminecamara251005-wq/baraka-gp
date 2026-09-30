@@ -1691,7 +1691,10 @@ function renderOrderCard(o){
           <div class="rules-title" style="color:var(--green-dark);">📍 Lieu et horaire de remise</div>
           <div style="font-size:15px;font-weight:700;color:var(--ink);">${esc(o.pickupLocation)}</div>
           <div style="font-size:13px;color:var(--ink-soft);margin-top:3px;">🕒 ${fmtDateTime(o.pickupTime)}</div>
-          <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.pickupLocation)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:12.5px;font-weight:700;color:var(--green-dark);text-decoration:underline;">🗺️ Voir sur la carte</a>
+          <div style="display:flex;gap:14px;margin-top:8px;">
+            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.pickupLocation)}" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:var(--green-dark);text-decoration:underline;">🗺️ Google Maps</a>
+            <a href="https://waze.com/ul?q=${encodeURIComponent(o.pickupLocation)}&navigate=yes" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:var(--green-dark);text-decoration:underline;">🚗 Waze</a>
+          </div>
         </div>
       ` : ''}
       ${(!isFailed && o.status!=='pending' && o.status!=='completed') ? `
