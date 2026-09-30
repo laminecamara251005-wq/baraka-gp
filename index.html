@@ -342,10 +342,10 @@
       <label>Photo du colis</label><input type="file" id="sPhoto" accept="image/*">
       <div class="rules-box">
         <div class="rules-title">⚠️ Objets strictement interdits</div>
-        <label class="check-line"><input type="checkbox" id="ruleCash"> Espèces</label>
-        <label class="check-line"><input type="checkbox" id="ruleDocs"> Document officiel d'un tiers</label>
-        <label class="check-line"><input type="checkbox" id="ruleValuables"> Bijou non déclaré</label>
-        <label class="check-line"><input type="checkbox" id="ruleIllegal"> Produit illicite</label>
+        <p style="font-size:13px;margin:0;color:var(--ink);">Espèces, document officiel d'un tiers, bijou non déclaré, produit illicite.</p>
+      </div>
+      <div class="rules-box" style="background:var(--green-pale);">
+        <label class="check-line"><input type="checkbox" id="sAcceptAll"> Je confirme ne transporter aucun de ces objets.</label>
       </div>
       <button class="btn gold" onclick="publishColis()">Envoyer ma demande</button>
     </div>
@@ -379,9 +379,10 @@
       <label>Kg disponibles</label><input type="number" id="pKg" placeholder="Ex. 8" min="1">
       <div class="rules-box">
         <div class="rules-title">🙏 Engagement du voyageur</div>
-        <label class="check-line"><input type="checkbox" id="ruleCheck"> Je transporte uniquement des colis vérifiés, sans les ouvrir</label>
-        <label class="check-line"><input type="checkbox" id="ruleCheck2"> Je confirme la remise au destinataire</label>
-        <label class="check-line"><input type="checkbox" id="ruleCheck3"> Je certifie que mon billet et mon identité sont exacts, et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</label>
+        <p style="font-size:13px;margin:0;color:var(--ink);">Je transporte uniquement des colis vérifiés sans les ouvrir, et je confirme la remise au destinataire.</p>
+      </div>
+      <div class="rules-box" style="background:var(--green-pale);">
+        <label class="check-line"><input type="checkbox" id="pAcceptAll"> Je m'engage à respecter ces règles, je certifie que mon billet et mon identité sont exacts, et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</label>
       </div>
       <button class="btn gold" onclick="publishListing()">Publier mon trajet</button>
     </div>
@@ -2112,8 +2113,7 @@ async function publishListing(){
     profiles[phone]={name,phone:phoneRaw,idPhoto,avatar,verified:false,createdAt:Date.now(),ratingSum:0,ratingCount:0};
     await saveProfiles();
   }
-  const rules=['ruleCheck','ruleCheck2','ruleCheck3'];
-  if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Cochez les engagements"); return; }
+  if(!document.getElementById('pAcceptAll').checked){ showToast("Merci de cocher la case d'engagement"); return; }
 
   showToast("Envoi en cours...");
   let ticket;
@@ -2126,7 +2126,7 @@ async function publishListing(){
 
   ['pName','pFrom','pTo','pDate','pArrival','pKg','pTicket','pId'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pPhone').value=phoneRaw;
-  rules.forEach(id=>document.getElementById(id).checked=false);
+  document.getElementById('pAcceptAll').checked=false;
   ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('searchCountry').value='';
   switchTab('search');
@@ -2360,8 +2360,7 @@ async function publishColis(){
   if(!name||!phone||!from||!to||!kg||!recipientName){ showToast("Merci de remplir tous les champs"); return; }
   if(date && date<todayDateStr()){ showToast("Cette date est déjà passée, choisissez une date à venir"); return; }
   if(!photoFile){ showToast("Merci d'ajouter une photo"); return; }
-  const rules=['ruleCash','ruleDocs','ruleValuables','ruleIllegal'];
-  if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Cochez toutes les cases"); return; }
+  if(!document.getElementById('sAcceptAll').checked){ showToast("Merci de cocher la case de vérification"); return; }
 
   showToast("Envoi en cours...");
   let photo;
@@ -2374,7 +2373,7 @@ async function publishColis(){
   showToast("Demande envoyée ! 🙏");
 
   ['sName','sPhone','sFrom','sTo','sDate','sKg','sDesc','sPhoto','sRecipient'].forEach(id=>document.getElementById(id).value='');
-  rules.forEach(id=>document.getElementById(id).checked=false);
+  document.getElementById('sAcceptAll').checked=false;
   ['searchFrom','searchTo'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('searchCountry').value='';
   switchTab('search');
