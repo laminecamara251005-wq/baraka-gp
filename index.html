@@ -461,8 +461,6 @@
     <input type="number" id="oKg" min="1" oninput="updateOrderPrice()">
     <label>Description du contenu</label>
     <textarea id="oDesc" placeholder="Ex. Vêtements, cadeaux"></textarea>
-    <label>Photo du colis</label>
-    <input type="file" id="oPhoto" accept="image/*">
     <label>Photo du colis sur une balance</label>
     <input type="file" id="oWeightProof" accept="image/*">
     <div class="hint">Permet de vérifier que le poids déclaré est correct.</div>
@@ -476,14 +474,10 @@
     <div class="order-section-title">✅ Vérifications</div>
     <div class="rules-box">
       <div class="rules-title">⚠️ Objets strictement interdits</div>
-      <label class="check-line"><input type="checkbox" id="oRuleCash"> Espèces</label>
-      <label class="check-line"><input type="checkbox" id="oRuleDocs"> Document officiel d'un tiers</label>
-      <label class="check-line"><input type="checkbox" id="oRuleValuables"> Bijou non déclaré</label>
-      <label class="check-line"><input type="checkbox" id="oRuleIllegal"> Produit illicite</label>
+      <p style="font-size:13px;margin:0;color:var(--ink);">Espèces, document officiel d'un tiers, bijou non déclaré, produit illicite.</p>
     </div>
     <div class="rules-box" style="background:var(--green-pale);">
-      <div class="rules-title" style="color:var(--green-dark);">📄 Attestation</div>
-      <label class="check-line"><input type="checkbox" id="oLiability"> Je certifie l'exactitude des informations fournies et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</label>
+      <label class="check-line"><input type="checkbox" id="oAcceptAll"> Je confirme ne transporter aucun de ces objets, je certifie l'exactitude des informations fournies, et j'accepte que Baraka GP agisse uniquement comme intermédiaire, sans responsabilité sur le transport lui-même.</label>
     </div>
 
     <div id="orderDiscountBox"></div>
@@ -1488,9 +1482,9 @@ function openOrderModal(listing){
     document.getElementById('oKg').value='';
     document.getElementById('oDesc').value='';
     document.getElementById('oRecipient').value='';
-    document.getElementById('oPhoto').value=''; document.getElementById('oWeightProof').value='';
+    document.getElementById('oWeightProof').value='';
     setPackageType('colis');
-    ['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal','oLiability'].forEach(id=>document.getElementById(id).checked=false);
+    document.getElementById('oAcceptAll').checked=false;
     updateOrderPrice();
     document.getElementById('orderOverlay').classList.add('show');
   });
@@ -1511,24 +1505,19 @@ async function submitOrder(){
   const kg=parseInt(document.getElementById('oKg').value);
   const desc=document.getElementById('oDesc').value.trim();
   const recipientName=document.getElementById('oRecipient').value.trim();
-  const photoFile=document.getElementById('oPhoto').files[0];
   const weightProofFile=document.getElementById('oWeightProof').files[0];
-  const rules=['oRuleCash','oRuleDocs','oRuleValuables','oRuleIllegal'];
 
   const maxKg=remainingKg(l);
   if(!kg||kg<1||kg>maxKg){ showToast(maxKg<=0 ? "Ce trajet est complet, il n'y a plus de place disponible" : `Merci d'indiquer un poids valide (max ${maxKg}kg)`); return; }
   if(!recipientName){ showToast("Merci d'indiquer le nom du destinataire"); return; }
-  if(!photoFile){ showToast("Merci d'ajouter une photo du colis"); return; }
   if(!weightProofFile){ showToast("Merci d'ajouter une photo du colis sur une balance"); return; }
-  if(rules.some(id=>!document.getElementById(id).checked)){ showToast("Merci de cocher toutes les cases"); return; }
-  if(!document.getElementById('oLiability').checked){ showToast("Merci d'accepter l'attestation"); return; }
+  if(!document.getElementById('oAcceptAll').checked){ showToast("Merci de cocher la case de vérification"); return; }
 
   showToast("Envoi en cours...");
-  let photo, weightProof;
+  let weightProof;
   try{
-    photo=await compressImage(photoFile);
     weightProof=await compressImage(weightProofFile);
-  }catch(e){ showToast("Impossible de lire les photos"); return; }
+  }catch(e){ showToast("Impossible de lire la photo"); return; }
 
   const freshMaxKg=await remainingKgLive(l);
   if(kg>freshMaxKg){ showToast(freshMaxKg<=0 ? "Ce trajet vient d'être complété par une autre commande" : `Il ne reste plus que ${freshMaxKg}kg disponibles sur ce trajet`); return; }
@@ -1554,7 +1543,7 @@ async function submitOrder(){
     clientPhone:cleanPhone(me.phone), clientName:me.name,
     from:l.from, to:l.to, country:l.country, tripDate:l.date, arrivalDateTime:l.arrivalDateTime||null,
     packageType:orderPackageType,
-    kg, photo, weightProof, desc, recipientName,
+    kg, weightProof, desc, recipientName,
     priceTotal:total, commission, priceNet:(kg*PRICE_PER_KG)-commission, discountUsed,
     pickupLocation:'', pickupSuggested:false, pickupTime:'',
     clientLat:geo?geo.lat:null, clientLng:geo?geo.lng:null, gpLat:null, gpLng:null,
