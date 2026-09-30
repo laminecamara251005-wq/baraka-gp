@@ -1727,6 +1727,7 @@ function renderOrderCard(o){
           <div class="rules-title" style="color:var(--green-pale-ink);">📍 Lieu et horaire de prise en charge</div>
           <div style="font-size:15px;font-weight:700;color:var(--ink);">${esc(o.pickupLocation)}</div>
           <div style="font-size:13px;color:var(--ink-soft);margin-top:3px;">🕒 ${fmtDateTime(o.pickupTime)}</div>
+          ${!o.pickupTimeAccepted ? `<div style="font-size:12px;color:var(--gold-soft-ink);margin-top:6px;font-weight:600;">⏳ ${ordersRole==='client'?'En attente de votre confirmation':'En attente de confirmation du client'}</div>` : ''}
           <div style="display:flex;gap:14px;margin-top:8px;">
             <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.pickupLocation)}" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:var(--green-pale-ink);text-decoration:underline;">🗺️ Google Maps</a>
             <a href="https://waze.com/ul?q=${encodeURIComponent(o.pickupLocation)}&navigate=yes" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:var(--green-pale-ink);text-decoration:underline;">🚗 Waze</a>
@@ -1770,6 +1771,11 @@ function renderOrderActions(o){
       return `<div class="hint" style="margin-top:10px;">Le voyageur a accepté ! ${o.pickupLocation?'Il finalise l\'horaire de prise en charge':'Il propose le lieu et l\'horaire de prise en charge'}, vous serez prévenu(e).</div>
         <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
     }
+    if(!o.pickupTimeAccepted){
+      return `<div class="hint" style="margin-top:10px;">Vérifiez le lieu et l'horaire proposés ci-dessus. S'ils vous conviennent, confirmez pour pouvoir payer.</div>
+        <button class="btn gold sm" onclick="acceptPickupTime('${o.id}')">✅ J'accepte ce lieu et cet horaire</button>
+        <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
+    }
     const discounts = me ? availableDiscounts(me.phone) : 0;
     const discountBox = discounts>0 ? `<label class="check-line" style="background:var(--green-pale);color:var(--green-pale-ink);padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>` : '';
     return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">💳 Payer maintenant</button>
@@ -1805,12 +1811,12 @@ function renderOrderActions(o){
   }
   if(ordersRole==='gp' && o.status==='accepted' && (!o.pickupLocation || !o.pickupTime)){
     return `
-      <div class="hint" style="margin-top:10px;">${o.pickupSuggested ? "L'app a suggéré un point de RDV à mi-chemin, vous pouvez l'ajuster. Ajoutez l'horaire pour continuer." : "Proposez un lieu et un horaire de prise en charge au client."}</div>
-      <label>Lieu de prise en charge proposé</label>
+      <div class="hint" style="margin-top:10px;">${o.pickupSuggested ? "L'app a suggéré ce lieu à mi-chemin : vérifiez-le (ou modifiez-le), ajoutez l'horaire, puis validez pour l'envoyer au client." : "Proposez un lieu et un horaire de prise en charge au client."}</div>
+      <label>Lieu de prise en charge${o.pickupSuggested?' (suggéré, modifiable)':' proposé'}</label>
       <input type="text" id="gpPickupLoc-${o.id}" placeholder="Ex. Gare du Nord, Paris" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
       <label>Horaire de prise en charge proposé</label>
       <input type="datetime-local" id="gpPickupTime-${o.id}" max="${o.tripDate}T23:59">
-      <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">Proposer au client</button>
+      <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">✅ ${o.pickupSuggested?"J'accepte ce lieu, proposer au client":"Proposer au client"}</button>
       ${canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
     `;
   }
@@ -1885,9 +1891,17 @@ async function gpProposePickup(orderId){
   const time=document.getElementById('gpPickupTime-'+orderId).value;
   if(!loc||!time){ showToast("Merci de remplir le lieu et l'horaire"); return; }
   if(o.tripDate && time.slice(0,10)>o.tripDate){ showToast("La prise en charge doit avoir lieu avant ou le jour du départ ("+fmtDate(o.tripDate)+")"); return; }
-  o.pickupLocation=loc; o.pickupTime=time;
+  o.pickupLocation=loc; o.pickupTime=time; o.pickupTimeAccepted=false;
   await saveOrders();
   showToast("Lieu et horaire proposés au client !");
+  renderOrders();
+}
+async function acceptPickupTime(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  o.pickupTimeAccepted=true;
+  await saveOrders();
+  showToast("Lieu et horaire confirmés !");
   renderOrders();
 }
 async function payOrder(orderId){
