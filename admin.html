@@ -140,7 +140,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-let listings=[], profiles={}, alerts=[], messages={}, orders=[], blockedPhones={};
+let listings=[], profiles={}, profilesPrivate={}, alerts=[], messages={}, orders=[], blockedPhones={};
 let adminSub='profiles', adminOpenThreadPhone=null;
 let pollTimer=null;
 
@@ -233,6 +233,7 @@ async function fetchCollectionMap(name){
 async function loadAll(){
   try{ listings=await fetchCollectionArray('listings'); }catch(e){ listings=[]; }
   try{ profiles=await fetchCollectionMap('profiles'); }catch(e){ profiles={}; }
+  try{ profilesPrivate=await fetchCollectionMap('profilesPrivate'); }catch(e){ profilesPrivate={}; }
   try{ alerts=await fetchCollectionArray('alerts'); }catch(e){ alerts=[]; }
   try{ messages=await fetchCollectionMap('messages'); }catch(e){ messages={}; }
   try{ orders=await fetchCollectionArray('orders'); }catch(e){ orders=[]; }
@@ -429,7 +430,7 @@ function renderAdminProfiles(){
       ` : ''}
       ${p.avatar&&p.avatar.type==='image'?`<div class="name-check">Photo de profil</div><img src="${p.avatar.data}">`:''}
       <div class="name-check">Pièce d'identité</div>
-      ${p.idPhoto&&p.idPhoto.type==='image'?`<img src="${p.idPhoto.data}">`:`<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(p.idPhoto?p.idPhoto.name:'non fourni')}</p>`}
+      ${(()=>{ const idPhoto=(profilesPrivate[phone]||{}).idPhoto; return idPhoto&&idPhoto.type==='image' ? `<img src="${idPhoto.data}">` : `<p style="font-size:12.5px;color:var(--ink-soft);">📄 ${esc(idPhoto?idPhoto.name:'non fourni')}</p>`; })()}
       <div class="admin-actions">
         <button class="btn-approve" onclick="setProfileVerified('${phone}',true)">${p.verified?'✅ Vérifié':'Approuver'}</button>
         <button class="btn-reject" onclick="toggleBlockPhone('${phone}')">${blockedPhones[phone]?'Débloquer':'Bloquer ce numéro'}</button>
@@ -706,7 +707,9 @@ async function setProfileVerified(phone,val){
 async function removeProfile(phone){
   try{
     await db.collection('profiles').doc(phone).delete();
+    try{ await db.collection('profilesPrivate').doc(phone).delete(); }catch(e){}
     delete profiles[phone];
+    delete profilesPrivate[phone];
     renderAdminProfiles(); showToast("Supprimé");
   }catch(e){ adminWriteError(e); }
 }

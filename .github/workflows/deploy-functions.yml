@@ -1,4 +1,4 @@
-name: Déployer le backend (Cloud Functions)
+name: Déployer le backend (Cloud Functions + règles Firestore)
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - 'functions/**'
       - 'firebase.json'
       - '.firebaserc'
+      - 'firestore.rules'
       - '.github/workflows/deploy-functions.yml'
   workflow_dispatch: {}
 
@@ -54,3 +55,6 @@ jobs:
 
       - name: Déployer les fonctions
         run: firebase deploy --only functions --project baraka-gp --non-interactive --force
+
+      - name: Déployer les règles Firestore
+        run: firebase deploy --only firestore:rules --project baraka-gp --non-interactive --force

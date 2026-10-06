@@ -64,6 +64,12 @@ son URL doit rester connue de vous seul.
 
 ### Limite connue
 
+La pièce d'identité (photo) d'un voyageur est stockée à part, dans la
+collection `profilesPrivate`, lisible uniquement par l'admin — elle n'est
+plus accessible aux autres utilisateurs connectés comme l'était auparavant
+le reste du profil. Les limites ci-dessous concernent le reste des données
+(`orders`, `messages`, `points`, et les champs non sensibles de `profiles`).
+
 Un compte (email + mot de passe) est obligatoire pour utiliser `index.html`,
 mais le numéro de téléphone qu'il contient n'est pas vérifié par SMS — rien
 n'empêche quelqu'un de créer un compte avec le numéro de quelqu'un d'autre.

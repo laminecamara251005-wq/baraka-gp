@@ -57,6 +57,18 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Pièce d'identité (photo), séparée du reste du profil : contrairement
+    // au nom/avatar/note, elle n'a aucune raison d'être lue par un autre
+    // utilisateur que l'admin — seule la vérification d'identité en a
+    // besoin. L'écriture reste ouverte à tout compte connecté (créée depuis
+    // le navigateur de son propriétaire au moment de la publication d'un
+    // trajet), comme le reste de l'app.
+    match /profilesPrivate/{phone} {
+      allow read: if isAdmin();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
     // Alertes "prévenez-moi".
     match /alerts/{id} {
       allow read: if isSignedIn();
