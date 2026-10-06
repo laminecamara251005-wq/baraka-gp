@@ -601,7 +601,18 @@
     <p id="authSub">Un compte gratuit pour suivre vos envois et vos trajets.</p>
     <div id="authSignupFields">
       <input type="text" id="authName" placeholder="Votre prénom">
-      <input type="tel" id="authPhone" placeholder="Votre numéro">
+      <div style="display:flex;gap:8px;">
+        <select id="authCountryCode" style="width:auto;flex:0 0 108px;">
+          <option value="+33">🇫🇷 +33</option>
+          <option value="+222">🇲🇷 +222</option>
+          <option value="+221">🇸🇳 +221</option>
+          <option value="+223">🇲🇱 +223</option>
+          <option value="+20">🇪🇬 +20</option>
+          <option value="+966">🇸🇦 +966</option>
+        </select>
+        <input type="tel" id="authPhone" placeholder="Votre numéro" style="flex:1;">
+      </div>
+      <div class="hint">Un code sera envoyé par SMS pour vérifier ce numéro.</div>
       <label>Photo de profil (facultatif)</label>
       <input type="file" id="authAvatar" accept="image/*">
     </div>
@@ -623,6 +634,22 @@
     </p>
   </div>
 </div>
+
+<!-- VÉRIFICATION SMS -->
+<div class="overlay" id="phoneVerifyOverlay">
+  <div class="modal center">
+    <div class="payment-lock" style="background:var(--green-pale);color:var(--green-pale-ink);">📱</div>
+    <h3>Vérification du numéro</h3>
+    <p class="sub">Un code à 6 chiffres a été envoyé par SMS au <b id="phoneVerifyNumber"></b>.</p>
+    <input type="text" id="phoneVerifyCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Code à 6 chiffres" style="text-align:center;font-size:22px;letter-spacing:6px;">
+    <button class="btn gold" id="phoneVerifySubmitBtn" onclick="confirmPhoneCode()">Vérifier</button>
+    <button class="btn ghost" id="phoneVerifyResendBtn" onclick="resendPhoneCode()">Renvoyer le code</button>
+    <p style="margin-top:10px;font-size:12px;">
+      <a href="javascript:void(0)" onclick="cancelPhoneVerification()" style="color:var(--ink-soft);text-decoration:underline;">Numéro incorrect ? Recommencer</a>
+    </p>
+  </div>
+</div>
+<div id="recaptcha-container"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -657,6 +684,7 @@ let paymentElements=null, pendingPaymentOrderId=null;
 
 let listings=[], profiles={}, alerts=[], messages={}, orders=[], orderMsgs={}, points={};
 let me=null, pendingListing=null, pendingOrderId=null, ratingOrderId=null, ratingStars=0, ratingTarget='gp';
+let recaptchaVerifier=null, phoneConfirmationResult=null, pendingSignupUid=null, pendingSignupAcc=null;
 let currentOrderChatId=null, ordersRole='client';
 let pollTimer=null, pendingRef=null, receiveMode=false, receiveChatPolling=null;
 
@@ -931,6 +959,71 @@ async function changeMyAvatar(){
   showToast("Photo de profil mise à jour !");
   document.getElementById('changeAvatarInput').value='';
 }
+// ---- VÉRIFICATION SMS DU NUMÉRO ----
+function toE164(countryCode, localNumber){
+  let digits=(localNumber||'').replace(/[^0-9]/g,'');
+  if(digits.startsWith('0')) digits=digits.slice(1);
+  return countryCode+digits;
+}
+async function startPhoneVerification(uid, acc){
+  pendingSignupUid=uid; pendingSignupAcc=acc;
+  document.getElementById('phoneVerifyNumber').textContent=acc.phoneE164;
+  document.getElementById('phoneVerifyCode').value='';
+  document.getElementById('authGate').classList.remove('show');
+  document.getElementById('phoneVerifyOverlay').classList.add('show');
+  await sendPhoneCode();
+}
+async function sendPhoneCode(){
+  try{
+    if(!recaptchaVerifier){ recaptchaVerifier=new firebase.auth.RecaptchaVerifier('recaptcha-container', {size:'invisible'}); }
+    phoneConfirmationResult=await auth.currentUser.linkWithPhoneNumber(pendingSignupAcc.phoneE164, recaptchaVerifier);
+    showToast("Code envoyé par SMS !");
+  }catch(e){
+    showToast(e.code==='auth/credential-already-in-use' ? "Ce numéro est déjà vérifié sur un autre compte" : "Impossible d'envoyer le SMS, réessayez");
+  }
+}
+async function resendPhoneCode(){
+  const btn=document.getElementById('phoneVerifyResendBtn');
+  btn.disabled=true;
+  try{ await sendPhoneCode(); } finally { setTimeout(()=>{ btn.disabled=false; }, 15000); }
+}
+async function confirmPhoneCode(){
+  const code=document.getElementById('phoneVerifyCode').value.trim();
+  if(!code){ showToast("Entrez le code reçu par SMS"); return; }
+  if(!phoneConfirmationResult){ showToast("Redemandez un code avec « Renvoyer le code »"); return; }
+  const btn=document.getElementById('phoneVerifySubmitBtn');
+  btn.disabled=true;
+  try{
+    await phoneConfirmationResult.confirm(code);
+    const uid=pendingSignupUid, acc=pendingSignupAcc;
+    acc.phoneVerified=true;
+    try{ await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000); }catch(e){}
+    const key=ensurePoints(acc.phone);
+    if(pendingRef && pendingRef!==points[key].refCode && !points[key].referredBy){
+      points[key].referredBy=pendingRef;
+      points[key].points+=5;
+      try{ await savePoints(); }catch(e){}
+      showToast("🎉 Bienvenue ! +5 points grâce à votre parrainage", true);
+    }
+    document.getElementById('phoneVerifyOverlay').classList.remove('show');
+    pendingSignupUid=null; pendingSignupAcc=null; phoneConfirmationResult=null;
+    authFlowInProgress=true;
+    try{ await completeLogin(uid, acc); } finally { authFlowInProgress=false; }
+  }catch(e){
+    showToast(e.code==='auth/invalid-verification-code' ? "Code incorrect, réessayez" : "Erreur de vérification, réessayez");
+  } finally {
+    btn.disabled=false;
+  }
+}
+async function cancelPhoneVerification(){
+  document.getElementById('phoneVerifyOverlay').classList.remove('show');
+  const uid=pendingSignupUid;
+  try{ if(uid) await db.collection('accounts').doc(uid).delete(); }catch(e){}
+  try{ await auth.currentUser.delete(); }catch(e){ try{ await auth.signOut(); }catch(e2){} }
+  pendingSignupUid=null; pendingSignupAcc=null; phoneConfirmationResult=null;
+  authFlowInProgress=false;
+  document.getElementById('authGate').classList.add('show');
+}
 async function authSubmit(){
   const email=document.getElementById('authEmail').value.trim();
   const password=document.getElementById('authPassword').value;
@@ -942,12 +1035,14 @@ async function authSubmit(){
     if(authMode==='signup'){
       const name=document.getElementById('authName').value.trim();
       const phone=document.getElementById('authPhone').value.trim();
+      const countryCode=document.getElementById('authCountryCode').value;
       if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
+      const phoneE164=toE164(countryCode, phone);
       // Le suivi automatique de session (onAuthStateChanged) ne doit pas
-      // intervenir pendant qu'on gère nous-mêmes la création du compte
-      // ci-dessous, sinon les deux entrent en compétition pour écrire le
-      // document accounts/{uid} et le nom/numéro tout juste saisis se
-      // retrouvent écrasés par une fiche vide.
+      // intervenir pendant qu'on gère nous-mêmes la création du compte et la
+      // vérification SMS ci-dessous, sinon les deux entrent en compétition.
+      // On ne le repasse à false qu'une fois la vérification terminée
+      // (confirmPhoneCode) ou annulée (cancelPhoneVerification) — jamais ici.
       authFlowInProgress=true;
       try{
         let uid;
@@ -965,37 +1060,41 @@ async function authSubmit(){
               uid=cred2.user.uid;
             }catch(e2){
               showToast(e2.message==='timeout' ? "Connexion trop lente, réessayez" : "Cet email a déjà un compte — connectez-vous, ou utilisez « mot de passe oublié »");
+              authFlowInProgress=false;
               return;
             }
           }else{
             showToast(e.message==='timeout' ? "Connexion trop lente, réessayez" : authErrorMessage(e));
+            authFlowInProgress=false;
             return;
           }
         }
         if(await isPhoneBlocked(phone)){
           try{ await auth.currentUser.delete(); }catch(e){ try{ await auth.signOut(); }catch(e2){} }
+          authFlowInProgress=false;
           showToast("Ce numéro a été bloqué. Contactez le support si vous pensez qu'il s'agit d'une erreur.");
           return;
         }
         const avatarFile=document.getElementById('authAvatar').files[0];
         let avatar=null;
         if(avatarFile){ try{ avatar=await compressImage(avatarFile); }catch(e){} }
-        let acc={name,phone,email,avatar,createdAt:Date.now()};
+        let acc={name,phone,email,avatar,phoneE164,phoneVerified:false,createdAt:Date.now()};
         try{
           const snap=await withTimeout(db.collection('accounts').doc(uid).get(), 8000);
           if(snap.exists) acc=snap.data();
           else await withTimeout(db.collection('accounts').doc(uid).set(acc), 8000);
         }catch(e){ /* Firestore lent ou indisponible : on continue quand même avec les infos saisies */ }
-        const key=ensurePoints(phone);
-        if(pendingRef && pendingRef!==points[key].refCode && !points[key].referredBy){
-          points[key].referredBy=pendingRef;
-          points[key].points+=5;
-          try{ await savePoints(); }catch(e){}
-          showToast("🎉 Bienvenue ! +5 points grâce à votre parrainage", true);
+        if(acc.phoneVerified){
+          // Compte déjà vérifié lors d'une tentative précédente interrompue
+          // juste après (pas besoin de renvoyer un SMS).
+          authFlowInProgress=false;
+          await completeLogin(uid, acc);
+        }else{
+          await startPhoneVerification(uid, acc);
         }
-        await completeLogin(uid, acc);
-      } finally {
+      }catch(e){
         authFlowInProgress=false;
+        showToast("Une erreur est survenue, réessayez");
       }
     }else{
       try{ await withTimeout(auth.signInWithEmailAndPassword(email,password), 12000); }
@@ -1026,6 +1125,13 @@ auth.onAuthStateChanged(async (user)=>{
     if(acc.phone && await isPhoneBlocked(acc.phone)){
       showToast("Ce compte est bloqué. Contactez le support si vous pensez qu'il s'agit d'une erreur.");
       try{ await auth.signOut(); }catch(e){}
+      return;
+    }
+    if(acc.phoneE164 && !acc.phoneVerified){
+      // Inscription commencée mais vérification SMS jamais terminée (appli
+      // fermée entre-temps) : on la reprend avant de laisser entrer.
+      authFlowInProgress=true;
+      await startPhoneVerification(user.uid, acc);
       return;
     }
     await completeLogin(user.uid, acc);
