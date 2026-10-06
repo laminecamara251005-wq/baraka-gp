@@ -1265,6 +1265,12 @@ function isTypingInChat(){ return chatFocused; }
 function startPolling(){
   stopPolling();
   pollTimer=setInterval(async ()=>{
+    if(me && await isPhoneBlocked(me.phone)){
+      stopPolling();
+      showToast("Votre compte a été bloqué. Contactez le support si vous pensez qu'il s'agit d'une erreur.");
+      try{ await auth.signOut(); }catch(e){}
+      return;
+    }
     await loadAll();
     await expireStaleOrders();
     // Ne pas reconstruire l'écran pendant qu'on tape un message : ça coupe le
