@@ -687,7 +687,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const cloudFunctions = firebase.app().functions('europe-west1');
-const VAPID_KEY = "REPLACE_WITH_VAPID_KEY";
+const VAPID_KEY = "BAVYtBXujd3QmNeZZCevxxTe9x3-4jzY9zgzNwCqW4OMR0gnQ3shTi_haHfv88G5aNoSKEXy7HBBIJlg3bDfXNA";
 let messaging=null;
 try{ if(firebase.messaging.isSupported()) messaging=firebase.messaging(); }catch(e){}
 const stripe = typeof Stripe!=='undefined' ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
