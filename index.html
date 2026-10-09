@@ -1078,7 +1078,7 @@ async function authSubmit(){
         const avatarFile=document.getElementById('authAvatar').files[0];
         let avatar=null;
         if(avatarFile){ try{ avatar=await compressImage(avatarFile); }catch(e){} }
-        let acc={name,phone,email,avatar,phoneE164,phoneVerified:false,createdAt:Date.now()};
+        let acc={name,phone,email,avatar,phoneE164,phoneVerified:false,phoneClean:cleanPhone(phone),createdAt:Date.now()};
         try{
           const snap=await withTimeout(db.collection('accounts').doc(uid).get(), 8000);
           if(snap.exists) acc=snap.data();

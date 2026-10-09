@@ -1,8 +1,9 @@
 const {onCall, onRequest, HttpsError} = require('firebase-functions/v2/https');
-const {onDocumentUpdated} = require('firebase-functions/v2/firestore');
+const {onDocumentUpdated, onDocumentCreated} = require('firebase-functions/v2/firestore');
 const {defineSecret} = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const Stripe = require('stripe');
+const nodemailer = require('nodemailer');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -10,6 +11,8 @@ const db = admin.firestore();
 const REGION = 'europe-west1';
 const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
 const stripeWebhookSecret = defineSecret('STRIPE_WEBHOOK_SECRET');
+const gmailUser = defineSecret('GMAIL_USER');
+const gmailAppPassword = defineSecret('GMAIL_APP_PASSWORD');
 
 function getStripe() {
   return new Stripe(stripeSecretKey.value(), { apiVersion: '2024-06-20' });
@@ -18,6 +21,39 @@ function getStripe() {
 function cleanPhone(p) {
   return (p || '').replace(/[^0-9]/g, '');
 }
+
+// Retrouve l'email du compte associé à un numéro de téléphone, pour pouvoir
+// le prévenir par email d'un évènement sur ses commandes.
+async function findEmailByPhone(phone) {
+  const snap = await db.collection('accounts').where('phoneClean', '==', cleanPhone(phone)).limit(1).get();
+  if (snap.empty) return null;
+  return snap.docs[0].data().email || null;
+}
+
+// Envoie un email simple via le compte Gmail de Baraka GP (mot de passe
+// d'application, pas le vrai mot de passe du compte). N'importe quelle
+// erreur d'envoi est avalée : un email qui ne part pas ne doit jamais faire
+// échouer l'action qui l'a déclenché (acceptation, paiement...).
+async function sendEmail(to, subject, html) {
+  if (!to) return;
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: gmailUser.value(), pass: gmailAppPassword.value() },
+    });
+    await transporter.sendMail({
+      from: `Baraka GP <${gmailUser.value()}>`,
+      to,
+      subject,
+      html,
+    });
+  } catch (err) {
+    console.error('Échec envoi email à', to, err.message);
+  }
+}
+
+const EMAIL_SECRETS = [gmailUser, gmailAppPassword];
+const APP_URL = 'https://laminecamara251005-wq.github.io/baraka-gp/index.html';
 
 // Crée (si besoin) un compte Stripe Express pour un voyageur, et renvoie un
 // lien d'inscription Stripe à ouvrir dans son navigateur pour qu'il
@@ -181,4 +217,37 @@ exports.transferToTraveler = onDocumentUpdated({ document: 'orders/{orderId}', s
   } catch (err) {
     await orderRef.set({ transferError: err.message }, { merge: true });
   }
+});
+
+// Email au voyageur dès qu'un client lui envoie une nouvelle demande.
+exports.notifyNewOrder = onDocumentCreated({ document: 'orders/{orderId}', secrets: EMAIL_SECRETS, region: REGION }, async (event) => {
+  const order = event.data.data();
+  if (order.status !== 'pending') return;
+  const email = await findEmailByPhone(order.gpPhone);
+  if (!email) return;
+  await sendEmail(
+    email,
+    '📦 Nouvelle demande de colis sur Baraka GP',
+    `<p>Bonjour,</p>
+     <p><b>${order.clientName || 'Un client'}</b> souhaite vous confier un colis sur le trajet
+     <b>${order.from} → ${order.to}</b> (${order.kg}kg).</p>
+     <p><a href="${APP_URL}">Ouvrir Baraka GP</a> pour accepter ou refuser cette demande.</p>`
+  );
+});
+
+// Email au client dès que le voyageur accepte sa demande.
+exports.notifyOrderAccepted = onDocumentUpdated({ document: 'orders/{orderId}', secrets: EMAIL_SECRETS, region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  if (before.status === after.status || after.status !== 'accepted') return;
+  const email = await findEmailByPhone(after.clientPhone);
+  if (!email) return;
+  await sendEmail(
+    email,
+    '✅ Votre demande a été acceptée !',
+    `<p>Bonjour,</p>
+     <p><b>${after.gpName || 'Le voyageur'}</b> a accepté votre demande pour le trajet
+     <b>${after.from} → ${after.to}</b>.</p>
+     <p><a href="${APP_URL}">Ouvrir Baraka GP</a> pour voir le lieu et l'horaire de prise en charge dès qu'il sera proposé.</p>`
+  );
 });
