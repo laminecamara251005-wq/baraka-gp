@@ -253,7 +253,7 @@ function updateAdminNotifBadges(){
   const listingsCount=listings.filter(l=>l.type!=='gp' && !l.verified).length;
   const alertsCount=alerts.filter(a=>!a.notified).length;
   const messagesCount=Object.values(messages).filter(th=>th.unreadAdmin).length;
-  const ordersCount=orders.filter(o=>['cancelled_gp','cancelled_client'].includes(o.status) && o.adminSeen!==true).length;
+  const ordersCount=orders.filter(o=>(['cancelled_gp','cancelled_client'].includes(o.status) || o.transferError || o.refundError) && o.adminSeen!==true).length;
   setBadge('badgeProfiles', profilesCount);
   setBadge('badgeListings', listingsCount);
   setBadge('badgeAlerts', alertsCount);
@@ -463,7 +463,7 @@ function renderAdminOrders(){
   const list=document.getElementById('adminList');
   if(orders.length===0){ list.innerHTML='<p style="color:var(--ink-soft);">Aucune commande.</p>'; return; }
   list.innerHTML=orders.slice().reverse().map(o=>{
-    const needsReview = ['cancelled_gp','cancelled_client'].includes(o.status) && o.adminSeen!==true;
+    const needsReview = (['cancelled_gp','cancelled_client'].includes(o.status) || o.transferError || o.refundError) && o.adminSeen!==true;
     return `
     <div class="admin-card">
       <span class="type-pill gp">${statusLabel(o.status)}</span>
@@ -486,6 +486,8 @@ function renderAdminOrders(){
       <textarea id="adminNote_${o.id}" placeholder="Ex. Client recontacté le..." style="min-height:50px;">${esc(o.adminNote||'')}</textarea>
       ${o.refunded ? `<div class="name-check" style="color:var(--green-dark);">✅ Remboursé le ${fmtDateTime(o.refundedAt)}</div>` : ''}
       ${o.refundError ? `<div class="name-check" style="color:var(--red);">⚠️ Échec du remboursement : ${esc(o.refundError)}</div>` : ''}
+      ${o.transferred ? `<div class="name-check" style="color:var(--green-dark);">✅ Voyageur payé le ${fmtDateTime(o.transferredAt)}</div>` : ''}
+      ${o.transferError ? `<div class="name-check" style="color:var(--red);">⚠️ Échec du virement au voyageur : ${esc(o.transferError)}</div>` : ''}
       <div class="admin-actions">
         <button class="btn-approve" onclick="saveOrderNote('${o.id}')">Enregistrer la note</button>
         ${needsReview ? `<button class="btn-approve" onclick="markOrderSeen('${o.id}')">Marquer comme traité</button>` : ''}
