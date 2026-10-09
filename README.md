@@ -71,14 +71,12 @@ le reste du profil. Les limites ci-dessous concernent le reste des données
 (`orders`, `messages`, `points`, et les champs non sensibles de `profiles`).
 
 Un compte (email + mot de passe) est obligatoire pour utiliser `index.html`,
-mais le numéro de téléphone qu'il contient n'est pas vérifié par SMS — rien
-n'empêche quelqu'un de créer un compte avec le numéro de quelqu'un d'autre.
-Les règles Firestore exigent qu'on soit connecté pour lire ou écrire quoi que
-ce soit, mais ne vérifient pas encore qu'une commande, un message ou un profil
-n'est modifié que par son propriétaire (ça nécessiterait de lier chaque
-enregistrement au compte de son auteur, plus large que ce qui est fait ici).
-Une vérification réelle du numéro nécessiterait Firebase Phone Auth (SMS),
-qui demande la formule payante Blaze.
+et le numéro de téléphone est désormais vérifié par SMS (Firebase Phone
+Auth) juste après l'inscription. Les règles Firestore exigent qu'on soit
+connecté pour lire ou écrire quoi que ce soit, mais ne vérifient pas encore
+qu'une commande, un message ou un profil n'est modifié que par son
+propriétaire (ça nécessiterait de lier chaque enregistrement au compte de
+son auteur, plus large que ce qui est fait ici).
 
 Le lien de confirmation de réception (`?receive=...`) est protégé par le code
 à 4 chiffres à saisir, pas par le lien lui-même : toute personne qui devine ou
@@ -90,9 +88,9 @@ Le blocage d'un numéro par l'admin (collection `blockedPhones`) échoue de
 façon permissive : si la vérification Firestore échoue au moment de
 l'inscription/connexion (réseau instable, service indisponible), la personne
 n'est pas bloquée par erreur — mieux vaut laisser passer une fois de trop
-que bloquer tout le monde pendant une panne. Un compte bloqué juste après
-qu'il s'est connecté n'est éjecté qu'à sa prochaine connexion ou au
-rechargement de la page, pas en temps réel.
+que bloquer tout le monde pendant une panne. Un compte bloqué pendant qu'il
+est déjà connecté est maintenant éjecté en temps réel (vérifié à chaque
+cycle de rafraîchissement, pas seulement à la connexion).
 
 La collection `points` (solde de fidélité de chacun) est, comme le reste,
 seulement protégée par « il faut être connecté » — n'importe quel compte
