@@ -300,6 +300,13 @@
     <span id="tripReminderText" style="font-size:13.5px;color:var(--gold-soft-ink);font-weight:600;"></span>
     <button onclick="dismissTripReminder()" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--gold-soft-ink);flex-shrink:0;">✕</button>
   </div>
+  <div id="pushPromptBanner" style="display:none;background:var(--blue-soft);border-radius:12px;padding:12px 14px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:10px;">
+    <span style="font-size:13.5px;color:var(--blue-soft-ink);font-weight:600;">🔔 Activez les notifications pour ne manquer aucun message</span>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <button onclick="enablePushNotifications()" style="background:var(--blue-soft-ink);color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;padding:7px 12px;cursor:pointer;">Activer</button>
+      <button onclick="dismissPushPrompt()" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--blue-soft-ink);">✕</button>
+    </div>
+  </div>
 
   <!-- SEARCH -->
   <div id="viewSearch">
@@ -655,6 +662,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
@@ -679,6 +687,9 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 const cloudFunctions = firebase.app().functions('europe-west1');
+const VAPID_KEY = "REPLACE_WITH_VAPID_KEY";
+let messaging=null;
+try{ if(firebase.messaging.isSupported()) messaging=firebase.messaging(); }catch(e){}
 const stripe = typeof Stripe!=='undefined' ? Stripe(STRIPE_PUBLISHABLE_KEY) : null;
 let paymentElements=null, pendingPaymentOrderId=null;
 
@@ -896,6 +907,8 @@ async function completeLogin(uid, acc){
   updateUserHeader();
   updateNotifBadge();
   checkTripReminders();
+  checkPushPrompt();
+  initPushSupport();
   renderResults();
   startPolling();
 }
@@ -1418,6 +1431,45 @@ function checkTripReminders(){
 function dismissTripReminder(){
   try{ localStorage.setItem('baraka-gp-reminder-dismissed-'+tomorrowDateStr(), '1'); }catch(e){}
   document.getElementById('tripReminderBanner').style.display='none';
+}
+
+// ---- NOTIFICATIONS PUSH ----
+// Style messagerie (nom de l'expéditeur + aperçu du message), jamais une
+// bannière générique style VTC ("votre chauffeur arrive").
+let swRegistration=null;
+async function initPushSupport(){
+  if(!messaging) return;
+  try{ swRegistration=await navigator.serviceWorker.register('firebase-messaging-sw.js'); }catch(e){ return; }
+  messaging.onMessage(payload=>{
+    const data=payload.data||{};
+    showToast(`${data.title||'Baraka GP'} : ${data.body||''}`);
+  });
+}
+function checkPushPrompt(){
+  const banner=document.getElementById('pushPromptBanner');
+  if(!banner) return;
+  if(!me || !messaging || typeof Notification==='undefined' || Notification.permission!=='default'){ banner.style.display='none'; return; }
+  let dismissed=false;
+  try{ dismissed=localStorage.getItem('baraka-gp-push-prompt-dismissed')==='1'; }catch(e){}
+  banner.style.display = dismissed ? 'none' : 'flex';
+}
+function dismissPushPrompt(){
+  try{ localStorage.setItem('baraka-gp-push-prompt-dismissed','1'); }catch(e){}
+  document.getElementById('pushPromptBanner').style.display='none';
+}
+async function enablePushNotifications(){
+  if(!messaging){ dismissPushPrompt(); return; }
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){ dismissPushPrompt(); return; }
+    if(!swRegistration){ swRegistration=await navigator.serviceWorker.register('firebase-messaging-sw.js'); }
+    const token=await messaging.getToken({vapidKey:VAPID_KEY, serviceWorkerRegistration:swRegistration});
+    if(token && me){
+      await withTimeout(db.collection('accounts').doc(me.uid).set({fcmTokens:firebase.firestore.FieldValue.arrayUnion(token)},{merge:true}), 8000);
+    }
+    dismissPushPrompt();
+    showToast("Notifications activées !");
+  }catch(e){ dismissPushPrompt(); }
 }
 
 // ---- SUPPORT MESSAGING ----

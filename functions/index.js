@@ -32,12 +32,44 @@ async function isAdminUid(uid) {
   return snap.exists;
 }
 
-// Retrouve l'email du compte associé à un numéro de téléphone, pour pouvoir
-// le prévenir par email d'un évènement sur ses commandes.
-async function findEmailByPhone(phone) {
+// Retrouve le compte associé à un numéro de téléphone (pour l'email et les
+// notifications push, toutes deux déclenchées côté serveur).
+async function findAccountByPhone(phone) {
   const snap = await db.collection('accounts').where('phoneClean', '==', cleanPhone(phone)).limit(1).get();
   if (snap.empty) return null;
-  return snap.docs[0].data().email || null;
+  return { ref: snap.docs[0].ref, data: snap.docs[0].data() };
+}
+
+async function findEmailByPhone(phone) {
+  const account = await findAccountByPhone(phone);
+  return (account && account.data.email) || null;
+}
+
+// Envoie une notification push façon messagerie (titre = nom de
+// l'expéditeur, corps = aperçu du message) — jamais une bannière générique
+// style VTC. Les jetons invalides (désinstallation, permission révoquée...)
+// sont retirés du compte au passage.
+async function sendPush(phone, { title, body, url, tag }) {
+  const account = await findAccountByPhone(phone);
+  const tokens = account && account.data.fcmTokens;
+  if (!tokens || tokens.length === 0) return;
+  try {
+    const response = await admin.messaging().sendEachForMulticast({
+      tokens,
+      data: { title, body, url: url || APP_URL, tag: tag || '' },
+    });
+    const invalidTokens = [];
+    response.responses.forEach((r, i) => {
+      if (!r.success && ['messaging/invalid-registration-token', 'messaging/registration-token-not-registered'].includes(r.error && r.error.code)) {
+        invalidTokens.push(tokens[i]);
+      }
+    });
+    if (invalidTokens.length > 0) {
+      await account.ref.set({ fcmTokens: admin.firestore.FieldValue.arrayRemove(...invalidTokens) }, { merge: true });
+    }
+  } catch (err) {
+    console.error('Échec notification push à', phone, err.message);
+  }
 }
 
 // Envoie un email simple via le compte Gmail de Baraka GP (mot de passe
@@ -260,10 +292,17 @@ exports.refundOrder = onCall({ secrets: [stripeSecretKey], region: REGION }, asy
   }
 });
 
-// Email au voyageur dès qu'un client lui envoie une nouvelle demande.
+// Email + notification push au voyageur dès qu'un client lui envoie une
+// nouvelle demande. La notification reprend le nom du client en titre,
+// comme un message reçu — jamais une bannière générique.
 exports.notifyNewOrder = onDocumentCreated({ document: 'orders/{orderId}', secrets: EMAIL_SECRETS, region: REGION }, async (event) => {
   const order = event.data.data();
   if (order.status !== 'pending') return;
+  await sendPush(order.gpPhone, {
+    title: order.clientName || 'Nouvelle demande',
+    body: `souhaite vous confier un colis : ${order.from} → ${order.to} (${order.kg}kg)`,
+    tag: `order-${event.params.orderId}`,
+  });
   const email = await findEmailByPhone(order.gpPhone);
   if (!email) return;
   await sendEmail(
@@ -276,11 +315,16 @@ exports.notifyNewOrder = onDocumentCreated({ document: 'orders/{orderId}', secre
   );
 });
 
-// Email au client dès que le voyageur accepte sa demande.
+// Email + notification push au client dès que le voyageur accepte sa demande.
 exports.notifyOrderAccepted = onDocumentUpdated({ document: 'orders/{orderId}', secrets: EMAIL_SECRETS, region: REGION }, async (event) => {
   const before = event.data.before.data();
   const after = event.data.after.data();
   if (before.status === after.status || after.status !== 'accepted') return;
+  await sendPush(after.clientPhone, {
+    title: after.gpName || 'Demande acceptée',
+    body: `a accepté votre demande : ${after.from} → ${after.to}`,
+    tag: `order-${event.params.orderId}`,
+  });
   const email = await findEmailByPhone(after.clientPhone);
   if (!email) return;
   await sendEmail(
@@ -291,4 +335,57 @@ exports.notifyOrderAccepted = onDocumentUpdated({ document: 'orders/{orderId}', 
      <b>${after.from} → ${after.to}</b>.</p>
      <p><a href="${APP_URL}">Ouvrir Baraka GP</a> pour voir le lieu et l'horaire de prise en charge dès qu'il sera proposé.</p>`
   );
+});
+
+// Notification push pour la messagerie support (admin → utilisateur). Pas
+// l'inverse : l'admin lit les messages depuis la console, pas via push.
+exports.notifyUserMessage = onDocumentUpdated({ document: 'messages/{phone}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  const beforeThread = before.thread || [];
+  const afterThread = after.thread || [];
+  if (afterThread.length <= beforeThread.length) return;
+  const last = afterThread[afterThread.length - 1];
+  if (!last || last.from !== 'admin') return;
+  await sendPush(event.params.phone, {
+    title: 'Support Baraka GP',
+    body: last.text,
+    tag: `support-${event.params.phone}`,
+  });
+});
+
+// Notification push pour la messagerie de commande : entre client et
+// voyageur, et entre client et destinataire (le destinataire, anonyme, ne
+// reçoit jamais de push — seul le client peut être notifié de ses messages).
+exports.notifyOrderMessage = onDocumentUpdated({ document: 'orderMsgs/{threadId}', region: REGION }, async (event) => {
+  const before = event.data.before.data();
+  const after = event.data.after.data();
+  const beforeThread = before.thread || [];
+  const afterThread = after.thread || [];
+  if (afterThread.length <= beforeThread.length) return;
+  const last = afterThread[afterThread.length - 1];
+  if (!last) return;
+
+  const threadId = event.params.threadId;
+  const isRecipientThread = threadId.endsWith('_recipient');
+  const orderId = isRecipientThread ? threadId.slice(0, -'_recipient'.length) : threadId;
+  const orderSnap = await db.collection('orders').doc(orderId).get();
+  if (!orderSnap.exists) return;
+  const order = orderSnap.data();
+
+  if (isRecipientThread) {
+    if (last.from !== 'recipient') return;
+    await sendPush(order.clientPhone, {
+      title: order.recipientName || 'Destinataire',
+      body: last.text,
+      tag: `order-${orderId}`,
+    });
+    return;
+  }
+
+  if (last.from === 'client') {
+    await sendPush(order.gpPhone, { title: order.clientName || 'Client', body: last.text, tag: `order-${orderId}` });
+  } else if (last.from === 'gp') {
+    await sendPush(order.clientPhone, { title: order.gpName || 'Voyageur', body: last.text, tag: `order-${orderId}` });
+  }
 });
