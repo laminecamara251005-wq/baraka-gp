@@ -629,9 +629,10 @@
       <button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPassword', this)">👁</button>
     </div>
     <button class="btn" id="authSubmitBtn" onclick="authSubmit()">Créer mon compte</button>
-    <p id="authLegalNote" style="margin-top:10px;font-size:11.5px;color:var(--ink-soft);text-align:center;">
-      En créant un compte, vous acceptez nos <a href="cgu.html" target="_blank" style="color:inherit;">CGU</a> et notre <a href="confidentialite.html" target="_blank" style="color:inherit;">politique de confidentialité</a>.
-    </p>
+    <label id="authLegalNote" class="check-line" style="margin-top:10px;font-size:11.5px;color:var(--ink-soft);display:none;">
+      <input type="checkbox" id="authLegalCheck">
+      J'accepte les <a href="cgu.html" target="_blank" style="color:inherit;">CGU</a> et la <a href="confidentialite.html" target="_blank" style="color:inherit;">politique de confidentialité</a>.
+    </label>
     <p style="margin-top:14px;font-size:13px;">
       <span id="authSwitchText">Déjà un compte ?</span>
       <a href="javascript:void(0)" onclick="switchAuthMode()" style="color:var(--accent);font-weight:600;text-decoration:underline;" id="authSwitchLink">Se connecter</a>
@@ -863,7 +864,7 @@ function switchAuthMode(){
   document.getElementById('authSwitchText').textContent = isSignup ? 'Déjà un compte ?' : "Pas encore de compte ?";
   document.getElementById('authSwitchLink').textContent = isSignup ? 'Se connecter' : "S'inscrire";
   document.getElementById('authForgotRow').style.display = isSignup ? 'none' : 'block';
-  document.getElementById('authLegalNote').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('authLegalNote').style.display = isSignup ? 'flex' : 'none';
 }
 async function authForgotPassword(){
   const email=document.getElementById('authEmail').value.trim();
@@ -1050,6 +1051,7 @@ async function authSubmit(){
       const phone=document.getElementById('authPhone').value.trim();
       const countryCode=document.getElementById('authCountryCode').value;
       if(!name||!phone){ showToast("Merci de remplir votre prénom et numéro"); return; }
+      if(!document.getElementById('authLegalCheck').checked){ showToast("Merci d'accepter les CGU et la politique de confidentialité"); return; }
       const phoneE164=toE164(countryCode, phone);
       // Le suivi automatique de session (onAuthStateChanged) ne doit pas
       // intervenir pendant qu'on gère nous-mêmes la création du compte et la
