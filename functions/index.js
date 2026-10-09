@@ -292,6 +292,29 @@ exports.refundOrder = onCall({ secrets: [stripeSecretKey], region: REGION }, asy
   }
 });
 
+// Suppression de compte à la demande de l'utilisateur lui-même (droit à
+// l'effacement) : supprime son compte Auth, sa fiche "accounts", et sa
+// fiche voyageur ("profiles"/"profilesPrivate") si elle existe. Les
+// commandes, messages et points liés à son numéro sont conservés, comme
+// pour une suppression faite par l'admin — ils concernent aussi l'autre
+// partie (client/voyageur) et servent de justificatif en cas de litige.
+exports.deleteMyAccount = onCall({ region: REGION }, async (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Connexion requise');
+  const uid = request.auth.uid;
+  const accountRef = db.collection('accounts').doc(uid);
+  const accountSnap = await accountRef.get();
+  const phone = accountSnap.exists ? cleanPhone(accountSnap.data().phone) : null;
+
+  await accountRef.delete();
+  if (phone) {
+    await db.collection('profiles').doc(phone).delete().catch(() => {});
+    await db.collection('profilesPrivate').doc(phone).delete().catch(() => {});
+  }
+  await admin.auth().deleteUser(uid).catch(() => {});
+
+  return { success: true };
+});
+
 // Email + notification push au voyageur dès qu'un client lui envoie une
 // nouvelle demande. La notification reprend le nom du client en titre,
 // comme un message reçu — jamais une bannière générique.

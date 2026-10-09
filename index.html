@@ -531,6 +531,7 @@
       </label>
     </div>
     <button class="btn red" style="margin-top:18px;" onclick="closeSettings();authSignOut();">🔓 Se déconnecter</button>
+    <button class="btn ghost" style="color:var(--red);" onclick="deleteMyAccount()">🗑️ Supprimer mon compte</button>
     <button class="btn ghost" onclick="closeSettings()">Fermer</button>
   </div>
 </div>
@@ -1122,6 +1123,22 @@ async function authSubmit(){
 async function authSignOut(){
   stopPolling();
   try{ await auth.signOut(); }catch(e){}
+}
+async function deleteMyAccount(){
+  if(!me) return;
+  if(!window.confirm("Supprimer définitivement votre compte Baraka GP ? Cette action est irréversible.")) return;
+  try{
+    await withTimeout(cloudFunctions.httpsCallable('deleteMyAccount')(), 15000);
+  }catch(e){
+    showToast("Erreur, réessayez");
+    return;
+  }
+  closeSettings();
+  stopPolling();
+  me=null;
+  try{ localStorage.removeItem('baraka-gp-me'); }catch(e){}
+  try{ await auth.signOut(); }catch(e){}
+  location.reload();
 }
 auth.onAuthStateChanged(async (user)=>{
   if(receiveMode) return; // page de confirmation de réception : ne pas afficher l'app normale
