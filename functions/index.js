@@ -22,6 +22,16 @@ function cleanPhone(p) {
   return (p || '').replace(/[^0-9]/g, '');
 }
 
+// Même logique que isAdmin() dans firestore.rules : le compte propriétaire
+// (UID codé en dur) ou un UID listé dans la collection "admins".
+const OWNER_UID = 'pn4WsdLN1gWrwIwMewMPumiRstj1';
+async function isAdminUid(uid) {
+  if (!uid) return false;
+  if (uid === OWNER_UID) return true;
+  const snap = await db.collection('admins').doc(uid).get();
+  return snap.exists;
+}
+
 // Retrouve l'email du compte associé à un numéro de téléphone, pour pouvoir
 // le prévenir par email d'un évènement sur ses commandes.
 async function findEmailByPhone(phone) {
@@ -216,6 +226,37 @@ exports.transferToTraveler = onDocumentUpdated({ document: 'orders/{orderId}', s
     await orderRef.set({ transferred: true, transferId: transfer.id, transferredAt: Date.now(), transferError: admin.firestore.FieldValue.delete() }, { merge: true });
   } catch (err) {
     await orderRef.set({ transferError: err.message }, { merge: true });
+  }
+});
+
+// Rembourse un client (admin uniquement), via un vrai remboursement Stripe
+// sur le paiement d'origine. Refusé si le voyageur a déjà été payé (le
+// transfert Stripe n'est pas automatiquement annulé par un remboursement) —
+// dans ce cas, un remboursement doit être géré manuellement par l'admin.
+exports.refundOrder = onCall({ secrets: [stripeSecretKey], region: REGION }, async (request) => {
+  if (!request.auth || !(await isAdminUid(request.auth.uid))) {
+    throw new HttpsError('permission-denied', 'Réservé aux administrateurs');
+  }
+  const orderId = request.data && request.data.orderId;
+  if (!orderId) throw new HttpsError('invalid-argument', 'Commande manquante');
+
+  const orderRef = db.collection('orders').doc(orderId);
+  const orderSnap = await orderRef.get();
+  if (!orderSnap.exists) throw new HttpsError('not-found', 'Commande introuvable');
+  const order = orderSnap.data();
+
+  if (!order.stripePaymentIntentId) throw new HttpsError('failed-precondition', "Cette commande n'a pas été payée via Stripe");
+  if (order.refunded) throw new HttpsError('failed-precondition', 'Cette commande a déjà été remboursée');
+  if (order.transferred) throw new HttpsError('failed-precondition', "Le voyageur a déjà été payé pour cette commande — remboursement manuel requis depuis Stripe");
+
+  const stripe = getStripe();
+  try {
+    const refund = await stripe.refunds.create({ payment_intent: order.stripePaymentIntentId });
+    await orderRef.set({ refunded: true, refundId: refund.id, refundedAt: Date.now(), refundError: admin.firestore.FieldValue.delete() }, { merge: true });
+    return { refundId: refund.id };
+  } catch (err) {
+    await orderRef.set({ refundError: err.message }, { merge: true });
+    throw new HttpsError('internal', err.message);
   }
 });
 

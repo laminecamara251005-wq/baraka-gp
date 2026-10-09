@@ -126,6 +126,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
 <script>
 // Doit pointer vers le MÊME projet Firebase que index.html, pour lire/écrire les mêmes données.
 const firebaseConfig = {
@@ -139,6 +140,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
+const cloudFunctions = firebase.app().functions('europe-west1');
 
 let listings=[], profiles={}, profilesPrivate={}, alerts=[], messages={}, orders=[], blockedPhones={};
 let adminSub='profiles', adminOpenThreadPhone=null;
@@ -482,14 +484,34 @@ function renderAdminOrders(){
       ` : ''}
       <div class="name-check">Note interne (visible seulement par l'admin)</div>
       <textarea id="adminNote_${o.id}" placeholder="Ex. Client recontacté le..." style="min-height:50px;">${esc(o.adminNote||'')}</textarea>
+      ${o.refunded ? `<div class="name-check" style="color:var(--green-dark);">✅ Remboursé le ${fmtDateTime(o.refundedAt)}</div>` : ''}
+      ${o.refundError ? `<div class="name-check" style="color:var(--red);">⚠️ Échec du remboursement : ${esc(o.refundError)}</div>` : ''}
       <div class="admin-actions">
         <button class="btn-approve" onclick="saveOrderNote('${o.id}')">Enregistrer la note</button>
         ${needsReview ? `<button class="btn-approve" onclick="markOrderSeen('${o.id}')">Marquer comme traité</button>` : ''}
         ${['refused','cancelled_gp','cancelled_client','expired'].includes(o.status) ? '' : `<button class="btn-reject" onclick="adminCancelOrder('${o.id}')">Annuler (litige)</button>`}
+        ${(o.stripePaymentIntentId && !o.refunded) ? `<button class="btn-reject" onclick="refundOrder('${o.id}')" id="refundBtn_${o.id}">💳 Rembourser le client</button>` : ''}
         <button class="btn-reject" onclick="removeOrder('${o.id}')">Supprimer la commande</button>
       </div>
     </div>`;
   }).join('');
+}
+async function refundOrder(orderId){
+  const o=orders.find(x=>x.id===orderId);
+  if(!o) return;
+  if(!confirm(`Rembourser ${o.priceTotal.toFixed(2)}€ au client ? Cette action est irréversible.`)) return;
+  const btn=document.getElementById('refundBtn_'+orderId);
+  if(btn){ btn.disabled=true; btn.textContent='Remboursement en cours...'; }
+  try{
+    const refund=cloudFunctions.httpsCallable('refundOrder');
+    await withTimeout(refund({orderId}), 15000);
+    showToast("Remboursement effectué !");
+    await loadAll();
+    renderAdminOrders();
+  }catch(e){
+    showToast("Échec du remboursement : "+(e.message||'réessayez'));
+    if(btn){ btn.disabled=false; btn.textContent='💳 Rembourser le client'; }
+  }
 }
 async function deleteOrderRating(orderId){
   const o=orders.find(x=>x.id===orderId);
