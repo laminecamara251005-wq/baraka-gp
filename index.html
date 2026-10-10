@@ -84,7 +84,7 @@
 
   .drawer-overlay{position:fixed;inset:0;background:rgba(31,43,36,.45);display:none;z-index:70;}
   .drawer-overlay.show{display:block;}
-  .drawer-panel{position:fixed;top:0;left:0;bottom:0;width:78%;max-width:320px;background:var(--panel);z-index:71;transform:translateX(-100%);transition:transform .28s ease;box-shadow:8px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column;padding:10px 0;}
+  .drawer-panel{position:fixed;top:0;left:0;bottom:0;width:78%;max-width:320px;background:var(--panel);z-index:71;transform:translateX(-100%);transition:transform .28s ease;box-shadow:8px 0 24px rgba(0,0,0,.12);display:flex;flex-direction:column;padding:10px 0;overflow-y:auto;}
   .drawer-panel.show{transform:translateX(0);}
   .drawer-head{display:flex;justify-content:space-between;align-items:center;padding:calc(14px + env(safe-area-inset-top)) 20px 10px;font-family:'Fraunces',serif;font-size:16px;color:var(--ink);border-bottom:1px solid var(--line);margin-bottom:6px;}
   .drawer-head .avatar{width:34px;height:34px;font-size:15px;}
