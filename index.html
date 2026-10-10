@@ -2690,10 +2690,23 @@ async function initReceiveMode(orderId){
   try{ snap=await withTimeout(db.collection('orders').doc(orderId).get(), 10000); }
   catch(e){ content.innerHTML=`<div class="sub" style="text-align:center;">Connexion impossible. Vérifiez votre connexion internet et réessayez.</div>`; return; }
   if(!snap.exists){ content.innerHTML=`<div class="sub" style="text-align:center;">Lien invalide ou commande introuvable.</div>`; return; }
-  renderReceiveContent(orderId, snap.data());
+  const order=snap.data();
+  let refCode=null;
+  try{
+    const pSnap=await withTimeout(db.collection('points').doc(cleanPhone(order.clientPhone)).get(), 8000);
+    if(pSnap.exists) refCode=pSnap.data().refCode;
+  }catch(e){}
+  renderReceiveContent(orderId, order, refCode);
 }
-function renderReceiveContent(orderId, order){
+function renderReceiveContent(orderId, order, refCode){
   const content=document.getElementById('receiveContent');
+  const labelBox = refCode ? `
+    <div class="rules-box" style="background:var(--green-pale);margin-bottom:16px;">
+      <div class="rules-title" style="color:var(--green-pale-ink);">🏷️ Étiquette attendue sur le colis</div>
+      <div style="font-size:14.5px;color:var(--ink);"><b>${esc(order.clientName||'Expéditeur')}</b> → <b>${esc(order.recipientName||'vous')}</b>, identifiant Baraka GP <b>${esc(refCode.toUpperCase())}</b></div>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-top:4px;">Vérifiez que ça correspond à ce qui est écrit sur le colis avant de l'accepter.</div>
+    </div>
+  ` : '';
   let statusHtml;
   if(order.status==='completed'){
     statusHtml=`<div class="sub" style="text-align:center;">✅ Réception déjà confirmée. Merci !</div>`;
@@ -2709,7 +2722,7 @@ function renderReceiveContent(orderId, order){
       <button class="btn gold" onclick="confirmReceiveDelivery('${orderId}')">J'ai bien reçu le colis</button>
     `;
   }
-  content.innerHTML = statusHtml + `
+  content.innerHTML = labelBox + statusHtml + `
     <div class="hint" style="margin-top:16px;">💬 Message au voyageur</div>
     <div class="chat-thread" id="receiveChatThread" style="margin-top:6px;"></div>
     <div class="chat-input">
