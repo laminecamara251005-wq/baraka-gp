@@ -182,7 +182,8 @@
   footer a{text-decoration:underline;}
 
   .rules-box{margin-top:16px;background:var(--gold-soft);border-radius:12px;padding:13px 15px;}
-  .rules-title{font-weight:700;font-size:13px;color:var(--gold-soft-ink);margin-bottom:9px;}
+  .rules-title{font-weight:700;font-size:13px;color:var(--gold-soft-ink);margin-bottom:9px;display:flex;align-items:center;gap:7px;}
+  .rules-title .icon{width:15px;height:15px;}
   .check-line{display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:500;text-transform:none;letter-spacing:0;color:var(--ink);margin:0 0 8px;cursor:pointer;}
   .rules-box .check-line{color:var(--ink);}
   .check-line:last-child{margin-bottom:0;}
@@ -308,7 +309,7 @@
     <button onclick="dismissTripReminder()" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--gold-soft-ink);flex-shrink:0;">✕</button>
   </div>
   <div id="pushPromptBanner" style="display:none;background:var(--blue-soft);border-radius:12px;padding:12px 14px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:10px;">
-    <span style="font-size:13.5px;color:var(--blue-soft-ink);font-weight:600;">🔔 Activez les notifications pour ne manquer aucun message</span>
+    <span style="font-size:13.5px;color:var(--blue-soft-ink);font-weight:600;display:flex;align-items:center;gap:8px;"><svg class="icon" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Activez les notifications pour ne manquer aucun message</span>
     <div style="display:flex;gap:8px;flex-shrink:0;">
       <button onclick="enablePushNotifications()" style="background:var(--blue-soft-ink);color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;padding:7px 12px;cursor:pointer;">Activer</button>
       <button onclick="dismissPushPrompt()" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--blue-soft-ink);">✕</button>
@@ -371,7 +372,7 @@
       <label>Description du contenu</label><textarea id="sDesc" placeholder="Ex. Vêtements et quelques cadeaux"></textarea>
       <label>Photo du colis</label><input type="file" id="sPhoto" accept="image/*">
       <div class="rules-box">
-        <div class="rules-title">⚠️ Objets strictement interdits</div>
+        <div class="rules-title"><svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Objets strictement interdits</div>
         <p style="font-size:13px;margin:0;color:var(--ink);">Espèces, document officiel d'un tiers, bijou non déclaré, produit illicite.</p>
       </div>
       <div class="rules-box" style="background:var(--green-pale);">
@@ -408,7 +409,7 @@
       <div class="hint">Utilisée pour savoir à partir de quand le destinataire peut confirmer la réception.</div>
       <label>Kg disponibles</label><input type="number" id="pKg" placeholder="Ex. 8" min="1">
       <div class="rules-box">
-        <div class="rules-title">🙏 Engagement du voyageur</div>
+        <div class="rules-title"><svg class="icon" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.79 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>Engagement du voyageur</div>
         <p style="font-size:13px;margin:0;color:var(--ink);">Je transporte uniquement des colis vérifiés sans les ouvrir, et je confirme la remise au destinataire.</p>
       </div>
       <div class="rules-box" style="background:var(--green-pale);">
@@ -421,8 +422,8 @@
   <!-- MY TRIPS (voyageurs) -->
   <div id="viewMytrips" style="display:none;">
     <div class="role-toggle">
-      <div class="active" id="mytripsTabTrips" onclick="switchMytripsSub('trips')">🧳 Mes trajets publiés</div>
-      <div id="mytripsTabColis" onclick="switchMytripsSub('colis')">📦 Demandes disponibles</div>
+      <div class="active" id="mytripsTabTrips" onclick="switchMytripsSub('trips')">Mes trajets publiés</div>
+      <div id="mytripsTabColis" onclick="switchMytripsSub('colis')">Demandes disponibles</div>
     </div>
     <div id="mytripsSectionTrips">
       <div id="myTripsList"></div>
@@ -443,9 +444,9 @@
   <!-- ORDERS -->
   <div id="viewOrders" style="display:none;">
     <div class="role-toggle">
-      <div class="active" id="roleClient" onclick="switchRole('client')">📤 Mes envois <span class="drawer-badge" id="badgeRoleClient" style="display:none;">0</span></div>
-      <div id="roleGp" onclick="switchRole('gp')">✈️ Commandes reçues (GP) <span class="drawer-badge" id="badgeRoleGp" style="display:none;">0</span></div>
-      <div id="roleCompleted" onclick="switchRole('completed')">🗂️ Historique</div>
+      <div class="active" id="roleClient" onclick="switchRole('client')">Mes envois <span class="drawer-badge" id="badgeRoleClient" style="display:none;">0</span></div>
+      <div id="roleGp" onclick="switchRole('gp')">Commandes reçues (GP) <span class="drawer-badge" id="badgeRoleGp" style="display:none;">0</span></div>
+      <div id="roleCompleted" onclick="switchRole('completed')">Historique</div>
     </div>
     <div id="ordersList"></div>
   </div>
@@ -506,7 +507,7 @@
 
     <div class="order-section-title">✅ Vérifications</div>
     <div class="rules-box">
-      <div class="rules-title">⚠️ Objets strictement interdits</div>
+      <div class="rules-title"><svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Objets strictement interdits</div>
       <p style="font-size:13px;margin:0;color:var(--ink);">Espèces, document officiel d'un tiers, bijou non déclaré, produit illicite.</p>
     </div>
     <div class="rules-box" style="background:var(--green-pale);">
@@ -1242,7 +1243,7 @@ function renderPointsPanel(){
   const discounts = availableDiscounts(me.phone);
   const refLink = location.origin + location.pathname + '?ref=' + points[key].refCode;
   document.getElementById('pointsPanel').innerHTML = `
-    <h2>🌟 Vos points Baraka</h2>
+    <h2 style="display:flex;align-items:center;gap:9px;"><svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z"/></svg>Vos points Baraka</h2>
     <div class="sub">Gagnez des points à chaque commande complétée, échangez-les contre des remises.</div>
     <div style="text-align:center;padding:10px 0;">
       <div style="font-family:'Fraunces',serif;font-size:38px;color:var(--accent);">${p}</div>
@@ -1299,7 +1300,7 @@ function renderBalancePanel(){
     return list.length===0 ? '' : `<div style="margin-top:8px;">${list.map(o=>orderRow(o, o[priceField]||0)).join('')}</div>`;
   }
 
-  let html = `<h2>💰 Mon solde</h2>
+  let html = `<h2 style="display:flex;align-items:center;gap:9px;"><svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px;"><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/><path d="M3 9h18"/><circle cx="16" cy="14" r="1"/></svg>Mon solde</h2>
     <div class="sub">Ceci récapitule ce que vous devriez recevoir ou avez payé selon vos commandes.</div>`;
 
   if(gpOrders.length>0){
@@ -1465,7 +1466,7 @@ function checkTripReminders(){
   let dismissed=false;
   try{ dismissed=localStorage.getItem('baraka-gp-reminder-dismissed-'+tomorrowStr)==='1'; }catch(e){}
   if(dueOrders.length>0 && !dismissed){
-    document.getElementById('tripReminderText').textContent = `📅 Rappel : ${dueOrders.length>1?'vous avez '+dueOrders.length+' trajets prévus':'vous avez un trajet prévu'} demain (${fmtDate(tomorrowStr)}).`;
+    document.getElementById('tripReminderText').textContent = `Rappel : ${dueOrders.length>1?'vous avez '+dueOrders.length+' trajets prévus':'vous avez un trajet prévu'} demain (${fmtDate(tomorrowStr)}).`;
     banner.style.display='flex';
   }else{
     banner.style.display='none';
@@ -1952,7 +1953,7 @@ function renderOrderCard(o){
       ${countdown}
       ${(o.pickupLocation && o.status!=='completed') ? `
         <div class="rules-box" style="background:var(--green-pale);margin-top:12px;">
-          <div class="rules-title" style="color:var(--green-pale-ink);">📍 Lieu et horaire de prise en charge</div>
+          <div class="rules-title" style="color:var(--green-pale-ink);"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Lieu et horaire de prise en charge</div>
           <div style="font-size:15px;font-weight:700;color:var(--ink);">${esc(o.pickupLocation)}</div>
           <div style="font-size:13px;color:var(--ink-soft);margin-top:3px;">🕒 ${fmtDateTime(o.pickupTime)}</div>
           ${!o.pickupTimeAccepted ? `<div style="font-size:12px;color:var(--gold-soft-ink);margin-top:6px;font-weight:600;">⏳ ${ordersRole==='client'?'En attente de votre confirmation':'En attente de confirmation du client'}</div>` : ''}
@@ -2726,7 +2727,7 @@ function renderReceiveContent(orderId, order, refCode){
   const content=document.getElementById('receiveContent');
   const labelBox = refCode ? `
     <div class="rules-box" style="background:var(--green-pale);margin-bottom:16px;">
-      <div class="rules-title" style="color:var(--green-pale-ink);">🏷️ Étiquette attendue sur le colis</div>
+      <div class="rules-title" style="color:var(--green-pale-ink);"><svg class="icon" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42Z"/><circle cx="7.5" cy="7.5" r="1.5" style="fill:currentColor;"/></svg>Étiquette attendue sur le colis</div>
       <div style="font-size:14.5px;color:var(--ink);"><b>${esc(order.clientName||'Expéditeur')}</b> → <b>${esc(order.recipientName||'vous')}</b>, identifiant Baraka GP <b>${esc(refCode.toUpperCase())}</b></div>
       <div style="font-size:12.5px;color:var(--ink-soft);margin-top:4px;">Vérifiez que ça correspond à ce qui est écrit sur le colis avant de l'accepter.</div>
     </div>
