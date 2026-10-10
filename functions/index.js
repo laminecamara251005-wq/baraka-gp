@@ -306,10 +306,29 @@ exports.deleteMyAccount = onCall({ region: REGION }, async (request) => {
   const phone = accountSnap.exists ? cleanPhone(accountSnap.data().phone) : null;
 
   await accountRef.delete();
+
   if (phone) {
-    await db.collection('profiles').doc(phone).delete().catch(() => {});
-    await db.collection('profilesPrivate').doc(phone).delete().catch(() => {});
+    // Le champ "phone" de la fiche accounts est librement modifiable par son
+    // propriétaire (les règles Firestore ne vérifient que l'UID, pas le
+    // contenu) — on ne le fait donc PAS confiance seul pour choisir quelle
+    // fiche voyageur supprimer, sinon un compte pourrait forcer la
+    // suppression du profil (et de la pièce d'identité) d'un autre voyageur
+    // en déclarant son numéro avant d'appeler cette fonction. On ne supprime
+    // profiles/profilesPrivate que si ce numéro correspond au numéro
+    // réellement vérifié par SMS sur CE compte (Firebase Phone Auth, que le
+    // client ne peut pas falsifier).
+    let verifiedPhoneDigits = null;
+    try {
+      const userRecord = await admin.auth().getUser(uid);
+      if (userRecord.phoneNumber) verifiedPhoneDigits = cleanPhone(userRecord.phoneNumber);
+    } catch (e) {}
+    const localDigits = phone.startsWith('0') ? phone.slice(1) : phone;
+    if (verifiedPhoneDigits && localDigits && verifiedPhoneDigits.endsWith(localDigits)) {
+      await db.collection('profiles').doc(phone).delete().catch(() => {});
+      await db.collection('profilesPrivate').doc(phone).delete().catch(() => {});
+    }
   }
+
   await admin.auth().deleteUser(uid).catch(() => {});
 
   return { success: true };
