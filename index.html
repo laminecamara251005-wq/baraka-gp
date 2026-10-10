@@ -113,11 +113,13 @@
   select:focus, input:focus, textarea:focus{outline:none;border-color:var(--green);}
   .password-field{position:relative;}
   .password-field input{padding-right:44px;}
-  .password-toggle{position:absolute;right:2px;top:0;width:auto;height:100%;padding:0 12px;margin:0;background:none;border:none;font-size:17px;cursor:pointer;line-height:1;}
+  .password-toggle{position:absolute;right:2px;top:0;width:auto;height:100%;padding:0 12px;margin:0;background:none;border:none;cursor:pointer;line-height:1;display:flex;align-items:center;color:var(--ink-soft);}
+  .password-toggle .icon{width:18px;height:18px;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .hint{font-size:11.5px;color:var(--ink-soft);margin-top:5px;}
 
-  .btn{margin-top:18px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;transition:.15s;}
+  .btn{margin-top:18px;width:100%;padding:13px;border:none;border-radius:10px;background:var(--green);color:#fff;font-weight:700;font-size:15px;cursor:pointer;font-family:'Inter',sans-serif;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn .icon{width:16px;height:16px;stroke-width:2.2;}
   .btn:hover{background:var(--green-dark);}
   .btn.gold{background:var(--gold);} .btn.gold:hover{background:#B07F24;}
   .btn.red{background:var(--red);} .btn.red:hover{background:#963530;}
@@ -154,7 +156,8 @@
   .search-spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--green);border-radius:50%;margin:0 auto;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  .badge{margin-top:10px;font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;display:inline-block;}
+  .badge{margin-top:10px;font-size:12px;font-weight:600;padding:5px 11px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;}
+  .badge .icon{width:13px;height:13px;stroke-width:2.5;}
   .badge.verified{background:var(--green-pale);color:var(--green-pale-ink);}
   .badge.pending{background:var(--gold-soft);color:var(--gold-soft-ink);}
   .badge.danger{background:var(--red-soft);color:var(--red-soft-ink);}
@@ -199,7 +202,8 @@
   /* ORDER CARD */
   .order-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;margin-bottom:14px;box-shadow:0 2px 10px rgba(30,111,92,.06);}
   .order-card .route{font-size:15.5px;}
-  .status-pill{display:inline-block;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;}
+  .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:999px;}
+  .status-pill .icon{width:12px;height:12px;stroke-width:2.5;}
   .status-pill.pending{background:var(--gold-soft);color:var(--gold-soft-ink);}
   .status-pill.accepted{background:var(--green-pale);color:var(--green-pale-ink);}
   .status-pill.paid{background:var(--blue-soft);color:var(--blue-soft-ink);}
@@ -591,14 +595,14 @@
 <!-- PAIEMENT -->
 <div class="overlay" id="paymentOverlay">
   <div class="modal center payment-modal">
-    <div class="payment-lock">🔒</div>
+    <div class="payment-lock"><svg class="icon" viewBox="0 0 24 24" style="width:22px;height:22px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
     <h3>Paiement sécurisé</h3>
     <p class="sub" id="paymentRouteInfo"></p>
     <div class="price-big" id="paymentAmount"></div>
     <div class="payment-form-card" id="paymentFormBox"></div>
     <button class="btn gold" id="paymentSubmitBtn" onclick="submitPayment()" disabled>Payer</button>
     <button class="btn ghost" onclick="closePaymentModal()">Annuler</button>
-    <p class="payment-secure-note">🔒 Paiement chiffré et sécurisé par Stripe</p>
+    <p class="payment-secure-note"><svg class="icon" viewBox="0 0 24 24" style="width:13px;height:13px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Paiement chiffré et sécurisé par Stripe</p>
   </div>
 </div>
 
@@ -635,7 +639,7 @@
     <input type="email" id="authEmail" placeholder="Votre email" autocomplete="username">
     <div class="password-field">
       <input type="password" id="authPassword" placeholder="Mot de passe" autocomplete="new-password">
-      <button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPassword', this)">👁</button>
+      <button type="button" class="password-toggle" onclick="togglePasswordVisibility('authPassword', this)"><svg class="icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
     <button class="btn" id="authSubmitBtn" onclick="authSubmit()">Créer mon compte</button>
     <label id="authLegalNote" class="check-line" style="margin-top:10px;font-size:11.5px;color:var(--ink-soft);display:none;">
@@ -685,6 +689,23 @@
 <script src="https://js.stripe.com/v3/"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
+// Icônes à traits fins réutilisées partout où une emoji servait jusque-là
+// de simple pastille de statut (✅⏳❌💳📦 etc.) — cohérent avec la
+// navigation, hérite la couleur du texte parent via currentColor.
+const ICON_CHECK='<svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>';
+const ICON_CLOCK='<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>';
+const ICON_X='<svg class="icon" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+const ICON_CARD='<svg class="icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>';
+const ICON_BOX='<svg class="icon" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.73Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>';
+const ICON_WARN='<svg class="icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+const ICON_BELL='<svg class="icon" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>';
+const ICON_LINK='<svg class="icon" viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>';
+const ICON_KEY='<svg class="icon" viewBox="0 0 24 24"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z"/><circle cx="16.5" cy="7.5" r=".5" style="fill:currentColor;"/></svg>';
+const ICON_LOCK='<svg class="icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+const ICON_MAP='<svg class="icon" viewBox="0 0 24 24"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>';
+const ICON_CAR='<svg class="icon" viewBox="0 0 24 24"><path d="M19 17h2v-6l-3-5H6L3 11v6h2"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="16.5" cy="17.5" r="2.5"/><line x1="10" y1="17.5" x2="14" y2="17.5"/></svg>';
+const ICON_EYE='<svg class="icon" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_EYE_OFF='<svg class="icon" viewBox="0 0 24 24"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 1 12s4 8 11 8a9.26 9.26 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/></svg>';
 const PRICE_PER_KG = 12;
 const COMMISSION_PER_KG = 3;
 
@@ -869,8 +890,8 @@ let authMode='signup';
 let authFlowInProgress=false;
 function togglePasswordVisibility(id, btn){
   const input=document.getElementById(id);
-  if(input.type==='password'){ input.type='text'; btn.textContent='🙈'; }
-  else{ input.type='password'; btn.textContent='👁'; }
+  if(input.type==='password'){ input.type='text'; btn.innerHTML=ICON_EYE_OFF; }
+  else{ input.type='password'; btn.innerHTML=ICON_EYE; }
 }
 function switchAuthMode(){
   authMode = authMode==='signup' ? 'login' : 'signup';
@@ -1306,8 +1327,8 @@ function renderBalancePanel(){
   if(gpOrders.length>0){
     const myProfile=profiles[myPhone]||{};
     const payoutStatus=myProfile.stripeOnboarded
-      ? `<div class="hint" style="margin-top:6px;color:var(--accent);">✅ Compte de paiement configuré, vous pouvez recevoir vos versements.</div>`
-      : `<div class="hint" style="margin-top:6px;">⚠️ Configurez votre compte pour recevoir vos versements.</div>
+      ? `<div class="hint" style="margin-top:6px;color:var(--accent);">${ICON_CHECK}Compte de paiement configuré, vous pouvez recevoir vos versements.</div>`
+      : `<div class="hint" style="margin-top:6px;">${ICON_WARN}Configurez votre compte pour recevoir vos versements.</div>
          <button class="btn gold sm" onclick="setupPayoutAccount()">🏦 Configurer mon compte de paiement</button>`;
     html += `
     <h3 style="margin-top:20px;font-family:'Fraunces',serif;">✈️ En tant que voyageur</h3>
@@ -1327,7 +1348,7 @@ function renderBalancePanel(){
     <div class="price-recap" style="background:var(--gold-soft);">
       <div class="price-recap-row" style="color:var(--gold-soft-ink);"><span>💳 Payé</span><b>${clientPaidTotal.toFixed(2)}€</b></div>
       ${orderList(clientPaid,'priceTotal')}
-      <div class="price-recap-row" style="color:var(--gold-soft-ink);margin-top:10px;"><span>⏳ En attente de paiement</span><b>${clientPendingTotal.toFixed(2)}€</b></div>
+      <div class="price-recap-row" style="color:var(--gold-soft-ink);margin-top:10px;"><span>${ICON_CLOCK}En attente de paiement</span><b>${clientPendingTotal.toFixed(2)}€</b></div>
       ${orderList(clientPending,'priceTotal')}
       ${clientCancelled.length>0 ? `<div class="price-recap-row sub" style="margin-top:10px;color:var(--gold-soft-ink);"><span>🔴 Annulées / refusées</span><span>${clientCancelled.length}</span></div>` : ''}
     </div>`;
@@ -1557,7 +1578,7 @@ function checkProfile(){
   if(profile){
     idSection.style.display='none';
     box.innerHTML = profile.verified
-      ? `<div class="profile-status verified"><b>✅ Identité vérifiée</b>Ajoutez juste votre billet pour ce trajet.</div>`
+      ? `<div class="profile-status verified"><b>${ICON_CHECK}Identité vérifiée</b>Ajoutez juste votre billet pour ce trajet.</div>`
       : `<div class="profile-status pending"><b>⏳ En cours de vérification</b>Ajoutez votre billet, l'annonce sera visible dès validation.</div>`;
   }else{
     idSection.style.display='block';
@@ -1594,7 +1615,7 @@ function showProfileDetail(phone){
     <div style="display:flex;flex-direction:column;align-items:center;">
       ${avatarHtml}
       <h3 style="margin-top:10px;">${esc(profile.name||'Voyageur')}</h3>
-      ${profile.verified ? `<div class="badge verified">✅ Identité vérifiée</div>` : `<div class="badge pending">⏳ Vérification en cours</div>`}
+      ${profile.verified ? `<div class="badge verified">${ICON_CHECK}Identité vérifiée</div>` : `<div class="badge pending">${ICON_CLOCK}Vérification en cours</div>`}
     </div>
     <div style="display:flex;justify-content:space-around;text-align:center;margin-top:18px;padding:14px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
       <div>
@@ -1718,7 +1739,7 @@ function displayResults(country, from, to, sortBy, minKg){
         <span>🧳 <b>${remainingKg(l)} kg</b> dispo</span>
       </div>
       ${l.arrivalDateTime ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">🛬 Arrivée estimée : ${fmtDateTime(l.arrivalDateTime)}</div>` : ''}
-      ${verified ? `<div class="badge verified">✅ Voyageur vérifié</div>` : `<div class="badge pending">⏳ Vérification en cours</div>`}
+      ${verified ? `<div class="badge verified">${ICON_CHECK}Voyageur vérifié</div>` : `<div class="badge pending">${ICON_CLOCK}Vérification en cours</div>`}
       <button class="btn gold sm" onclick='openOrderModal(${JSON.stringify(l).replace(/'/g,"&apos;")})'>Choisir ce voyageur</button>
     </div>`;
   }).join('');
@@ -1842,7 +1863,11 @@ function switchRole(role){
   renderOrders();
 }
 function statusLabel(s){
-  return {pending:'⏳ En attente',accepted:'✅ Acceptée',paid:'💳 Payée',picked_up:'🧳 Prise en charge',delivered:'📦 Remise confirmée',completed:'🎉 Terminée',refused:'❌ Refusée',cancelled_gp:'❌ Annulée par le GP',cancelled_client:'❌ Annulée',expired:'⌛ Expirée'}[s]||s;
+  return {
+    pending:ICON_CLOCK+'En attente', accepted:ICON_CHECK+'Acceptée', paid:ICON_CARD+'Payée',
+    picked_up:ICON_BOX+'Prise en charge', delivered:ICON_BOX+'Remise confirmée', completed:ICON_CHECK+'Terminée',
+    refused:ICON_X+'Refusée', cancelled_gp:ICON_X+'Annulée par le GP', cancelled_client:ICON_X+'Annulée', expired:ICON_CLOCK+'Expirée'
+  }[s]||s;
 }
 function progressSteps(order){
   const steps=['pending','accepted','paid','picked_up','delivered','completed'];
@@ -1958,8 +1983,8 @@ function renderOrderCard(o){
           <div style="font-size:13px;color:var(--ink-soft);margin-top:3px;">🕒 ${fmtDateTime(o.pickupTime)}</div>
           ${!o.pickupTimeAccepted ? `<div style="font-size:12px;color:var(--gold-soft-ink);margin-top:6px;font-weight:600;">⏳ ${ordersRole==='client'?'En attente de votre confirmation':'En attente de confirmation du client'}</div>` : ''}
           <div style="display:flex;gap:14px;margin-top:8px;">
-            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.pickupLocation)}" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:var(--green-pale-ink);text-decoration:underline;">🗺️ Google Maps</a>
-            <a href="https://waze.com/ul?q=${encodeURIComponent(o.pickupLocation)}&navigate=yes" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:var(--green-pale-ink);text-decoration:underline;">🚗 Waze</a>
+            <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.pickupLocation)}" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:var(--green-pale-ink);text-decoration:underline;display:inline-flex;align-items:center;gap:4px;">${ICON_MAP}Google Maps</a>
+            <a href="https://waze.com/ul?q=${encodeURIComponent(o.pickupLocation)}&navigate=yes" target="_blank" rel="noopener" style="font-size:12.5px;font-weight:700;color:var(--green-pale-ink);text-decoration:underline;display:inline-flex;align-items:center;gap:4px;">${ICON_CAR}Waze</a>
           </div>
         </div>
       ` : ''}
@@ -1977,7 +2002,7 @@ function renderOrderCard(o){
       ${(o.recipientName && o.status!=='completed') ? `<div style="font-size:12.5px;margin-top:4px;color:var(--ink-soft);">🙋 À remettre à : <b>${esc(o.recipientName)}</b></div>` : ''}
       ${(o.status!=='completed' || (ordersRole==='client' && !o.rating) || (ordersRole==='gp' && !o.clientRating)) ? renderOrderActions(o) : ''}
       ${(o.recipientName && !isFailed && o.status!=='pending' && o.status!=='completed') ? `
-        <button class="btn ghost sm" onclick="shareWithRecipient('${o.id}')">🔗 Partager le lien avec le destinataire</button>
+        <button class="btn ghost sm" onclick="shareWithRecipient('${o.id}')">${ICON_LINK}Partager le lien avec le destinataire</button>
         <div class="hint" style="margin-top:10px;">💬 Discussion avec le destinataire</div>
         <div class="chat-thread" id="rc-${o.id}" style="margin-top:6px;"></div>
         <div class="chat-input">
@@ -2002,18 +2027,18 @@ function renderOrderActions(o){
     }
     if(!o.pickupTimeAccepted){
       return `<div class="hint" style="margin-top:10px;">Vérifiez le lieu et l'horaire proposés ci-dessus. S'ils vous conviennent, confirmez pour pouvoir payer.</div>
-        <button class="btn gold sm" onclick="acceptPickupTime('${o.id}')">✅ J'accepte ce lieu et cet horaire</button>
+        <button class="btn gold sm" onclick="acceptPickupTime('${o.id}')">${ICON_CHECK}J'accepte ce lieu et cet horaire</button>
         <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
     }
     const discounts = me ? availableDiscounts(me.phone) : 0;
     const discountBox = discounts>0 ? `<label class="check-line" style="background:var(--green-pale);color:var(--green-pale-ink);padding:10px 12px;border-radius:10px;display:block;margin-bottom:8px;"><input type="checkbox" id="useDiscount-${o.id}"> Utiliser une remise de 5€ (vous en avez ${discounts} disponible${discounts>1?'s':''})</label>` : '';
-    return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">💳 Payer maintenant</button>
+    return `${discountBox}<button class="btn gold sm" onclick="payOrder('${o.id}')">${ICON_CARD}Payer maintenant</button>
       <button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_client')">Annuler ma commande</button>`;
   }
   if(ordersRole==='gp' && o.status==='paid'){
     const canCancel = canCancelTrip(o);
     return `
-      <button class="btn gold sm" onclick="showPickupCode('${o.id}')">🔑 Voir mon code (à donner au client à la prise en charge)</button>
+      <button class="btn gold sm" onclick="showPickupCode('${o.id}')">${ICON_KEY}Voir mon code (à donner au client à la prise en charge)</button>
       ${canCancel ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
     `;
   }
@@ -2045,7 +2070,7 @@ function renderOrderActions(o){
       <input type="text" id="gpPickupLoc-${o.id}" placeholder="Ex. Gare du Nord, Paris" value="${(o.pickupLocation||'').replace(/"/g,'&quot;')}">
       <label>Horaire de prise en charge proposé</label>
       <input type="datetime-local" id="gpPickupTime-${o.id}" max="${o.tripDate}T23:59">
-      <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">✅ ${o.pickupSuggested?"J'accepte ce lieu, proposer au client":"Proposer au client"}</button>
+      <button class="btn gold sm" onclick="gpProposePickup('${o.id}')">${ICON_CHECK}${o.pickupSuggested?"J'accepte ce lieu, proposer au client":"Proposer au client"}</button>
       ${canCancelTrip(o) ? `<button class="btn red sm" onclick="respondOrder('${o.id}','cancelled_gp')">Annuler ce trajet</button>` : ''}
     `;
   }
@@ -2452,7 +2477,7 @@ function renderMyTrips(){
         <span>🧳 <b>${remainingKg(l)} kg</b> dispo (sur ${l.kg}kg)</span>
       </div>
       ${l.arrivalDateTime ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;">🛬 Arrivée estimée : ${fmtDateTime(l.arrivalDateTime)}</div>` : ''}
-      ${remainingKg(l)<=0 ? `<div class="badge verified" style="display:block;">✅ Complet, n'apparaît plus dans les recherches</div>` : ''}
+      ${remainingKg(l)<=0 ? `<div class="badge verified" style="display:block;">${ICON_CHECK}Complet, n'apparaît plus dans les recherches</div>` : ''}
       <div class="admin-actions" style="margin-top:12px;">
         <button class="btn-approve" onclick="openEditListing('${l.id}')">Modifier</button>
         <button class="btn-reject" onclick="removeMyListing('${l.id}')">Supprimer</button>
@@ -2538,7 +2563,7 @@ function renderMyDemandes(){
     <div class="gp-card">
       <div class="top">
         <div class="route">${esc(l.from)} <span class="dots">✈</span> ${esc(l.to)}</div>
-        ${l.verified ? `<div class="badge verified">✅ Vérifié</div>` : `<div class="badge pending">⏳ En attente</div>`}
+        ${l.verified ? `<div class="badge verified">${ICON_CHECK}Vérifié</div>` : `<div class="badge pending">${ICON_CLOCK}En attente</div>`}
       </div>
       <div class="meta">
         <span>${flag(l.country)} <b>${l.country}</b></span>
@@ -2568,7 +2593,7 @@ function renderMyDemandes(){
     <div class="gp-card">
       <div class="top">
         <div class="route">${esc(a.from) || '(ville de départ non précisée)'} <span class="dots">✈</span> ${esc(a.to) || '(ville d\'arrivée non précisée)'}</div>
-        ${a.notified ? `<div class="badge verified">✅ Notifiée</div>` : `<div class="badge pending">🔔 En attente</div>`}
+        ${a.notified ? `<div class="badge verified">${ICON_CHECK}Notifiée</div>` : `<div class="badge pending">${ICON_BELL}En attente</div>`}
       </div>
       <div class="meta">${a.country ? `<span>${flag(a.country)} <b>${a.country}</b></span>` : ''}</div>
       <div class="admin-actions" style="margin-top:12px;">
@@ -2734,7 +2759,7 @@ function renderReceiveContent(orderId, order, refCode){
   ` : '';
   let statusHtml;
   if(order.status==='completed'){
-    statusHtml=`<div class="sub" style="text-align:center;">✅ Réception déjà confirmée. Merci !</div>`;
+    statusHtml=`<div class="sub" style="text-align:center;">${ICON_CHECK}Réception déjà confirmée. Merci !</div>`;
   }else if(order.status!=='delivered'){
     statusHtml=`<div class="sub" style="text-align:center;">Le voyageur n'a pas encore remis ce colis. Revenez sur ce lien une fois le colis en main. Vous pouvez déjà lui écrire ci-dessous.</div>`;
   }else if(orderArrivalDateStr(order) && orderArrivalDateStr(order)>todayDateStr()){
