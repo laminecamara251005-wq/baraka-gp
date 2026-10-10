@@ -1863,11 +1863,7 @@ function switchRole(role){
   renderOrders();
 }
 function statusLabel(s){
-  return {
-    pending:ICON_CLOCK+'En attente', accepted:ICON_CHECK+'Acceptée', paid:ICON_CARD+'Payée',
-    picked_up:ICON_BOX+'Prise en charge', delivered:ICON_BOX+'Remise confirmée', completed:ICON_CHECK+'Terminée',
-    refused:ICON_X+'Refusée', cancelled_gp:ICON_X+'Annulée par le GP', cancelled_client:ICON_X+'Annulée', expired:ICON_CLOCK+'Expirée'
-  }[s]||s;
+  return {pending:'⏳ En attente',accepted:'✅ Acceptée',paid:'💳 Payée',picked_up:'🧳 Prise en charge',delivered:'📦 Remise confirmée',completed:'🎉 Terminée',refused:'❌ Refusée',cancelled_gp:'❌ Annulée par le GP',cancelled_client:'❌ Annulée',expired:'⌛ Expirée'}[s]||s;
 }
 function progressSteps(order){
   const steps=['pending','accepted','paid','picked_up','delivered','completed'];
