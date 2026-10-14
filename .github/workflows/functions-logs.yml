@@ -1,0 +1,120 @@
+name: Journaux des Cloud Functions (diagnostic)
+
+on:
+  push:
+    branches: [claude/new-session-rtyzv8]
+    paths:
+      - '.github/workflows/functions-logs.yml'
+  workflow_dispatch:
+    inputs:
+      functions:
+        description: 'Fonctions à inspecter (séparées par des virgules)'
+        required: false
+        default: 'notifyUserMessage,notifyOrderMessage,notifyNewOrder,notifyOrderAccepted'
+      lines:
+        description: 'Nombre de lignes de log'
+        required: false
+        default: '50'
+      admin_email:
+        description: 'Email à déclarer admin (laisser vide pour ne rien faire)'
+        required: false
+      fetch_apple_pay_file:
+        description: 'Récupérer le fichier de vérification de domaine Apple Pay (oui/non)'
+        required: false
+      register_apple_pay_domain:
+        description: 'Domaine à déclarer pour Apple Pay auprès de Stripe (laisser vide pour ne rien faire)'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installer Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Authentification Google (compte de service)
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Afficher les journaux récents
+        if: inputs.functions != ''
+        run: firebase functions:log --project baraka-gp --only "${{ inputs.functions }}" -n "${{ inputs.lines }}"
+
+      - name: Inspecter Firestore (comptes et jetons push)
+        if: inputs.functions == ''
+        run: |
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            const db = admin.firestore();
+            const cleanPhone = p => (p || '').replace(/[^0-9]/g, '');
+            (async () => {
+              const snap = await db.collection('accounts').get();
+              console.log('Comptes trouvés :', snap.size);
+              let fixed = 0;
+              for (const doc of snap.docs) {
+                const d = doc.data();
+                const computed = cleanPhone(d.phone);
+                console.log('---');
+                console.log('uid:', doc.id, '| name:', d.name, '| phone:', d.phone, '| phoneClean actuel:', d.phoneClean, '| fcmTokens:', (d.fcmTokens || []).length);
+                if (!d.phoneClean && computed) {
+                  await doc.ref.set({ phoneClean: computed }, { merge: true });
+                  console.log('  -> corrigé : phoneClean =', computed);
+                  fixed++;
+                }
+              }
+              console.log('Comptes corrigés :', fixed);
+              const msgSnap = await db.collection('messages').get();
+              console.log('=== Threads messages ===');
+              msgSnap.forEach(doc => {
+                const d = doc.data();
+                console.log(doc.id, '| name:', d.name, '| thread length:', (d.thread||[]).length, '| last from:', d.thread && d.thread.length ? d.thread[d.thread.length-1].from : null);
+              });
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Déclarer un compte admin
+        if: inputs.admin_email != ''
+        env:
+          ADMIN_EMAIL: ${{ inputs.admin_email }}
+        run: |
+          npm install firebase-admin@12
+          node -e "
+            const admin = require('firebase-admin');
+            admin.initializeApp({ projectId: 'baraka-gp' });
+            (async () => {
+              const user = await admin.auth().getUserByEmail(process.env.ADMIN_EMAIL);
+              console.log('Compte trouvé : uid =', user.uid, '| email =', user.email);
+              await admin.firestore().collection('admins').doc(user.uid).set({ role: 'admin' });
+              console.log('-> Déclaré admin avec succès (collection admins, doc', user.uid + ')');
+            })().catch(e => { console.error('ERREUR:', e.message); process.exit(1); });
+          "
+
+      - name: Récupérer le fichier de vérification Apple Pay (Stripe)
+        if: inputs.fetch_apple_pay_file != ''
+        run: |
+          set -e
+          URL="https://stripe.com/files/apple-pay/apple-developer-merchantid-domain-association"
+          echo "Téléchargement depuis $URL"
+          HTTP_CODE=$(curl -sS -w "%{http_code}" -o /tmp/apple-pay-file -L "$URL")
+          echo "Code HTTP : $HTTP_CODE"
+          echo "Taille : $(wc -c < /tmp/apple-pay-file) octets"
+          head -c 300 /tmp/apple-pay-file
+          echo ""
+
+      - name: Déclarer le domaine Apple Pay auprès de Stripe
+        if: inputs.register_apple_pay_domain != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          DOMAIN: ${{ inputs.register_apple_pay_domain }}
+        run: |
+          set -e
+          curl -sS https://api.stripe.com/v1/apple_pay/domains \
+            -u "$STRIPE_SECRET_KEY:" \
+            -d "domain_name=$DOMAIN"
+          echo ""
